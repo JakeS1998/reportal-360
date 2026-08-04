@@ -1,0 +1,122 @@
+{
+  "name": "School",
+  "type": "object",
+  "properties": {
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "district": {
+      "type": "string",
+      "title": "District"
+    },
+    "city": {
+      "type": "string",
+      "title": "City"
+    },
+    "grade_span": {
+      "type": "string",
+      "title": "Grade Span",
+      "description": "e.g. K-5, 6-8, 9-12"
+    },
+    "school_type": {
+      "type": "string",
+      "title": "School Type",
+      "enum": [
+        "Elementary",
+        "Middle",
+        "High",
+        "K-12",
+        "Other"
+      ]
+    },
+    "enrollment": {
+      "type": "number",
+      "title": "Enrollment"
+    },
+    "academic_score": {
+      "type": "number",
+      "title": "Academic Score",
+      "description": "Overall academic performance score (0-100)"
+    },
+    "academic_grade": {
+      "type": "string",
+      "title": "Academic Grade",
+      "enum": [
+        "A+",
+        "A",
+        "A-",
+        "B+",
+        "B",
+        "B-",
+        "C+",
+        "C",
+        "C-",
+        "D+",
+        "D",
+        "D-",
+        "F"
+      ]
+    },
+    "math_proficiency": {
+      "type": "number",
+      "title": "Math Proficiency (%)"
+    },
+    "reading_proficiency": {
+      "type": "number",
+      "title": "Reading Proficiency (%)"
+    },
+    "science_proficiency": {
+      "type": "number",
+      "title": "Science Proficiency (%)"
+    },
+    "graduation_rate": {
+      "type": "number",
+      "title": "Graduation Rate (%)"
+    },
+    "chronic_absenteeism": {
+      "type": "number",
+      "title": "Chronic Absenteeism (%)"
+    },
+    "per_pupil_expenditure": {
+      "type": "number",
+      "title": "Per Pupil Expenditure ($)"
+    },
+    "total_expenditure": {
+      "type": "number",
+      "title": "Total Expenditure ($)"
+    },
+    "federal_revenue": {
+      "type": "number",
+      "title": "Federal Revenue ($)"
+    },
+    "state_revenue": {
+      "type": "number",
+      "title": "State Revenue ($)"
+    },
+    "local_revenue": {
+      "type": "number",
+      "title": "Local Revenue ($)"
+    },
+    "teacher_count": {
+      "type": "number",
+      "title": "Teacher Count"
+    },
+    "student_teacher_ratio": {
+      "type": "number",
+      "title": "Student-Teacher Ratio"
+    },
+    "avg_teacher_salary": {
+      "type": "number",
+      "title": "Average Teacher Salary ($)"
+    },
+    "year": {
+      "type": "string",
+      "title": "Report Year"
+    }
+  },
+  "required": [
+    "school_name",
+    "district"
+  ]
+}
