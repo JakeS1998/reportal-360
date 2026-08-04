@@ -9,6 +9,8 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Home from './pages/Home';
 import SchoolDetail from './pages/SchoolDetail';
+import Management from './pages/Management';
+import ClassDetail from './pages/ClassDetail';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -39,6 +41,8 @@ const AuthenticatedApp = () => {
       {/* Add your page Route elements here */}
       <Route path="/" element={<Home />} />
       <Route path="/school/:id" element={<SchoolDetail />} />
+      <Route path="/management" element={<Management />} />
+      <Route path="/management/class/:classId" element={<ClassDetail />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

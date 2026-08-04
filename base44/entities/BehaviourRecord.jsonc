@@ -1,0 +1,54 @@
+{
+  "name": "BehaviourRecord",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "positive",
+        "warning",
+        "minor",
+        "major"
+      ],
+      "title": "Incident Type"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Severity",
+      "default": "low"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "action_taken": {
+      "type": "string",
+      "title": "Action Taken"
+    }
+  },
+  "required": [
+    "student_id",
+    "class_id",
+    "date",
+    "incident_type",
+    "description"
+  ]
+}

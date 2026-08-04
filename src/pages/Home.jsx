@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import SchoolSearch from "@/components/SchoolSearch";
-import { GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
+import { GraduationCap, BookOpen } from "lucide-react";
 
 export default function Home() {
   const [schools, setSchools] = useState([]);
@@ -31,7 +32,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />
@@ -45,6 +46,9 @@ export default function Home() {
               </p>
             </div>
           </div>
+          <Link to="/management" className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1.5 shrink-0">
+            <BookOpen className="w-4 h-4" /> Class Management
+          </Link>
         </div>
       </header>
 

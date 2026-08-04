@@ -1,0 +1,34 @@
+{
+  "name": "Class",
+  "type": "object",
+  "properties": {
+    "class_name": {
+      "type": "string",
+      "title": "Class Name"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "grade_level": {
+      "type": "string",
+      "title": "Grade Level"
+    },
+    "subject": {
+      "type": "string",
+      "title": "Subject"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Teacher Name"
+    },
+    "year": {
+      "type": "string",
+      "title": "Academic Year"
+    }
+  },
+  "required": [
+    "class_name",
+    "school_name"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "AttendanceRecord",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "present",
+        "absent",
+        "late",
+        "excused"
+      ],
+      "title": "Status",
+      "default": "present"
+    }
+  },
+  "required": [
+    "student_id",
+    "class_id",
+    "date",
+    "status"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "AttainmentRecord",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "assessment_name": {
+      "type": "string",
+      "title": "Assessment Name"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "score": {
+      "type": "number",
+      "title": "Score"
+    },
+    "max_score": {
+      "type": "number",
+      "title": "Max Score",
+      "default": 100
+    },
+    "subject": {
+      "type": "string",
+      "title": "Subject"
+    }
+  },
+  "required": [
+    "student_id",
+    "class_id",
+    "assessment_name",
+    "score"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "student_name": {
+      "type": "string",
+      "title": "Student Name"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "student_number": {
+      "type": "string",
+      "title": "Student Number"
+    },
+    "grade_level": {
+      "type": "string",
+      "title": "Grade Level"
+    }
+  },
+  "required": [
+    "student_name",
+    "class_id"
+  ]
+}
