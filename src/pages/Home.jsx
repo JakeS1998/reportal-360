@@ -10,8 +10,15 @@ export default function Home() {
   useEffect(() => {
     const loadSchools = async () => {
       try {
-        const data = await base44.entities.School.list("-academic_score", 200);
-        setSchools(data);
+        const data = await base44.entities.School.list("-academic_score", 500);
+        // Only show the most recent report year
+        const latestYear = data.reduce((max, s) => {
+          return s.year && (!max || s.year > max) ? s.year : max;
+        }, null);
+        const filtered = latestYear
+          ? data.filter((s) => s.year === latestYear)
+          : data;
+        setSchools(filtered);
       } catch (err) {
         console.error("Failed to load schools", err);
       } finally {
