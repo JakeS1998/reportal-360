@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, Link } from "react-router-dom";
 import ClassForm from "@/components/management/ClassForm";
-import { Users, ArrowLeft, BookOpen } from "lucide-react";
+import { Users, ArrowLeft, BookOpen, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 export default function Management() {
@@ -43,9 +43,14 @@ export default function Management() {
               <p className="text-sm text-slate-500">Attendance, attainment & behaviour</p>
             </div>
           </div>
-          <Link to="/" className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1 shrink-0">
-            <ArrowLeft className="w-4 h-4" /> School Insights
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/management/quick-attendance" className="text-sm text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg flex items-center gap-1.5">
+              <Zap className="w-4 h-4" /> Quick Attendance
+            </Link>
+            <Link to="/" className="text-sm text-slate-500 hover:text-slate-900 flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4" /> School Insights
+            </Link>
+          </div>
         </div>
       </header>
       <main className="max-w-6xl mx-auto px-6 py-8">
