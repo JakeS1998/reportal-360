@@ -11,7 +11,6 @@ import Skeleton from "@/components/Skeleton";
 import SchoolHero from "@/components/SchoolHero";
 import QuickInsightCards from "@/components/QuickInsightCards";
 import AiExecutiveSummary from "@/components/AiExecutiveSummary";
-import FilterBar from "@/components/FilterBar";
 import { computeOverallScore } from "@/lib/schoolUtils";
 import { Trophy, Crown, Radar as RadarIcon } from "lucide-react";
 import LeaderboardCard from "@/components/LeaderboardCard";
@@ -67,8 +66,6 @@ export default function ExecutiveOverview() {
 
   return (
     <div className="space-y-8">
-      <FilterBar school={school} />
-
       <FadeIn>
         <SchoolHero school={school} />
       </FadeIn>

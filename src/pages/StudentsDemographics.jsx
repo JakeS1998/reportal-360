@@ -19,7 +19,7 @@ export default function StudentsDemographics() {
   const { school, loading } = useSchool();
 
   if (loading || !school) {
-    return <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32" />)}</div>;
+    return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
   }
 
   const p = school.previous || {};
@@ -32,9 +32,9 @@ export default function StudentsDemographics() {
   const freeMealsPct = freeMealsCount != null && school.enrollment ? Math.round((freeMealsCount / school.enrollment) * 1000) / 10 : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <FadeIn>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
           <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year={school.year} />
           <KpiCard label="Net Population Change" value={gained != null ? (gained >= 0 ? `+${gained}` : `${gained}`) : null} accent={gained >= 0 ? "#10B981" : "#EF4444"} year={school.year} tooltip="Net change in enrollment compared to the previous report year." />

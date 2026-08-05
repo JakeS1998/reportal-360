@@ -79,9 +79,9 @@ Return JSON: {
   const projGrade = ai?.projectedGrade || "—";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <FadeIn>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
             <div className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wide"><Target className="w-3.5 h-3.5" /> Projected Score</div>
             <p className="text-3xl font-bold text-slate-900 mt-2">{aiLoading ? "…" : ai?.projectedScore ?? "—"}</p>

@@ -61,7 +61,7 @@ Return JSON: {
   const gradeData = (ai?.gradeBreakdown || []).map((g) => ({ grade: g.grade, Math: g.math, Reading: g.reading, Science: g.science }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <FadeIn>
         <SectionCard title="Subject Proficiency" subtitle="Current vs previous year, county, and state with 80% target" icon={GraduationCap}>
           <SubjectProficiencyChart school={school} county={school.county} state={school.state} />

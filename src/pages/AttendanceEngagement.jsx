@@ -11,7 +11,7 @@ export default function AttendanceEngagement() {
   const { school, loading } = useSchool();
 
   if (loading || !school) {
-    return <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32" />)}</div>;
+    return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
   }
 
   const p = school.previous || {};
@@ -28,9 +28,9 @@ export default function AttendanceEngagement() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <FadeIn>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           <KpiCard label="Average Daily Attendance" value={attendancePct} previous={prevAttendance} suffix="%" accent="#10B981" year={school.year} />
           <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} />
           <KpiCard label="Chronic Students" value={chronicStudents} accent="#EF4444" year={school.year} />

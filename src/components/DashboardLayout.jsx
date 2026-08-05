@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
 import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2 } from "lucide-react";
+import FilterBar from "./FilterBar";
 
 const nav = [
   { to: "/overview", label: "Executive Overview", icon: LayoutDashboard },
@@ -63,6 +64,7 @@ function Shell() {
           </div>
         </header>
         <main className="flex-1 overflow-auto p-8">
+          <FilterBar school={school} />
           <Outlet />
         </main>
       </div>
