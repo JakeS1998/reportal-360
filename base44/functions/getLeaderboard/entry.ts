@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { parseSchool, fetchHtml, computeScore, CURRENT_YEAR } from '../../shared/alsdeParser.ts';
+import { parseSchool, fetchHtml, computeScore, CURRENT_YEAR, PREVIOUS_YEAR } from '../../shared/alsdeParser.ts';
 
 export default async function (req) {
   try {
@@ -62,6 +62,21 @@ export default async function (req) {
       const myRank = myIndex >= 0 ? myIndex + 1 : null;
       const mySchool = myIndex >= 0 ? results[myIndex] : null;
       const top5 = results.slice(0, 5);
+
+      // Fetch previous-year scores for visible schools (top 5 + user's school)
+      const trendSchools = [...top5];
+      if (mySchool && !top5.includes(mySchool)) trendSchools.push(mySchool);
+      await Promise.all(
+        trendSchools.map(async (s) => {
+          try {
+            const prevHtml = await fetchHtml(PREVIOUS_YEAR, systemCode, s.school_code);
+            const prevData = parseSchool(prevHtml, PREVIOUS_YEAR, systemCode, s.school_code);
+            s.prevScore = prevData ? computeScore(prevData) : null;
+          } catch {
+            s.prevScore = null;
+          }
+        })
+      );
 
       return Response.json({
         top5,

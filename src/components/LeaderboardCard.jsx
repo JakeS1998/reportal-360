@@ -1,11 +1,24 @@
 import React from "react";
 import SectionCard from "./SectionCard";
-import { Medal } from "lucide-react";
+import { Medal, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 const MEDAL_COLORS = ["#F59E0B", "#94A3B8", "#B45309"];
 
 export default function LeaderboardCard({ title, subtitle, icon: Icon, items, myRank, myItem, footer, loading, error, scoreLabel = "score" }) {
   const fmtScore = (v) => v != null ? (typeof v === "number" ? v.toFixed(1) : v) : "—";
+
+  function Trend({ score, prevScore }) {
+    if (prevScore == null || score == null) return null;
+    const diff = score - prevScore;
+    if (Math.abs(diff) < 0.05) {
+      return <span className="inline-flex items-center text-slate-400" title={`No change (prev ${prevScore.toFixed(1)})`}><Minus className="w-3.5 h-3.5" /></span>;
+    }
+    return diff > 0 ? (
+      <span className="inline-flex items-center text-emerald-600" title={`+${diff.toFixed(1)} vs last year (${prevScore.toFixed(1)})`}><TrendingUp className="w-3.5 h-3.5" /></span>
+    ) : (
+      <span className="inline-flex items-center text-rose-500" title={`${diff.toFixed(1)} vs last year (${prevScore.toFixed(1)})`}><TrendingDown className="w-3.5 h-3.5" /></span>
+    );
+  }
 
   return (
     <SectionCard title={title} subtitle={subtitle} icon={Icon}>
@@ -39,9 +52,12 @@ export default function LeaderboardCard({ title, subtitle, icon: Icon, items, my
                 <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
                 {s.sublabel && <p className="text-xs text-slate-400 truncate">{s.sublabel}</p>}
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-bold text-slate-900">{fmtScore(s.score)}</p>
-                <p className="text-[10px] text-slate-400">{scoreLabel}</p>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Trend score={s.score} prevScore={s.prevScore} />
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-900">{fmtScore(s.score)}</p>
+                  <p className="text-[10px] text-slate-400">{scoreLabel}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -61,9 +77,12 @@ export default function LeaderboardCard({ title, subtitle, icon: Icon, items, my
                   <p className="text-sm font-semibold text-slate-800 truncate">{myItem.name}</p>
                   {myItem.sublabel && <p className="text-xs text-slate-400 truncate">{myItem.sublabel}</p>}
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-slate-900">{fmtScore(myItem.score)}</p>
-                  <p className="text-[10px] text-slate-400">{scoreLabel}</p>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Trend score={myItem.score} prevScore={myItem.prevScore} />
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">{fmtScore(myItem.score)}</p>
+                    <p className="text-[10px] text-slate-400">{scoreLabel}</p>
+                  </div>
                 </div>
               </div>
             </>

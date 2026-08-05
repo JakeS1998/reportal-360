@@ -26,6 +26,7 @@ export default function ExecutiveOverview() {
   const schoolWithScore = school ? { ...school, _overall: overall } : null;
   const activeOverall = activeSchool ? computeOverallScore(activeSchool) : null;
   const activeSchoolWithScore = activeSchool ? { ...activeSchool, _overall: activeOverall } : null;
+  const prevOverall = school?.previous ? computeOverallScore(school.previous) : null;
 
   useEffect(() => {
     if (!school || !school.system_code) return;
@@ -110,6 +111,7 @@ export default function ExecutiveOverview() {
               name: s.school_name,
               sublabel: s.school_type,
               score: s.score,
+              prevScore: s.prevScore,
               isMe: s.school_code === school.school_code,
             }))}
             myRank={countyLb.myRank ? `#${countyLb.myRank}` : null}
@@ -117,6 +119,7 @@ export default function ExecutiveOverview() {
               name: countyLb.mySchool.school_name,
               sublabel: "Your school",
               score: countyLb.mySchool.score,
+              prevScore: countyLb.mySchool.prevScore,
             } : null}
             footer={countyLb.totalSchools ? `Ranked ${countyLb.totalSchools} schools by Overall School Score · FY 2025` : null}
           />
@@ -139,6 +142,7 @@ export default function ExecutiveOverview() {
               name: school.school_name,
               sublabel: stateLb.myPercentile != null ? `${stateLb.myPercentile}th percentile` : "Your school",
               score: overall,
+              prevScore: prevOverall,
             }}
             footer="Source: ALSDE public report card data via web search"
           />
