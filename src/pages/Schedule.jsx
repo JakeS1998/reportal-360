@@ -21,7 +21,7 @@ export default function Schedule() {
     setUser(session.user);
     const initialSchool = session.school;
     setSchool(initialSchool);
-    if (initialSchool && initialSchool.math_proficiency == null && initialSchool.system_code && initialSchool.school_code) {
+    if (initialSchool && initialSchool.system_code && initialSchool.school_code && (initialSchool.math_proficiency == null || !initialSchool.previous)) {
       base44.functions.invoke("fetchSchoolData", {
         system_code: initialSchool.system_code,
         school_code: initialSchool.school_code,
