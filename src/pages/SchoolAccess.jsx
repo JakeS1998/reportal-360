@@ -23,6 +23,7 @@ export default function SchoolAccess() {
     try {
       const validRes = await base44.functions.invoke("subscriberAccess", {
         action: "validate",
+        systemCode,
         schoolCode,
         accessCode,
       });
@@ -30,9 +31,10 @@ export default function SchoolAccess() {
         setError(validRes.data?.error || "Invalid access code");
         return;
       }
+      const isSystem = validRes.data?.scope === "system";
       const dataRes = await base44.functions.invoke("fetchSchoolData", {
         system_code: systemCode,
-        school_code: schoolCode,
+        school_code: isSystem ? "0000" : schoolCode,
       });
       if (dataRes.data?.error) {
         setError(dataRes.data.error);
@@ -41,8 +43,13 @@ export default function SchoolAccess() {
       localStorage.setItem(
         "userSession",
         JSON.stringify({
-          user: { role: "subscriber", school_code: schoolCode, system_code: systemCode },
+          user: {
+            role: isSystem ? "commissioner" : "subscriber",
+            school_code: isSystem ? "0000" : schoolCode,
+            system_code: systemCode,
+          },
           school: dataRes.data,
+          systemSchools: isSystem ? validRes.data.schools || [] : [],
         })
       );
       navigate("/overview");
