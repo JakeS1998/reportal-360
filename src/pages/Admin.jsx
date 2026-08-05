@@ -177,6 +177,37 @@ export default function Admin() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
+        {/* All Schools */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <SchoolIcon className="w-5 h-5 text-slate-700" />
+            <h2 className="text-lg font-semibold text-slate-900">
+              All Schools {schools.length > 0 && <span className="text-slate-400 font-normal">({schools.length})</span>}
+            </h2>
+          </div>
+          {schools.length === 0 ? (
+            <p className="text-center text-slate-400 py-8">No schools imported yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {schools.map((s) => (
+                <Card key={s.id} className="p-4 border-slate-200">
+                  <p className="font-medium text-slate-900">{s.school_name}</p>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    System <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.system_code}</code>
+                    {" · "}
+                    School <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.school_code}</code>
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {s.system_name ? `${s.system_name}` : ""}
+                    {s.city ? ` · ${s.city}` : ""}
+                    {s.grade_span ? ` · ${s.grade_span}` : ""}
+                  </p>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* School selector */}
         <section>
           <div className="flex items-center gap-2 mb-4">
