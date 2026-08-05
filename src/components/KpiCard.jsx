@@ -13,7 +13,7 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
   const accentBar = accent || "#1D4ED8";
   return (
     <div
-      className={`relative bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
+      className={`relative bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all duration-300 ${
         large ? "md:col-span-2" : ""
       }`}
     >
