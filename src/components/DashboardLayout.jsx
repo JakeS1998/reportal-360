@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
 import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -16,6 +16,7 @@ const nav = [
 function Shell() {
   const { school, switchSchool } = useSchool();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
+  const contentRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
@@ -83,8 +84,10 @@ function Shell() {
           </div>
         </header>
         <main className="flex-1 overflow-auto p-8">
-          <FilterBar school={school} />
-          <Outlet />
+          <FilterBar school={school} contentRef={contentRef} />
+          <div ref={contentRef}>
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

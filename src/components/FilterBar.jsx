@@ -1,23 +1,41 @@
-import React from "react";
+import React, { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { useSchool } from "@/lib/SchoolContext";
+import ExportPdfButton from "@/components/ExportPdfButton";
+import { exportDashboardPdf } from "@/lib/exportPdf";
 
-export default function FilterBar({ school }) {
+export default function FilterBar({ school, contentRef }) {
   const { user, systemSchools, selectSchool, filters, setFilter } = useSchool();
   const isCommissioner = user?.role === "commissioner";
   const commissionerSchools = isCommissioner && systemSchools?.length ? systemSchools : null;
+  const [exporting, setExporting] = useState(false);
 
   const yearOptions = school?.year
     ? [school.year, String(parseInt(school.year) - 1)].filter((y, i, arr) => y && arr.indexOf(y) === i)
     : ["2025", "2024"];
 
+  const handleExport = async () => {
+    if (!contentRef?.current || exporting) return;
+    setExporting(true);
+    try {
+      const schoolName = (school?.school_name || "School").replace(/[^a-zA-Z0-9]/g, "_");
+      const date = new Date().toISOString().split("T")[0];
+      await exportDashboardPdf(contentRef.current, `${schoolName}-performance-report-${date}.pdf`);
+    } catch (e) {
+      console.error("PDF export failed", e);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm px-4 py-3 mb-6 print:hidden">
-      <div className="flex items-center gap-2 mb-2.5 md:mb-0">
-        <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Filters</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex items-center gap-2.5 overflow-x-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Filters</span>
+        </div>
+        <Divider />
         <FilterSelect
           label="School Year"
           value={isCommissioner ? filters.year : (school?.year || "2025")}
@@ -66,18 +84,21 @@ export default function FilterBar({ school }) {
           options={["All Gender", "Male", "Female"]}
           onChange={isCommissioner ? (val) => setFilter("gender", val) : null}
         />
+        <div className="ml-auto shrink-0 pl-2.5">
+          <ExportPdfButton onClick={handleExport} loading={exporting} />
+        </div>
       </div>
     </div>
   );
 }
 
 function Divider() {
-  return <span className="hidden md:inline-block w-px h-5 bg-slate-200" />;
+  return <span className="shrink-0 w-px h-5 bg-slate-200" />;
 }
 
 function FilterSelect({ label, value, options, onChange }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 shrink-0">
       <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wide whitespace-nowrap">{label}</label>
       <select
         value={value}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
@@ -19,8 +19,6 @@ import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
 import SectionHeader from "@/components/SectionHeader";
-import ExportPdfButton from "@/components/ExportPdfButton";
-import { exportDashboardPdf } from "@/lib/exportPdf";
 
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters } = useSchool();
@@ -36,22 +34,6 @@ export default function ExecutiveOverview() {
   const prevOverall = school?.previous ? computeOverallScore(school.previous) : null;
   const chronicRate = metrics.total ? Math.round((metrics.chronic / metrics.total) * 1000) / 10 : null;
   const { ai, aiLoading } = useAiSummary({ school: activeSchool, overall: activeOverall, subject: filters.subject });
-  const contentRef = useRef(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    if (!contentRef.current || exporting) return;
-    setExporting(true);
-    try {
-      const schoolName = (activeSchool?.school_name || "School").replace(/[^a-zA-Z0-9]/g, "_");
-      const date = new Date().toISOString().split("T")[0];
-      await exportDashboardPdf(contentRef.current, `${schoolName}-performance-report-${date}.pdf`);
-    } catch (e) {
-      console.error("PDF export failed", e);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   useEffect(() => {
     if (!school || !school.system_code) return;
@@ -92,10 +74,6 @@ export default function ExecutiveOverview() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-end">
-        <ExportPdfButton onClick={handleExport} loading={exporting} />
-      </div>
-      <div ref={contentRef} className="space-y-8">
       <FadeIn>
         <SchoolHero school={activeSchool} />
       </FadeIn>
@@ -220,7 +198,6 @@ export default function ExecutiveOverview() {
           <RadarComparison school={activeSchool} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
         </SectionCard>
       </FadeIn>
-      </div>
     </div>
   );
 }
