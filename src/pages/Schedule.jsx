@@ -1,24 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { base44 } from "@/api/base44Client";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Clock, MapPin, Zap, Shield } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import ClassForm from "@/components/management/ClassForm";
-import SchoolAdminPanel from "@/components/management/SchoolAdminPanel";
 
 export default function Schedule() {
   const navigate = useNavigate();
   const [school, setSchool] = useState(null);
   const [user, setUser] = useState(null);
-  const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
-    if (!session || (session.user.role !== "teacher" && session.user.role !== "school_admin")) {
+    if (!session) {
       navigate("/");
       return;
     }
@@ -26,41 +19,23 @@ export default function Schedule() {
     setUser(session.user);
   }, [navigate]);
 
-  const loadData = useCallback(async () => {
-    if (!school) return;
-    try {
-      const [cls, studs, sched] = await Promise.all([
-        base44.entities.Class.filter({ school_code: school.school_code }, "period", 500),
-        base44.entities.Student.list("-created_date", 500),
-        base44.entities.ClassSchedule.filter({ school_code: school.school_code }, "start_time", 1000),
-      ]);
-      setClasses(cls);
-      setStudents(studs);
-      setSchedules(sched);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [school]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
   const handleLogout = () => {
     localStorage.removeItem("userSession");
     navigate("/");
   };
 
-  const studentCount = (classId) => students.filter((s) => s.class_id === classId).length;
-
-  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-  const todaySchedule = schedules
-    .filter((s) => s.day_of_week === todayName && s.teacher_id === user?.id)
-    .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-
   if (!school) return null;
+
+  const metrics = [
+    { label: "Academic Achievement", value: school.academic_achievement },
+    { label: "Academic Growth", value: school.academic_growth },
+    { label: "Chronic Absenteeism", value: school.chronic_absenteeism != null ? school.chronic_absenteeism + "%" : null },
+    { label: "Enrollment", value: school.enrollment },
+    { label: "Graduation Rate", value: school.graduation_rate != null ? school.graduation_rate + "%" : null },
+    { label: "Math Proficiency", value: school.math_proficiency != null ? school.math_proficiency + "%" : null },
+    { label: "Reading Proficiency", value: school.reading_proficiency != null ? school.reading_proficiency + "%" : null },
+    { label: "Science Proficiency", value: school.science_proficiency != null ? school.science_proficiency + "%" : null },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -68,108 +43,29 @@ export default function Schedule() {
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{school.school_name}</h1>
-            <p className="text-sm text-slate-500">{school.system_name} · Code {school.school_code}</p>
+            <p className="text-sm text-slate-500">
+              {school.system_name} · Code {school.school_code}
+              {school.school_type ? ` · ${school.school_type}` : ""}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            {user?.role === 'admin' && (
-              <Button onClick={() => navigate("/admin")} variant="outline" className="border-slate-300">
-                <Shield className="w-4 h-4 mr-1" /> Admin
-              </Button>
-            )}
-            {user?.role === 'school_admin' && (
-              <Button onClick={() => navigate("/school-admin")} variant="outline" className="border-slate-300">
-                <Shield className="w-4 h-4 mr-1" /> School Admin
-              </Button>
-            )}
-            <Button onClick={() => navigate("/quick-attendance")} className="bg-slate-900 hover:bg-slate-800">
-              <Zap className="w-4 h-4 mr-1" /> Quick Attendance
-            </Button>
-            <Button onClick={handleLogout} variant="outline" className="border-slate-300">
-              <LogOut className="w-4 h-4 mr-1" /> Switch School
-            </Button>
-          </div>
+          <Button onClick={handleLogout} variant="outline" className="border-slate-300">
+            <LogOut className="w-4 h-4 mr-1" /> Switch School
+          </Button>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Academic Achievement</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.academic_achievement ?? "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Academic Growth</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.academic_growth ?? "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Chronic Absenteeism</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.chronic_absenteeism != null ? school.chronic_absenteeism + "%" : "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Enrollment</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.enrollment ?? "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Graduation Rate</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.graduation_rate != null ? school.graduation_rate + "%" : "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Math Proficiency</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.math_proficiency != null ? school.math_proficiency + "%" : "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Reading Proficiency</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.reading_proficiency != null ? school.reading_proficiency + "%" : "—"}</p>
-          </Card>
-          <Card className="p-4 border-slate-200">
-            <p className="text-xs text-slate-500">Science Proficiency</p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">{school.science_proficiency != null ? school.science_proficiency + "%" : "—"}</p>
-          </Card>
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">
+          School Insights — {school.year || "2025"}
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {metrics.map((m) => (
+            <Card key={m.label} className="p-4 border-slate-200">
+              <p className="text-xs text-slate-500">{m.label}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{m.value ?? "—"}</p>
+            </Card>
+          ))}
         </div>
-
-        {user?.role === "school_admin" && (
-          <div className="mb-8">
-            <SchoolAdminPanel school={school} user={user} />
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">My Schedule — {todayName}</h2>
-            <p className="text-sm text-slate-500">Your classes scheduled for today</p>
-          </div>
-          <ClassForm school={school} onCreated={loadData} />
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center py-24">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
-          </div>
-        ) : todaySchedule.length === 0 ? (
-          <div className="text-center py-24 text-slate-400">
-            <Clock className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p>No classes scheduled for you today.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {todaySchedule.map((s) => (
-              <Card
-                key={s.id}
-                className="p-5 cursor-pointer hover:shadow-md transition-all border-slate-200 bg-white rounded-2xl flex items-center justify-between"
-                onClick={() => navigate(`/class/${s.class_id}`)}
-              >
-                <div>
-                  <h3 className="font-semibold text-slate-900 text-lg">{s.class_name}</h3>
-                  {s.room && <p className="text-sm text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Room {s.room}</p>}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-slate-900 flex items-center gap-1 justify-end"><Clock className="w-3.5 h-3.5" /> {s.start_time}–{s.end_time}</p>
-                  {s.teacher_name && <p className="text-xs text-slate-500 mt-1">{s.teacher_name}</p>}
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
       </main>
     </div>
   );
