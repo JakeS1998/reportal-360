@@ -8,12 +8,16 @@ import BenchmarkTable from "@/components/BenchmarkTable";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import { computeOverallScore, letterGrade, gradeColor } from "@/lib/schoolUtils";
-import { Sparkles, FileText, Award, TrendingUp } from "lucide-react";
+import { Sparkles, FileText, Award, TrendingUp, Trophy, Crown, Radar as RadarIcon } from "lucide-react";
+import LeaderboardCard from "@/components/LeaderboardCard";
+import RadarComparison from "@/components/RadarComparison";
 
 export default function ExecutiveOverview() {
   const { school, loading } = useSchool();
   const [ai, setAi] = useState(null);
   const [aiLoading, setAiLoading] = useState(true);
+  const [countyLb, setCountyLb] = useState({ loading: true });
+  const [stateLb, setStateLb] = useState({ loading: true });
 
   const overall = school ? computeOverallScore(school) : null;
   const prevOverall = school?.previous ? computeOverallScore(school.previous) : null;
@@ -57,6 +61,25 @@ Return JSON with: summary (string).`;
       .then((res) => setAi(res))
       .catch(() => setAi(null))
       .finally(() => setAiLoading(false));
+  }, [school, overall]);
+
+  useEffect(() => {
+    if (!school || !school.system_code) return;
+    setCountyLb({ loading: true });
+    setStateLb({ loading: true });
+    base44.functions.invoke("getLeaderboard", {
+      action: "county",
+      systemCode: school.system_code,
+      schoolCode: school.school_code,
+    }).then((res) => setCountyLb(res.data || { error: "Unable to load leaderboard" }))
+      .catch(() => setCountyLb({ error: "Unable to load leaderboard" }));
+    base44.functions.invoke("getLeaderboard", {
+      action: "state",
+      myScore: overall,
+      schoolName: school.school_name,
+      systemName: school.system_name,
+    }).then((res) => setStateLb(res.data || { error: "Unable to load leaderboard" }))
+      .catch(() => setStateLb({ error: "Unable to load leaderboard" }));
   }, [school, overall]);
 
   if (loading || !school) {
@@ -117,6 +140,59 @@ Return JSON with: summary (string).`;
 
       <FadeIn delay={180}>
         <BenchmarkTable school={schoolWithScore} county={school.county} state={school.state} />
+      </FadeIn>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FadeIn delay={240}>
+          <LeaderboardCard
+            title="County Leaderboard"
+            subtitle={`Top schools in ${school.system_name || "your system"}`}
+            icon={Trophy}
+            loading={countyLb.loading}
+            error={countyLb.error}
+            items={(countyLb.top5 || []).map((s) => ({
+              name: s.school_name,
+              sublabel: s.school_type,
+              score: s.score,
+              isMe: s.school_code === school.school_code,
+            }))}
+            myRank={countyLb.myRank ? `#${countyLb.myRank}` : null}
+            myItem={countyLb.mySchool && countyLb.myRank > 5 ? {
+              name: countyLb.mySchool.school_name,
+              sublabel: "Your school",
+              score: countyLb.mySchool.score,
+            } : null}
+            footer={countyLb.totalSchools ? `Ranked ${countyLb.totalSchools} schools · Source: ALSDE FY 2025` : null}
+          />
+        </FadeIn>
+        <FadeIn delay={300}>
+          <LeaderboardCard
+            title="State Leaderboard"
+            subtitle="Top public schools in Alabama"
+            icon={Crown}
+            loading={stateLb.loading}
+            error={stateLb.error}
+            items={(stateLb.top5 || []).map((s) => ({
+              name: s.name,
+              sublabel: s.system,
+              score: s.score,
+              isMe: false,
+            }))}
+            myRank={stateLb.myEstimatedRank || null}
+            myItem={{
+              name: school.school_name,
+              sublabel: stateLb.myPercentile != null ? `${stateLb.myPercentile}th percentile` : "Your school",
+              score: overall,
+            }}
+            footer="Source: ALSDE public report card data via web search"
+          />
+        </FadeIn>
+      </div>
+
+      <FadeIn delay={360}>
+        <SectionCard title="Performance Radar" subtitle="School vs county vs state across all dimensions" icon={RadarIcon}>
+          <RadarComparison school={school} county={school.county} state={school.state} />
+        </SectionCard>
       </FadeIn>
     </div>
   );
