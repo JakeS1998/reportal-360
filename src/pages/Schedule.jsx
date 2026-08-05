@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import ProficiencyChart from "@/components/ProficiencyChart";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -32,9 +33,6 @@ export default function Schedule() {
     { label: "Chronic Absenteeism", value: school.chronic_absenteeism != null ? school.chronic_absenteeism + "%" : null },
     { label: "Enrollment", value: school.enrollment },
     { label: "Graduation Rate", value: school.graduation_rate != null ? school.graduation_rate + "%" : null },
-    { label: "Math Proficiency", value: school.math_proficiency != null ? school.math_proficiency + "%" : null },
-    { label: "Reading Proficiency", value: school.reading_proficiency != null ? school.reading_proficiency + "%" : null },
-    { label: "Science Proficiency", value: school.science_proficiency != null ? school.science_proficiency + "%" : null },
   ];
 
   return (
@@ -66,6 +64,11 @@ export default function Schedule() {
             </Card>
           ))}
         </div>
+
+        <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-4">Proficiency Rates</h2>
+        <Card className="p-6 border-slate-200">
+          <ProficiencyChart data={school} />
+        </Card>
       </main>
     </div>
   );
