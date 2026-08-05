@@ -11,6 +11,7 @@ import { computeOverallScore, letterGrade, gradeColor } from "@/lib/schoolUtils"
 import { Sparkles, FileText, Award, TrendingUp, Trophy, Crown, Radar as RadarIcon } from "lucide-react";
 import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
+import InfoTooltip from "@/components/InfoTooltip";
 
 export default function ExecutiveOverview() {
   const { school, loading } = useSchool();
@@ -96,9 +97,12 @@ Return JSON with: summary (string).`;
     <div className="space-y-6">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard label="Overall School Score" value={overall} previous={prevOverall} large accent="#1D4ED8" />
+          <KpiCard label="Overall School Score" value={overall} previous={prevOverall} large accent="#1D4ED8" tooltip="Composite score combining academic achievement, growth, attendance, and graduation metrics into a single 0–100 value." />
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Letter Grade</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                Letter Grade
+                <InfoTooltip text="Letter grade (A–F) derived from the overall composite score." />
+              </p>
             <div className="flex items-center gap-3 mt-2">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl font-bold" style={{ backgroundColor: gradeColor(grade) + "20", color: gradeColor(grade) }}>
                 {grade}
@@ -109,11 +113,11 @@ Return JSON with: summary (string).`;
               </div>
             </div>
           </div>
-          <KpiCard label="Academic Achievement" value={school.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" />
-          <KpiCard label="Academic Growth" value={school.academic_growth} previous={p.academic_growth} accent="#7C3AED" />
-          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" />
-          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#0EA5E9" />
-          <KpiCard label="Graduation Rate" value={school.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" />
+          <KpiCard label="Academic Achievement" value={school.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." />
+          <KpiCard label="Academic Growth" value={school.academic_growth} previous={p.academic_growth} accent="#7C3AED" tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." />
+          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" tooltip="Percentage of students missing 15 or more school days. Lower values are better." />
+          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#0EA5E9" tooltip="Total student enrollment for the current report year (FY 2025)." />
+          <KpiCard label="Graduation Rate" value={school.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" tooltip="Percentage of students graduating within four years of entering high school." />
         </div>
       </FadeIn>
 
