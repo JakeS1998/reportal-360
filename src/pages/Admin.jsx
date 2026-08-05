@@ -5,13 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Shield, Copy, Plus, Power, LogOut, UserCog, Trash2, School as SchoolIcon } from "lucide-react";
 
 function generateCode() {
@@ -35,6 +28,7 @@ export default function Admin() {
   const [teacherForm, setTeacherForm] = useState({ username: "", password: "", full_name: "" });
   const [creatingCode, setCreatingCode] = useState(false);
   const [creatingTeacher, setCreatingTeacher] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
@@ -74,6 +68,19 @@ export default function Admin() {
     () => schools.find((s) => s.id === selectedSchoolId) || null,
     [schools, selectedSchoolId]
   );
+
+  const filteredSchools = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return schools.slice(0, 50);
+    return schools
+      .filter(
+        (s) =>
+          (s.school_name || "").toLowerCase().includes(q) ||
+          (s.school_code || "").toLowerCase().includes(q) ||
+          (s.system_code || "").toLowerCase().includes(q)
+      )
+      .slice(0, 50);
+  }, [schools, searchQuery]);
 
   const schoolTeachers = useMemo(() => {
     if (!selectedSchool) return [];
@@ -177,72 +184,58 @@ export default function Admin() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
-        {/* All Schools */}
+        {/* School search */}
         <section>
           <div className="flex items-center gap-2 mb-4">
             <SchoolIcon className="w-5 h-5 text-slate-700" />
             <h2 className="text-lg font-semibold text-slate-900">
-              All Schools {schools.length > 0 && <span className="text-slate-400 font-normal">({schools.length})</span>}
+              Find a School {schools.length > 0 && <span className="text-slate-400 font-normal">({schools.length})</span>}
             </h2>
           </div>
           {schools.length === 0 ? (
             <p className="text-center text-slate-400 py-8">No schools imported yet.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {schools.map((s) => (
-                <Card key={s.id} className="p-4 border-slate-200">
-                  <p className="font-medium text-slate-900">{s.school_name}</p>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    System <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.system_code}</code>
-                    {" · "}
-                    School <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.school_code}</code>
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {s.system_name ? `${s.system_name}` : ""}
-                    {s.city ? ` · ${s.city}` : ""}
-                    {s.grade_span ? ` · ${s.grade_span}` : ""}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* School selector */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <SchoolIcon className="w-5 h-5 text-slate-700" />
-            <h2 className="text-lg font-semibold text-slate-900">Select a School</h2>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-200">
-            {schools.length === 0 ? (
-              <p className="text-sm text-slate-400">
-                No schools imported yet. Import school data first to manage by school.
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500">School</Label>
-                <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a school…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.school_name} ({s.system_code}/{s.school_code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedSchool && (
-                  <p className="text-xs text-slate-400 mt-2">
-                    System {selectedSchool.system_code} · School {selectedSchool.school_code}
-                    {selectedSchool.city ? ` · ${selectedSchool.city}` : ""}
-                  </p>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200">
+              <Input
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by school name or code…"
+                className="text-base"
+              />
+              <div className="mt-3 max-h-80 overflow-y-auto divide-y divide-slate-100">
+                {filteredSchools.length === 0 ? (
+                  <p className="text-center text-slate-400 py-6 text-sm">No matches found.</p>
+                ) : (
+                  filteredSchools.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSchoolId(s.id)}
+                      className={`w-full text-left p-3 hover:bg-slate-50 transition-colors flex items-center justify-between gap-3 ${
+                        selectedSchoolId === s.id ? "bg-slate-100" : ""
+                      }`}
+                    >
+                      <div>
+                        <p className="font-medium text-slate-900">{s.school_name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {s.system_name ? `${s.system_name} · ` : ""}
+                          {s.city ? `${s.city} · ` : ""}
+                          {s.grade_span ? `${s.grade_span}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.system_code}</code>
+                        <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{s.school_code}</code>
+                      </div>
+                    </button>
+                  ))
                 )}
               </div>
-            )}
-          </div>
+              {!searchQuery.trim() && schools.length > 50 && (
+                <p className="text-xs text-slate-400 mt-2 text-center">Showing first 50 — type to search all {schools.length} schools.</p>
+              )}
+            </div>
+          )}
         </section>
 
         {selectedSchool && (
