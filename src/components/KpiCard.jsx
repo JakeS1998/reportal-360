@@ -5,7 +5,7 @@ import InfoTooltip from "./InfoTooltip";
 import { trendSeries, pctChange } from "@/lib/schoolUtils";
 import { useCountUp } from "@/hooks/useCountUp";
 
-export default function KpiCard({ label, value, previous, suffix, lowerIsBetter, large, accent, tooltip, year, onClick }) {
+export default function KpiCard({ label, value, previous, suffix, lowerIsBetter, large, accent, tooltip, year, onClick, signed }) {
   const hasDelta = previous != null && value != null;
   const diff = hasDelta ? value - previous : null;
   const pct = hasDelta ? pctChange(value, previous) : null;
@@ -17,7 +17,7 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
   const displayValue = isStringValue
     ? value + (suffix || "")
     : value != null
-      ? (Number.isInteger(value) ? Math.round(animatedValue).toLocaleString() : animatedValue.toFixed(1)) + (suffix || "")
+      ? (signed && value > 0 ? "+" : "") + (Number.isInteger(value) ? Math.round(animatedValue).toLocaleString() : animatedValue.toFixed(1)) + (suffix || "")
       : "—";
 
   return (
