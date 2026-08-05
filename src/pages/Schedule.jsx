@@ -13,6 +13,7 @@ export default function Schedule() {
   const [user, setUser] = useState(null);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,12 +29,14 @@ export default function Schedule() {
   const loadData = useCallback(async () => {
     if (!school) return;
     try {
-      const [cls, studs] = await Promise.all([
+      const [cls, studs, sched] = await Promise.all([
         base44.entities.Class.filter({ school_code: school.school_code }, "period", 500),
         base44.entities.Student.list("-created_date", 500),
+        base44.entities.ClassSchedule.filter({ school_code: school.school_code }, "start_time", 1000),
       ]);
       setClasses(cls);
       setStudents(studs);
+      setSchedules(sched);
     } catch (err) {
       console.error(err);
     } finally {
@@ -51,6 +54,11 @@ export default function Schedule() {
   };
 
   const studentCount = (classId) => students.filter((s) => s.class_id === classId).length;
+
+  const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todaySchedule = schedules
+    .filter((s) => s.day_of_week === todayName && s.teacher_id === user?.id)
+    .sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
 
   if (!school) return null;
 
@@ -110,7 +118,10 @@ export default function Schedule() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Teaching Schedule</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">My Schedule — {todayName}</h2>
+            <p className="text-sm text-slate-500">Your classes scheduled for today</p>
+          </div>
           <ClassForm school={school} onCreated={loadData} />
         </div>
 
@@ -118,28 +129,26 @@ export default function Schedule() {
           <div className="flex justify-center py-24">
             <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
           </div>
-        ) : classes.length === 0 ? (
+        ) : todaySchedule.length === 0 ? (
           <div className="text-center py-24 text-slate-400">
             <Clock className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p>No classes yet. Create your first class to get started.</p>
+            <p>No classes scheduled for you today.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map((cls) => (
+          <div className="space-y-3">
+            {todaySchedule.map((s) => (
               <Card
-                key={cls.id}
-                className="p-5 cursor-pointer hover:shadow-md transition-all border-slate-200 bg-white rounded-2xl"
-                onClick={() => navigate(`/class/${cls.id}`)}
+                key={s.id}
+                className="p-5 cursor-pointer hover:shadow-md transition-all border-slate-200 bg-white rounded-2xl flex items-center justify-between"
+                onClick={() => navigate(`/class/${s.class_id}`)}
               >
-                <h3 className="font-semibold text-slate-900 text-lg">{cls.class_name}</h3>
-                <div className="flex items-center gap-3 mt-2 text-sm text-slate-500">
-                  {cls.period && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {cls.period}</span>}
-                  {cls.room && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {cls.room}</span>}
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-lg">{s.class_name}</h3>
+                  {s.room && <p className="text-sm text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Room {s.room}</p>}
                 </div>
-                {cls.subject && <p className="text-sm text-slate-500 mt-1">{cls.subject}</p>}
-                <div className="flex items-center gap-1.5 mt-4 text-sm text-slate-600">
-                  <Users className="w-4 h-4" />
-                  {studentCount(cls.id)} students
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-900 flex items-center gap-1 justify-end"><Clock className="w-3.5 h-3.5" /> {s.start_time}–{s.end_time}</p>
+                  {s.teacher_name && <p className="text-xs text-slate-500 mt-1">{s.teacher_name}</p>}
                 </div>
               </Card>
             ))}
