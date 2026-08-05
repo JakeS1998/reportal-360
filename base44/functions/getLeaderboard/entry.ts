@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { parseSchool, fetchHtml, computeScore, CURRENT_YEAR } from '../../shared/alsdeParser.ts';
+import { parseSchool, fetchHtml, CURRENT_YEAR } from '../../shared/alsdeParser.ts';
 
 export default async function (req) {
   try {
@@ -37,14 +37,12 @@ export default async function (req) {
             try {
               const html = await fetchHtml(CURRENT_YEAR, systemCode, s.school_code);
               const data = parseSchool(html, CURRENT_YEAR, systemCode, s.school_code);
-              if (!data) return null;
-              const score = computeScore(data);
-              if (score == null) return null;
+              if (!data || data.academic_achievement == null) return null;
               return {
                 school_name: data.school_name || s.school_name,
                 school_code: s.school_code,
                 school_type: data.school_type,
-                score,
+                score: data.academic_achievement,
                 academic_achievement: data.academic_achievement,
                 enrollment: data.enrollment,
               };
@@ -77,8 +75,8 @@ export default async function (req) {
       const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Search for Alabama State Department of Education (ALSDE) report card data for the 2024-2025 school year.
 
-1. Find the top 5 highest-performing public schools in Alabama by academic achievement score or overall accountability score.
-2. The school "${schoolName || "this school"}" in ${systemName || "an Alabama system"} has an overall composite score of ${myScore ?? "unknown"} (out of 100). Estimate its percentile rank and approximate rank out of roughly 1,500 Alabama public schools.
+1. Find the top 5 highest-performing public schools in Alabama by ALSDE Academic Achievement score (the "Academic Achievement" indicator from the Alabama state report card, scored 0-100).
+2. The school "${schoolName || "this school"}" in ${systemName || "an Alabama system"} has an ALSDE Academic Achievement score of ${myScore ?? "unknown"} (out of 100). Estimate its percentile rank and approximate rank out of roughly 1,500 Alabama public schools, based on academic achievement.
 
 Return JSON with: top5 (array of {name, system, score}), myPercentile (number 0-100), myEstimatedRank (string like "#342 of 1,500").`,
         add_context_from_internet: true,

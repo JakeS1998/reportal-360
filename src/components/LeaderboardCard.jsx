@@ -4,7 +4,7 @@ import { Medal } from "lucide-react";
 
 const MEDAL_COLORS = ["#F59E0B", "#94A3B8", "#B45309"];
 
-export default function LeaderboardCard({ title, subtitle, icon: Icon, items, myRank, myItem, footer, loading, error }) {
+export default function LeaderboardCard({ title, subtitle, icon: Icon, items, myRank, myItem, footer, loading, error, scoreLabel = "score" }) {
   const fmtScore = (v) => v != null ? (typeof v === "number" ? v.toFixed(1) : v) : "—";
 
   return (
@@ -41,7 +41,7 @@ export default function LeaderboardCard({ title, subtitle, icon: Icon, items, my
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-bold text-slate-900">{fmtScore(s.score)}</p>
-                <p className="text-[10px] text-slate-400">score</p>
+                <p className="text-[10px] text-slate-400">{scoreLabel}</p>
               </div>
             </div>
           ))}
@@ -63,7 +63,7 @@ export default function LeaderboardCard({ title, subtitle, icon: Icon, items, my
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm font-bold text-slate-900">{fmtScore(myItem.score)}</p>
-                  <p className="text-[10px] text-slate-400">score</p>
+                  <p className="text-[10px] text-slate-400">{scoreLabel}</p>
                 </div>
               </div>
             </>

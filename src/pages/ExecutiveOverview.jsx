@@ -75,7 +75,7 @@ Return JSON with: summary (string).`;
       .catch(() => setCountyLb({ error: "Unable to load leaderboard" }));
     base44.functions.invoke("getLeaderboard", {
       action: "state",
-      myScore: overall,
+      myScore: school.academic_achievement,
       schoolName: school.school_name,
       systemName: school.system_name,
     }).then((res) => setStateLb(res.data || { error: "Unable to load leaderboard" }))
@@ -148,6 +148,7 @@ Return JSON with: summary (string).`;
             title="County Leaderboard"
             subtitle={`Top schools in ${school.system_name || "your system"}`}
             icon={Trophy}
+            scoreLabel="Academic"
             loading={countyLb.loading}
             error={countyLb.error}
             items={(countyLb.top5 || []).map((s) => ({
@@ -162,7 +163,7 @@ Return JSON with: summary (string).`;
               sublabel: "Your school",
               score: countyLb.mySchool.score,
             } : null}
-            footer={countyLb.totalSchools ? `Ranked ${countyLb.totalSchools} schools · Source: ALSDE FY 2025` : null}
+            footer={countyLb.totalSchools ? `Ranked ${countyLb.totalSchools} schools by ALSDE Academic Achievement · FY 2025` : null}
           />
         </FadeIn>
         <FadeIn delay={300}>
@@ -170,6 +171,7 @@ Return JSON with: summary (string).`;
             title="State Leaderboard"
             subtitle="Top public schools in Alabama"
             icon={Crown}
+            scoreLabel="Academic"
             loading={stateLb.loading}
             error={stateLb.error}
             items={(stateLb.top5 || []).map((s) => ({
