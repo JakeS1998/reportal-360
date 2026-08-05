@@ -21,6 +21,51 @@
     "school_code": {
       "type": "string",
       "title": "School Code"
+    },
+    "gender": {
+      "type": "string",
+      "title": "Gender",
+      "enum": [
+        "Male",
+        "Female"
+      ]
+    },
+    "race_ethnicity": {
+      "type": "string",
+      "title": "Race/Ethnicity",
+      "enum": [
+        "White",
+        "Black",
+        "Hispanic",
+        "Asian",
+        "American Indian",
+        "Two or more",
+        "Native Hawaiian"
+      ]
+    },
+    "economically_disadvantaged": {
+      "type": "boolean",
+      "title": "Economically Disadvantaged",
+      "default": false
+    },
+    "english_learner": {
+      "type": "boolean",
+      "title": "English Learner",
+      "default": false
+    },
+    "disability": {
+      "type": "boolean",
+      "title": "Has Disability",
+      "default": false
+    },
+    "lunch_status": {
+      "type": "string",
+      "title": "Lunch Status",
+      "enum": [
+        "Free",
+        "Reduced",
+        "Paid"
+      ]
     }
   },
   "required": [
