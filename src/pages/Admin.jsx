@@ -240,6 +240,26 @@ export default function Admin() {
 
         {selectedSchool && (
           <>
+            {/* Selected school summary */}
+            <section>
+              <div className="bg-slate-900 text-white p-5 rounded-2xl flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Selected School</p>
+                  <p className="text-xl font-semibold mt-0.5">{selectedSchool.school_name}</p>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">System Code</p>
+                    <code className="text-2xl font-mono font-bold">{selectedSchool.system_code}</code>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide">School Code</p>
+                    <code className="text-2xl font-mono font-bold">{selectedSchool.school_code}</code>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {/* Teacher Accounts */}
             <section>
               <div className="flex items-center gap-2 mb-4">
