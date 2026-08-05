@@ -1,0 +1,64 @@
+{
+  "name": "SchoolSystem",
+  "type": "object",
+  "properties": {
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "district_name": {
+      "type": "string",
+      "title": "District Name"
+    },
+    "county": {
+      "type": "string",
+      "title": "County"
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    },
+    "date_discovered": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Date Discovered"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Verified"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Updated"
+    }
+  },
+  "required": [
+    "system_code",
+    "district_name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

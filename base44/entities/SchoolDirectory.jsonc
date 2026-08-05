@@ -1,0 +1,89 @@
+{
+  "name": "SchoolDirectory",
+  "type": "object",
+  "properties": {
+    "school_key": {
+      "type": "string",
+      "title": "School Key (SystemCode-SchoolCode)"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "school_type": {
+      "type": "string",
+      "title": "School Type"
+    },
+    "grade_range": {
+      "type": "string",
+      "title": "Grade Range"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "closed",
+        "new",
+        "updated"
+      ],
+      "default": "active"
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    },
+    "date_discovered": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Date Discovered"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Verified"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Updated"
+    }
+  },
+  "required": [
+    "school_key",
+    "system_code",
+    "school_code",
+    "school_name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

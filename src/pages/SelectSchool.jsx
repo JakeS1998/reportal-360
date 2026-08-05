@@ -32,7 +32,7 @@ export default function SelectSchool() {
       }
       const loggedInUser = loginRes.data.user;
       if (loggedInUser.role === "admin") {
-        localStorage.setItem("userSession", JSON.stringify({ user: loggedInUser }));
+        localStorage.setItem("userSession", JSON.stringify({ user: loggedInUser, credentials: { username, password } }));
         navigate("/admin");
         return;
       }

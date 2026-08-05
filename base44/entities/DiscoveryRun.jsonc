@@ -1,0 +1,129 @@
+{
+  "name": "DiscoveryRun",
+  "type": "object",
+  "properties": {
+    "run_type": {
+      "type": "string",
+      "title": "Run Type",
+      "enum": [
+        "full",
+        "refresh",
+        "scheduled"
+      ],
+      "default": "full"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "running",
+        "completed",
+        "failed",
+        "partial"
+      ],
+      "default": "running"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Start Time"
+    },
+    "finish_time": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Finish Time"
+    },
+    "duration_ms": {
+      "type": "number",
+      "title": "Duration (ms)"
+    },
+    "systems_count": {
+      "type": "number",
+      "title": "Systems Count",
+      "default": 0
+    },
+    "schools_count": {
+      "type": "number",
+      "title": "Schools Count",
+      "default": 0
+    },
+    "new_schools": {
+      "type": "number",
+      "title": "New Schools",
+      "default": 0
+    },
+    "updated_schools": {
+      "type": "number",
+      "title": "Updated Schools",
+      "default": 0
+    },
+    "removed_schools": {
+      "type": "number",
+      "title": "Removed Schools",
+      "default": 0
+    },
+    "errors": {
+      "type": "array",
+      "title": "Errors",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "log": {
+      "type": "array",
+      "title": "Activity Log",
+      "items": {
+        "type": "string"
+      }
+    },
+    "trigger": {
+      "type": "string",
+      "title": "Trigger",
+      "enum": [
+        "manual",
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "manual"
+    }
+  },
+  "required": [
+    "run_type",
+    "status",
+    "start_time"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
