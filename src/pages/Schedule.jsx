@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import ProficiencyChart from "@/components/ProficiencyChart";
 import MetricDelta from "@/components/MetricDelta";
+import DemographicsSection from "@/components/DemographicsSection";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -123,6 +124,9 @@ export default function Schedule() {
         <Card className="p-6 border-slate-200">
           <ProficiencyChart data={school} />
         </Card>
+
+        <h2 className="text-lg font-semibold text-slate-900 mt-8 mb-4">Demographics</h2>
+        <DemographicsSection data={school} />
       </main>
     </div>
   );
