@@ -20,7 +20,7 @@ export function SchoolProvider({ children }) {
     const initial = session.school;
     setSchool(initial);
     setLoading(false);
-    if (initial && initial.system_code && initial.school_code && (initial.math_proficiency == null || !initial.previous)) {
+    if (initial && initial.system_code && initial.school_code && (initial.math_proficiency == null || !initial.previous || !initial.county)) {
       base44.functions
         .invoke("fetchSchoolData", { system_code: initial.system_code, school_code: initial.school_code })
         .then((res) => {

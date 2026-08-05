@@ -13,12 +13,12 @@ export default async function (req) {
     const CURRENT_YEAR = "2025";
     const PREVIOUS_YEAR = "2024";
 
-    function buildUrl(year) {
-      return `https://reportcard.alsde.edu/SupportingData.aspx?ReportYear=${year}&SystemCode=${system_code}&SchoolCode=${school_code}`;
+    function buildUrl(year, sysCode, schCode) {
+      return `https://reportcard.alsde.edu/SupportingData.aspx?ReportYear=${year}&SystemCode=${sysCode}&SchoolCode=${schCode}`;
     }
 
-    async function fetchHtml(year) {
-      const res = await fetch(buildUrl(year), {
+    async function fetchHtml(year, sysCode, schCode) {
+      const res = await fetch(buildUrl(year, sysCode, schCode), {
         headers: { "User-Agent": "Mozilla/5.0" },
       });
       if (!res.ok) return null;
@@ -69,7 +69,7 @@ export default async function (req) {
       "Military Family",
     ];
 
-    function parseSchool(html, year) {
+    function parseSchool(html, year, sysCode, schCode) {
       if (!html) return null;
       const text = cleanText(html);
 
@@ -149,7 +149,7 @@ export default async function (req) {
       };
 
       const namePattern = new RegExp(
-        "\\d{4}\\s+" + system_code + "\\s+(.+?)\\s+" + school_code + "\\s+(.+?)\\s+Academic Achievement"
+        "\\d{4}\\s+" + sysCode + "\\s+(.+?)\\s+" + schCode + "\\s+(.+?)\\s+Academic Achievement"
       );
       const nameMatch = text.match(namePattern);
       const system_name = nameMatch ? nameMatch[1].trim() : "";
@@ -190,8 +190,17 @@ export default async function (req) {
       };
     }
 
-    const current = parseSchool(await fetchHtml(CURRENT_YEAR), CURRENT_YEAR);
-    const previous = parseSchool(await fetchHtml(PREVIOUS_YEAR), PREVIOUS_YEAR);
+    const [currentHtml, previousHtml, countyHtml, stateHtml] = await Promise.all([
+      fetchHtml(CURRENT_YEAR, system_code, school_code),
+      fetchHtml(PREVIOUS_YEAR, system_code, school_code),
+      fetchHtml(CURRENT_YEAR, system_code, "0000"),
+      fetchHtml(CURRENT_YEAR, "000", "0000"),
+    ]);
+
+    const current = parseSchool(currentHtml, CURRENT_YEAR, system_code, school_code);
+    const previous = parseSchool(previousHtml, PREVIOUS_YEAR, system_code, school_code);
+    const county = parseSchool(countyHtml, CURRENT_YEAR, system_code, "0000");
+    const state = parseSchool(stateHtml, CURRENT_YEAR, "000", "0000");
 
     if (!current) {
       return Response.json(
@@ -200,7 +209,19 @@ export default async function (req) {
       );
     }
 
-    return Response.json({ ...current, previous });
+    const benchmarkFields = (agg) => agg ? {
+      school_name: agg.school_name,
+      academic_achievement: agg.academic_achievement,
+      academic_growth: agg.academic_growth,
+      chronic_absenteeism: agg.chronic_absenteeism,
+      graduation_rate: agg.graduation_rate,
+      enrollment: agg.enrollment,
+      math_proficiency: agg.math_proficiency,
+      reading_proficiency: agg.reading_proficiency,
+      science_proficiency: agg.science_proficiency,
+    } : null;
+
+    return Response.json({ ...current, previous, county: benchmarkFields(county), state: benchmarkFields(state) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

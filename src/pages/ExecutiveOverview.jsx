@@ -25,7 +25,9 @@ export default function ExecutiveOverview() {
     if (!school || !school.academic_achievement) return;
     setAiLoading(true);
     const p = school.previous || {};
-    const prompt = `You are an education analytics assistant for Alabama school leaders. Given this ALSDE report card data, produce (a) a 2-3 sentence executive summary highlighting strengths, weaknesses, and year-over-year changes, and (b) estimated county and state average benchmarks for each metric using your knowledge of Alabama public school norms.
+    const c = school.county || {};
+    const s = school.state || {};
+    const prompt = `You are an education analytics assistant for Alabama school leaders. Given this ALSDE report card data, produce a 2-3 sentence executive summary highlighting strengths, weaknesses, and year-over-year changes. Reference how the school compares to county and state averages where relevant.
 
 School: ${school.school_name} — ${school.system_name} (${school.school_type}, FY ${school.year})
 - Academic Achievement: ${school.academic_achievement} (prev ${p.academic_achievement ?? "—"})
@@ -38,25 +40,18 @@ School: ${school.school_name} — ${school.system_name} (${school.school_type}, 
 - Science Proficiency: ${school.science_proficiency ?? "—"}%
 - Overall composite score: ${overall}
 
-Return JSON with: summary (string), benchmarks (object with keys academic_achievement, academic_growth, chronic_absenteeism, enrollment, overall_score — each {county: number, state: number}).`;
+County averages (${c.school_name || "system"}): Academic Achievement ${c.academic_achievement ?? "—"}, Growth ${c.academic_growth ?? "—"}, Chronic Absenteeism ${c.chronic_absenteeism ?? "—"}%, Math ${c.math_proficiency ?? "—"}%, Reading ${c.reading_proficiency ?? "—"}%, Graduation ${c.graduation_rate ?? "—"}%
+State averages: Academic Achievement ${s.academic_achievement ?? "—"}, Growth ${s.academic_growth ?? "—"}, Chronic Absenteeism ${s.chronic_absenteeism ?? "—"}%, Math ${s.math_proficiency ?? "—"}%, Reading ${s.reading_proficiency ?? "—"}%, Graduation ${s.graduation_rate ?? "—"}%
+
+Return JSON with: summary (string).`;
     base44.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",
         properties: {
           summary: { type: "string" },
-          benchmarks: {
-            type: "object",
-            properties: {
-              academic_achievement: { type: "object", properties: { county: { type: "number" }, state: { type: "number" } } },
-              academic_growth: { type: "object", properties: { county: { type: "number" }, state: { type: "number" } } },
-              chronic_absenteeism: { type: "object", properties: { county: { type: "number" }, state: { type: "number" } } },
-              enrollment: { type: "object", properties: { county: { type: "number" }, state: { type: "number" } } },
-              overall_score: { type: "object", properties: { county: { type: "number" }, state: { type: "number" } } },
-            },
-          },
         },
-        required: ["summary", "benchmarks"],
+        required: ["summary"],
       },
     })
       .then((res) => setAi(res))
@@ -121,7 +116,7 @@ Return JSON with: summary (string), benchmarks (object with keys academic_achiev
       </div>
 
       <FadeIn delay={180}>
-        <BenchmarkTable school={schoolWithScore} benchmarks={ai?.benchmarks} />
+        <BenchmarkTable school={schoolWithScore} county={school.county} state={school.state} />
       </FadeIn>
     </div>
   );

@@ -1,11 +1,11 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts";
 
-export default function SubjectProficiencyChart({ school, benchmarks }) {
+export default function SubjectProficiencyChart({ school, county, state }) {
   const data = [
-    { subject: "Math", School: school.math_proficiency, Previous: school.previous?.math_proficiency, County: benchmarks?.math?.county, State: benchmarks?.math?.state },
-    { subject: "Reading", School: school.reading_proficiency, Previous: school.previous?.reading_proficiency, County: benchmarks?.reading?.county, State: benchmarks?.reading?.state },
-    { subject: "Science", School: school.science_proficiency, Previous: school.previous?.science_proficiency, County: benchmarks?.science?.county, State: benchmarks?.science?.state },
+    { subject: "Math", School: school.math_proficiency, Previous: school.previous?.math_proficiency, County: county?.math_proficiency, State: state?.math_proficiency },
+    { subject: "Reading", School: school.reading_proficiency, Previous: school.previous?.reading_proficiency, County: county?.reading_proficiency, State: state?.reading_proficiency },
+    { subject: "Science", School: school.science_proficiency, Previous: school.previous?.science_proficiency, County: county?.science_proficiency, State: state?.science_proficiency },
   ];
   return (
     <ResponsiveContainer width="100%" height={320}>

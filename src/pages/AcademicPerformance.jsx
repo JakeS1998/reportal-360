@@ -18,18 +18,21 @@ export default function AcademicPerformance() {
     if (!school || !school.math_proficiency) return;
     setAiLoading(true);
     const p = school.previous || {};
-    const prompt = `You are an Alabama education analytics assistant. Given this school's proficiency data, estimate (a) county and state average proficiency for each subject, (b) proficiency by grade level for each subject, (c) a subgroup proficiency matrix, and (d) subject rankings with year-over-year movement.
+    const c = school.county || {};
+    const s = school.state || {};
+    const prompt = `You are an Alabama education analytics assistant. Given this school's proficiency data, estimate (a) proficiency by grade level for each subject, (b) a subgroup proficiency matrix, and (c) subject rankings with year-over-year movement.
 
 School: ${school.school_name} (${school.school_type}, FY ${school.year})
 Current proficiency — Math: ${school.math_proficiency}%, Reading: ${school.reading_proficiency}%, Science: ${school.science_proficiency}%
 Previous — Math: ${p.math_proficiency ?? "—"}%, Reading: ${p.reading_proficiency ?? "—"}%, Science: ${p.science_proficiency ?? "—"}%
+County — Math: ${c.math_proficiency ?? "—"}%, Reading: ${c.reading_proficiency ?? "—"}%, Science: ${c.science_proficiency ?? "—"}%
+State — Math: ${s.math_proficiency ?? "—"}%, Reading: ${s.reading_proficiency ?? "—"}%, Science: ${s.science_proficiency ?? "—"}%
 
 For grade levels use: ${school.school_type === "High" ? "Grade 9, 10, 11, 12" : school.school_type === "Middle" ? "Grade 6, 7, 8" : "Grade 3, 4, 5"}.
 Subgroups: All Students, Economically Disadvantaged, Non-Economically Disadvantaged, Students with Disabilities, English Learners, General Education, Male, Female.
 Columns for subgroups: math, reading, science, growth, attendance (each a proficiency-style 0-100 number).
 
 Return JSON: {
-  "benchmarks": { "math": {"county":number,"state":number}, "reading": {...}, "science": {...} },
   "gradeBreakdown": [ {"grade":"Grade 3","math":number,"reading":number,"science":number}, ... ],
   "subgroups": [ {"name":"All Students","math":number,"reading":number,"science":number,"growth":number,"attendance":number}, ... ],
   "rankings": [ {"rank":1,"subject":"Reading","value":number,"movement":"up|down|same"}, ... ]
@@ -39,12 +42,11 @@ Return JSON: {
       response_json_schema: {
         type: "object",
         properties: {
-          benchmarks: { type: "object" },
           gradeBreakdown: { type: "array" },
           subgroups: { type: "array" },
           rankings: { type: "array" },
         },
-        required: ["benchmarks", "gradeBreakdown", "subgroups", "rankings"],
+        required: ["gradeBreakdown", "subgroups", "rankings"],
       },
     })
       .then(setAi)
@@ -62,7 +64,7 @@ Return JSON: {
     <div className="space-y-6">
       <FadeIn>
         <SectionCard title="Subject Proficiency" subtitle="Current vs previous year, county, and state with 80% target" icon={GraduationCap}>
-          <SubjectProficiencyChart school={school} benchmarks={ai?.benchmarks} />
+          <SubjectProficiencyChart school={school} county={school.county} state={school.state} />
         </SectionCard>
       </FadeIn>
 
