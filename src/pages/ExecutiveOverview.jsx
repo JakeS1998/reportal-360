@@ -22,7 +22,6 @@ import RadarComparison from "@/components/RadarComparison";
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters } = useSchool();
   const metrics = useStudentMetrics();
-  const { ai, aiLoading } = useAiSummary({ school: activeSchool, overall: activeOverall, subject: filters.subject });
   const navigate = useNavigate();
   const [countyLb, setCountyLb] = useState({ loading: true });
   const [stateLb, setStateLb] = useState({ loading: true });
@@ -32,6 +31,7 @@ export default function ExecutiveOverview() {
   const activeOverall = activeSchool ? computeOverallScore(activeSchool) : null;
   const activeSchoolWithScore = activeSchool ? { ...activeSchool, _overall: activeOverall } : null;
   const prevOverall = school?.previous ? computeOverallScore(school.previous) : null;
+  const { ai, aiLoading } = useAiSummary({ school: activeSchool, overall: activeOverall, subject: filters.subject });
 
   useEffect(() => {
     if (!school || !school.system_code) return;
