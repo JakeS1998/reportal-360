@@ -1,0 +1,18 @@
+{
+  "name": "LeaderboardCache",
+  "type": "object",
+  "properties": {
+    "cache_key": {
+      "type": "string",
+      "title": "Cache Key"
+    },
+    "payload": {
+      "type": "object",
+      "title": "Cached Payload"
+    }
+  },
+  "required": [
+    "cache_key",
+    "payload"
+  ]
+}

@@ -1,17 +1,31 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { parseSchool, fetchHtml, computeScore, CURRENT_YEAR, PREVIOUS_YEAR } from '../../shared/alsdeParser.ts';
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
     const { action, systemCode, schoolCode, myScore, schoolName, systemName } = body || {};
 
+    const base44 = createClientFromRequest(req);
+    const db = base44.asServiceRole.entities;
+
+    // Check cache first
+    const cacheKey = action === "county" ? `county:${systemCode}` : `state:${schoolCode || "unknown"}`;
+    const now = Date.now();
+    const cached = await db.LeaderboardCache.filter({ cache_key: cacheKey }, "-created_date", 1);
+    if (cached && cached.length > 0) {
+      const age = now - new Date(cached[0].created_date).getTime();
+      if (age < CACHE_TTL_MS) {
+        return Response.json(cached[0].payload);
+      }
+    }
+
     if (action === "county") {
       if (!systemCode || !schoolCode) {
         return Response.json({ error: "systemCode and schoolCode required" }, { status: 400 });
       }
-
-      const db = createClientFromRequest(req).asServiceRole.entities;
 
       const directory = await db.SchoolDirectory.filter(
         { system_code: systemCode, active: true },
@@ -78,17 +92,19 @@ export default async function (req) {
         })
       );
 
-      return Response.json({
+      const countyPayload = {
         top5,
         myRank,
         mySchool,
         totalSchools: results.length,
-      });
+      };
+
+      await db.LeaderboardCache.create({ cache_key: cacheKey, payload: countyPayload }).catch(() => {});
+
+      return Response.json(countyPayload);
     }
 
     if (action === "state") {
-      const base44 = createClientFromRequest(req);
-
       const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Search for Alabama State Department of Education (ALSDE) report card data for the 2024-2025 school year.
 
@@ -118,6 +134,8 @@ Return JSON with: top5 (array of {name, system, score}), myPercentile (number 0-
           required: ["top5", "myPercentile", "myEstimatedRank"],
         },
       });
+
+      await db.LeaderboardCache.create({ cache_key: cacheKey, payload: res }).catch(() => {});
 
       return Response.json(res);
     }
