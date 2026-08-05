@@ -1,4 +1,5 @@
 import React from "react";
+import { ChevronRight } from "lucide-react";
 
 function scoreColor(score) {
   if (score == null) return "text-slate-300";
@@ -38,7 +39,7 @@ function ScoreCell({ score, grade, highlight }) {
   );
 }
 
-export default function StudentRosterTable({ rows, subjectFilter }) {
+export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
   if (!rows.length) {
     return <p className="text-sm text-slate-400 py-8 text-center">No students found for the current filters.</p>;
   }
@@ -62,8 +63,13 @@ export default function StudentRosterTable({ rows, subjectFilter }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.student_number} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-              <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{r.student_name}</td>
+            <tr key={r.student_number} onClick={() => onSelect?.(r)} className="border-b border-slate-100 hover:bg-blue-50/40 transition-colors cursor-pointer group">
+              <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                <div className="flex items-center gap-1.5">
+                  {r.student_name}
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                </div>
+              </td>
               <td className="px-3 py-3 text-slate-500 font-mono text-xs">{r.student_number}</td>
               <td className="px-3 py-3 text-slate-600">{r.grade_level}</td>
               <td className="px-3 py-3 text-slate-600">{r.gender || "—"}</td>

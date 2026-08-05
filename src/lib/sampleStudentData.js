@@ -123,3 +123,28 @@ export function generateStudentRoster(school) {
 
   return students;
 }
+
+export function generateStudentProgress(student) {
+  const seed = hashString(student.student_number + ":progress");
+  const rand = seededRandom(seed);
+  const periods = ["Q1", "Q2", "Q3", "Q4"];
+
+  const scoreTrend = SUBJECTS.map((subj) => {
+    const q1 = student.scores[subj] || 75;
+    const data = [{ period: "Q1", score: q1 }];
+    let prev = q1;
+    for (let i = 1; i < 4; i++) {
+      const change = Math.round((rand() - 0.42) * 14);
+      prev = Math.max(45, Math.min(100, prev + change));
+      data.push({ period: periods[i], score: prev });
+    }
+    return { subject: subj, data };
+  });
+
+  const attendanceTrend = periods.map((p) => ({
+    period: p,
+    rate: Math.max(72, Math.min(100, Math.round(student.attendanceRate + (rand() - 0.5) * 14))),
+  }));
+
+  return { scoreTrend, attendanceTrend };
+}

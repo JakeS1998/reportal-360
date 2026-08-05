@@ -1,20 +1,21 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import StudentRosterTable from "@/components/StudentRosterTable";
+import StudentToolbar from "@/components/StudentToolbar";
+import StudentProgressSheet from "@/components/StudentProgressSheet";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import KpiCard from "@/components/KpiCard";
-import { generateStudentRoster, SUBJECTS } from "@/lib/sampleStudentData";
+import { generateStudentRoster } from "@/lib/sampleStudentData";
 import { Users } from "lucide-react";
 
 export default function Students() {
   const { activeSchool, loading, filters } = useSchool();
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
 
-  const rows = useMemo(() => {
-    if (!activeSchool) return [];
-    return generateStudentRoster(activeSchool);
-  }, [activeSchool]);
+  const rows = useMemo(() => activeSchool ? generateStudentRoster(activeSchool) : [], [activeSchool]);
 
   const filteredRows = rows.filter((r) => {
     if (filters.grade !== "All Grades" && r.grade_level !== filters.grade.replace("Grade ", "")) return false;
@@ -22,6 +23,10 @@ export default function Students() {
     if (filters.studentGroup === "Economically Disadvantaged" && !r.economically_disadvantaged) return false;
     if (filters.studentGroup === "Students with Disabilities" && !r.disability) return false;
     if (filters.studentGroup === "English Learners" && !r.english_learner) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!r.student_name.toLowerCase().includes(q) && !r.student_number.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
@@ -58,9 +63,11 @@ export default function Students() {
       </FadeIn>
       <FadeIn delay={60}>
         <SectionCard title="Student Roster" subtitle={`${filteredRows.length} students · ${activeSchool?.school_name || ""} · FY ${activeSchool?.year || ""}`} icon={Users}>
-          <StudentRosterTable rows={filteredRows} subjectFilter={filters.subject} />
+          <StudentToolbar search={search} onSearch={setSearch} />
+          <StudentRosterTable rows={filteredRows} subjectFilter={filters.subject} onSelect={setSelected} />
         </SectionCard>
       </FadeIn>
+      <StudentProgressSheet student={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
