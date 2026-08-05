@@ -1,7 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { discoverSchoolsForSystems } from '../../shared/providers/alabama.ts';
 
 // Public (no auth) endpoint for the subscriber login flow.
-// - action: "schoolsBySystem"  -> lists active schools in a system
+// - action: "schoolsBySystem"  -> lists active schools in a system (auto-discovers on first lookup)
 // - action: "validate"         -> validates an access code for a school
 export default async function (req) {
   try {
@@ -11,11 +12,53 @@ export default async function (req) {
 
     if (action === "schoolsBySystem") {
       if (!systemCode) return Response.json({ error: "systemCode required" }, { status: 400 });
-      const schools = await db.SchoolDirectory.filter(
+      let schools = await db.SchoolDirectory.filter(
         { system_code: systemCode, active: true },
         "school_name",
         500
       );
+      // On-demand discovery: if the system is known but has no schools yet, discover it now.
+      if (schools.length === 0) {
+        const sys = await db.SchoolSystem.filter({ system_code: systemCode, active: true });
+        if (sys.length) {
+          const result = await discoverSchoolsForSystems([
+            { system_code: systemCode, district_name: sys[0].district_name },
+          ]);
+          const items = (result.results && result.results[systemCode]) || [];
+          const now = new Date().toISOString();
+          for (const sc of items) {
+            if (!sc.school_code) continue;
+            const key = `${systemCode}-${sc.school_code}`;
+            const existing = await db.SchoolDirectory.filter({ school_key: key });
+            if (existing.length) {
+              await db.SchoolDirectory.update(existing[0].id, {
+                school_name: sc.school_name,
+                active: true,
+                last_verified: now,
+                last_updated: now,
+              });
+            } else {
+              await db.SchoolDirectory.create({
+                school_key: key,
+                system_code: systemCode,
+                school_code: sc.school_code,
+                school_name: sc.school_name,
+                active: true,
+                status: "new",
+                date_discovered: now,
+                last_verified: now,
+                last_updated: now,
+              });
+            }
+          }
+          await db.SchoolSystem.update(sys[0].id, { last_verified: now, last_updated: now });
+          schools = await db.SchoolDirectory.filter(
+            { system_code: systemCode, active: true },
+            "school_name",
+            500
+          );
+        }
+      }
       return Response.json({
         systemCode,
         schools: schools.map((s) => ({

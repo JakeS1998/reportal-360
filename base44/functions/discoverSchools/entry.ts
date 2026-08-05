@@ -62,6 +62,17 @@ export default async function (req) {
       return "new";
     };
 
+    // SINGLE PHASE: discover schools for one system (debug / on-demand)
+    if (phase === "single") {
+      const { systemCode } = body;
+      if (!systemCode) return Response.json({ error: "systemCode required" }, { status: 400 });
+      const sys = await db.SchoolSystem.filter({ system_code: systemCode });
+      const sysMeta = sys[0] ? { system_code: sys[0].system_code, district_name: sys[0].district_name } : { system_code: systemCode, district_name: "" };
+      const result = await discoverSchoolsForSystems([sysMeta]);
+      const items = (result.results && result.results[systemCode]) || [];
+      return Response.json({ systemCode, system: sysMeta, raw: result, itemsCount: items.length, items: items.slice(0, 50) });
+    }
+
     // SCHEDULED PHASE: refresh systems + process a rotating chunk of schools (one function call)
     if (phase === "scheduled") {
       const sysResult = await discoverSystems();

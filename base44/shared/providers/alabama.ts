@@ -63,7 +63,7 @@ async function runBrowser(code, context) {
 const SYSTEMS_CODE = `
 export default async ({ page, context }) => {
   await page.goto(context.url, { waitUntil: "networkidle2", timeout: 60000 });
-  await page.waitForFunction(() => window.ASPx && ASPx.GetControlCollection && ASPx.GetControlCollection().GetByName("ddlSystem"), { timeout: 15000 });
+  await page.waitForFunction(() => window.ASPx && ASPx.GetControlCollection && ASPx.GetControlCollection().GetByName("ddlSystem"), { timeout: 40000 });
   ${READ_COMBO_FN}
   const items = await readCombo(page, "ddlSystem");
   return { data: { items }, type: "application/json" };
@@ -73,7 +73,7 @@ export default async ({ page, context }) => {
 const SCHOOLS_CODE = `
 export default async ({ page, context }) => {
   await page.goto(context.url, { waitUntil: "networkidle2", timeout: 60000 });
-  await page.waitForFunction(() => window.ASPx && ASPx.GetControlCollection && ASPx.GetControlCollection().GetByName("ddlSystem"), { timeout: 15000 });
+  await page.waitForFunction(() => window.ASPx && ASPx.GetControlCollection && ASPx.GetControlCollection().GetByName("ddlSystem"), { timeout: 40000 });
   ${READ_COMBO_FN}
   const results = {};
   for (const sys of context.systems) {
@@ -81,7 +81,7 @@ export default async ({ page, context }) => {
       const ddl = ASPx.GetControlCollection().GetByName("ddlSystem");
       try { ddl.SetValue(code); if (ddl.RaiseValueChangedEvent) ddl.RaiseValueChangedEvent(); } catch (e) {}
     }, sys.system_code);
-    await waitForItems(page, "ddlSchool", 25000);
+    await waitForItems(page, "ddlSchool", 30000);
     const items = await readCombo(page, "ddlSchool");
     results[sys.system_code] = items;
   }
@@ -108,7 +108,12 @@ export async function discoverSystems() {
 
 export async function discoverSchoolsForSystems(systems) {
   if (hasBrowser()) {
-    const data = await runBrowser(SCHOOLS_CODE, { url: BASE, systems });
+    let data = await runBrowser(SCHOOLS_CODE, { url: BASE, systems });
+    // Retry up to 2 times — the ALSDE page can be slow to initialize its dropdown controls.
+    for (let attempt = 0; attempt < 2 && data.error; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      data = await runBrowser(SCHOOLS_CODE, { url: BASE, systems });
+    }
     if (data.error) return { results: {}, error: data.error, via: "browser" };
     const schools = data.schools || {};
     const out = {};
