@@ -20,13 +20,24 @@ function gradeStyle(grade) {
   }
 }
 
-function Badge({ children, color }) {
+function Badge({ children, color, tooltip }) {
   const colors = {
     amber: "bg-amber-50 text-amber-700 border-amber-200",
     blue: "bg-blue-50 text-blue-700 border-blue-200",
     purple: "bg-purple-50 text-purple-700 border-purple-200",
   };
-  return <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${colors[color] || colors.amber}`}>{children}</span>;
+  return (
+    <span className="relative inline-flex group/icon">
+      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border cursor-help ${colors[color] || colors.amber}`}>
+        {children}
+      </span>
+      {tooltip && (
+        <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] font-medium text-white opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 shadow-lg z-50 leading-relaxed text-center">
+          {tooltip}
+        </span>
+      )}
+    </span>
+  );
 }
 
 function ScoreCell({ score, grade, highlight }) {
@@ -76,9 +87,9 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
               <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{r.race_ethnicity || "—"}</td>
               <td className="px-3 py-3">
                 <div className="flex flex-wrap gap-1">
-                  {r.economically_disadvantaged && <Badge color="amber">Econ Disadv</Badge>}
-                  {r.english_learner && <Badge color="blue">ELL</Badge>}
-                  {r.disability && <Badge color="purple">SWD</Badge>}
+                  {r.economically_disadvantaged && <Badge color="amber" tooltip="Economically Disadvantaged — Student qualifies for free or reduced-price meals based on household income eligibility.">Econ Disadv</Badge>}
+                  {r.english_learner && <Badge color="blue" tooltip="English Language Learner — Student is receiving English language support services to develop academic proficiency.">ELL</Badge>}
+                  {r.disability && <Badge color="purple" tooltip="Student with Disabilities — Student has an Individualized Education Program (IEP) or receives special education services.">SWD</Badge>}
                   {!r.economically_disadvantaged && !r.english_learner && !r.disability && <span className="text-xs text-slate-300">—</span>}
                 </div>
               </td>
