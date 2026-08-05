@@ -61,7 +61,7 @@ export default function SelectSchool() {
           <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Alabama School Portal</h1>
+          <h1 className="text-2xl font-bold text-slate-900">SchoolLens</h1>
           <p className="text-sm text-slate-500 mt-1">Enter your credentials to access your dashboard</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
