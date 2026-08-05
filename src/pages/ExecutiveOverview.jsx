@@ -11,6 +11,8 @@ import Skeleton from "@/components/Skeleton";
 import SchoolHero from "@/components/SchoolHero";
 import QuickInsightCards from "@/components/QuickInsightCards";
 import AiExecutiveSummary from "@/components/AiExecutiveSummary";
+import AiInsightColumns from "@/components/AiInsightColumns";
+import { useAiSummary } from "@/lib/useAiSummary";
 import { computeOverallScore } from "@/lib/schoolUtils";
 import { Trophy, Crown, Radar as RadarIcon, Users } from "lucide-react";
 import { useStudentMetrics } from "@/lib/useStudentMetrics";
@@ -20,6 +22,7 @@ import RadarComparison from "@/components/RadarComparison";
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters } = useSchool();
   const metrics = useStudentMetrics();
+  const { ai, aiLoading } = useAiSummary({ school: activeSchool, overall: activeOverall, subject: filters.subject });
   const navigate = useNavigate();
   const [countyLb, setCountyLb] = useState({ loading: true });
   const [stateLb, setStateLb] = useState({ loading: true });
@@ -116,9 +119,13 @@ export default function ExecutiveOverview() {
           <AccountabilityBar school={activeSchool} />
         </FadeIn>
         <FadeIn delay={160}>
-          <AiExecutiveSummary school={activeSchool} overall={activeOverall} subject={filters.subject} />
+          <AiExecutiveSummary ai={ai} loading={aiLoading} />
         </FadeIn>
       </div>
+
+      <FadeIn delay={180}>
+        <AiInsightColumns ai={ai} loading={aiLoading} />
+      </FadeIn>
 
       <FadeIn delay={200}>
         <BenchmarkTable school={activeSchoolWithScore} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
