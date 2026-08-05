@@ -47,7 +47,7 @@ export default function Admin() {
   }, [navigate]);
 
   const loadSchools = async () => {
-    const data = await base44.entities.School.list("-created_date", 500);
+    const data = await base44.entities.School.list("-created_date", 5000);
     // Dedupe by school_code/system_code (keep most recent)
     const seen = new Map();
     for (const s of data) {
