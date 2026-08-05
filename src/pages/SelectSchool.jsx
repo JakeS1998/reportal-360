@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,9 +130,14 @@ export default function SelectSchool() {
           </div>
         )}
 
-        <p className="text-center text-xs text-slate-400 mt-4">
-          Data sourced from Alabama State Department of Education Report Card
-        </p>
+        <div className="text-center mt-4 space-y-1">
+          <p className="text-xs text-slate-400">
+            Data sourced from Alabama State Department of Education Report Card
+          </p>
+          <Link to="/admin-login" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+            Admin login
+          </Link>
+        </div>
       </div>
     </div>
   );

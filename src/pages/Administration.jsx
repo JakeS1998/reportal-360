@@ -6,8 +6,9 @@ import FadeIn from "@/components/FadeIn";
 import SectionCard from "@/components/SectionCard";
 import {
   Building2, School, RefreshCw, Search, Download, AlertTriangle,
-  CheckCircle2, Clock, Activity, FileJson, FileSpreadsheet, Calendar,
+  CheckCircle2, Clock, Activity, FileJson, FileSpreadsheet, Calendar, LogOut,
 } from "lucide-react";
+import AccessCodeManager from "@/components/AccessCodeManager";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Administration() {
   useEffect(() => {
     const s = JSON.parse(localStorage.getItem("userSession") || "null");
     if (!s || s.user?.role !== "admin") {
-      navigate("/");
+      navigate("/admin-login");
       return;
     }
     setSession(s);
@@ -120,7 +121,12 @@ export default function Administration() {
           <h1 className="text-xl font-bold text-slate-900">Administration · School Discovery</h1>
           <p className="text-xs text-slate-500 mt-0.5">Automated master list from ALSDE Report Card</p>
         </div>
-        <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
+          <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>
+            <LogOut className="w-4 h-4 mr-1" /> Sign Out
+          </Button>
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
@@ -221,6 +227,10 @@ export default function Administration() {
             </SectionCard>
           </FadeIn>
         </div>
+
+        <FadeIn delay={210}>
+          <AccessCodeManager />
+        </FadeIn>
       </main>
     </div>
   );

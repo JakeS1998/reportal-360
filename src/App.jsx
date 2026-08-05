@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import SelectSchool from './pages/SelectSchool';
 import SchoolAccess from './pages/SchoolAccess';
 import Administration from './pages/Administration';
+import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExecutiveOverview from './pages/ExecutiveOverview';
 import AcademicPerformance from './pages/AcademicPerformance';
@@ -46,6 +47,7 @@ const AuthenticatedApp = () => {
       {/* Add your page Route elements here */}
       <Route path="/" element={<SelectSchool />} />
       <Route path="/access" element={<SchoolAccess />} />
+      <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />
