@@ -31,10 +31,10 @@ export default function AttendanceEngagement() {
     <div className="space-y-6">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard label="Average Daily Attendance" value={attendancePct} previous={prevAttendance} suffix="%" accent="#10B981" />
-          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" />
-          <KpiCard label="Chronic Students" value={chronicStudents} accent="#EF4444" />
-          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" />
+          <KpiCard label="Average Daily Attendance" value={attendancePct} previous={prevAttendance} suffix="%" accent="#10B981" year={school.year} />
+          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} />
+          <KpiCard label="Chronic Students" value={chronicStudents} accent="#EF4444" year={school.year} />
+          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
         </div>
       </FadeIn>
 

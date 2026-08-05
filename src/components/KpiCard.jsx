@@ -4,7 +4,7 @@ import Sparkline from "./Sparkline";
 import InfoTooltip from "./InfoTooltip";
 import { trendSeries, pctChange } from "@/lib/schoolUtils";
 
-export default function KpiCard({ label, value, previous, suffix, lowerIsBetter, large, accent, tooltip }) {
+export default function KpiCard({ label, value, previous, suffix, lowerIsBetter, large, accent, tooltip, year }) {
   const hasDelta = previous != null && value != null;
   const diff = hasDelta ? value - previous : null;
   const pct = hasDelta ? pctChange(value, previous) : null;
@@ -26,7 +26,7 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
         <p className={`font-bold text-slate-900 leading-none ${large ? "text-4xl" : "text-2xl"}`}>
           {value != null ? value + (suffix || "") : "—"}
         </p>
-        <Sparkline data={series} positive={positive} />
+        <Sparkline data={series} positive={positive} year={year} />
       </div>
       <div className="mt-3 flex items-center gap-2 h-5">
         {hasDelta && pct != null ? (

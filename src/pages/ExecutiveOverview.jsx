@@ -97,7 +97,7 @@ Return JSON with: summary (string).`;
     <div className="space-y-6">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard label="Overall School Score" value={overall} previous={prevOverall} large accent="#1D4ED8" tooltip="Composite score combining academic achievement, growth, attendance, and graduation metrics into a single 0–100 value." />
+          <KpiCard label="Overall School Score" value={overall} previous={prevOverall} large accent="#1D4ED8" year={school.year} tooltip="Composite score combining academic achievement, growth, attendance, and graduation metrics into a single 0–100 value." />
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all">
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1">
                 Letter Grade
@@ -113,11 +113,11 @@ Return JSON with: summary (string).`;
               </div>
             </div>
           </div>
-          <KpiCard label="Academic Achievement" value={school.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." />
-          <KpiCard label="Academic Growth" value={school.academic_growth} previous={p.academic_growth} accent="#7C3AED" tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." />
-          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" tooltip="Percentage of students missing 15 or more school days. Lower values are better." />
-          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#0EA5E9" tooltip="Total student enrollment for the current report year (FY 2025)." />
-          <KpiCard label="Graduation Rate" value={school.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" tooltip="Percentage of students graduating within four years of entering high school." />
+          <KpiCard label="Academic Achievement" value={school.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" year={school.year} tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." />
+          <KpiCard label="Academic Growth" value={school.academic_growth} previous={p.academic_growth} accent="#7C3AED" year={school.year} tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." />
+          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} tooltip="Percentage of students missing 15 or more school days. Lower values are better." />
+          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#0EA5E9" year={school.year} tooltip="Total student enrollment for the current report year (FY 2025)." />
+          <KpiCard label="Graduation Rate" value={school.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" year={school.year} tooltip="Percentage of students graduating within four years of entering high school." />
         </div>
       </FadeIn>
 
