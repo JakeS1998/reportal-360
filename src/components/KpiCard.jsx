@@ -10,12 +10,15 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
   const diff = hasDelta ? value - previous : null;
   const pct = hasDelta ? pctChange(value, previous) : null;
   const positive = diff != null ? (lowerIsBetter ? diff < 0 : diff > 0) : null;
-  const series = trendSeries(value, previous);
+  const series = trendSeries(typeof value === "string" ? null : value, previous);
   const accentBar = accent || "#1D4ED8";
-  const animatedValue = useCountUp(value, 800);
-  const displayValue = value != null
-    ? (Number.isInteger(value) ? Math.round(animatedValue).toLocaleString() : animatedValue.toFixed(1)) + (suffix || "")
-    : "—";
+  const isStringValue = typeof value === "string";
+  const animatedValue = useCountUp(isStringValue ? null : value, 800);
+  const displayValue = isStringValue
+    ? value + (suffix || "")
+    : value != null
+      ? (Number.isInteger(value) ? Math.round(animatedValue).toLocaleString() : animatedValue.toFixed(1)) + (suffix || "")
+      : "—";
 
   return (
     <div
