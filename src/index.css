@@ -90,3 +90,16 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@media print {
+  aside, header, .print\:hidden {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .bg-\[\#F8FAFC\] {
+    background: white !important;
+  }
+}
