@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import FilterBar from "./FilterBar";
 
 const nav = [
@@ -15,39 +15,57 @@ const nav = [
 
 function Shell() {
   const { school, switchSchool } = useSchool();
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", String(collapsed));
+  }, [collapsed]);
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
-      <aside className="w-60 shrink-0 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen">
-        <div className="px-5 py-5 flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm">
+      <aside className={`${collapsed ? "w-16" : "w-60"} shrink-0 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen transition-all duration-300`}>
+        <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-5 flex items-center gap-2.5`}>
+          <div className="w-9 h-9 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm shrink-0">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <p className="font-bold text-slate-900 leading-tight">SchoolLens</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Executive Analytics</p>
-          </div>
+          {!collapsed && (
+            <div>
+              <p className="font-bold text-slate-900 leading-tight">SchoolLens</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Executive Analytics</p>
+            </div>
+          )}
         </div>
         <nav className="flex-1 px-3 space-y-1 mt-2">
           {nav.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
+              title={collapsed ? n.label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-                }`
+                  collapsed ? "justify-center" : ""
+                } ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`
               }
             >
-              <n.icon className="w-4 h-4" /> {n.label}
+              <n.icon className="w-4 h-4 shrink-0" /> {!collapsed && n.label}
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-slate-200">
+        <div className="p-3 border-t border-slate-200 space-y-1">
           <button
             onClick={switchSchool}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+            title={collapsed ? "Switch School" : undefined}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors ${collapsed ? "justify-center" : ""}`}
           >
-            <LogOut className="w-4 h-4" /> Switch School
+            <LogOut className="w-4 h-4 shrink-0" /> {!collapsed && "Switch School"}
+          </button>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors ${collapsed ? "justify-center" : ""}`}
+          >
+            {collapsed ? <PanelLeftOpen className="w-4 h-4 shrink-0" /> : <PanelLeftClose className="w-4 h-4 shrink-0" />}
+            {!collapsed && "Collapse"}
           </button>
         </div>
       </aside>
