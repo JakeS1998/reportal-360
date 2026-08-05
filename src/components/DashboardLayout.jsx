@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2 } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList } from "lucide-react";
 import FilterBar from "./FilterBar";
 
 const nav = [
@@ -9,6 +9,7 @@ const nav = [
   { to: "/academics", label: "Academic Performance", icon: GraduationCap },
   { to: "/attendance", label: "Attendance & Engagement", icon: CalendarCheck },
   { to: "/demographics", label: "Students & Demographics", icon: Users },
+  { to: "/students", label: "Student Roster", icon: ClipboardList },
   { to: "/insights", label: "Predictive Insights", icon: Sparkles },
 ];
 

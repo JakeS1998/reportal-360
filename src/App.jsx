@@ -17,6 +17,7 @@ import AcademicPerformance from './pages/AcademicPerformance';
 import AttendanceEngagement from './pages/AttendanceEngagement';
 import StudentsDemographics from './pages/StudentsDemographics';
 import PredictiveInsights from './pages/PredictiveInsights';
+import Students from './pages/Students';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/academics" element={<AcademicPerformance />} />
         <Route path="/attendance" element={<AttendanceEngagement />} />
         <Route path="/demographics" element={<StudentsDemographics />} />
+        <Route path="/students" element={<Students />} />
         <Route path="/insights" element={<PredictiveInsights />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
