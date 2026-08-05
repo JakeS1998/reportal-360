@@ -42,7 +42,7 @@ export default function StudentsDemographics() {
           <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
           <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year={school.year} />
           <KpiCard label="Net Population Change" value={gained ?? null} signed accent={gained >= 0 ? "#10B981" : "#EF4444"} year={school.year} tooltip="Net change in enrollment compared to the previous report year." />
-          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
+          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} previous={metrics.prev?.econDisadvantaged} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
         </div>
       </FadeIn>
 

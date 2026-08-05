@@ -34,10 +34,21 @@ export function useStudentMetrics() {
     return applyFilters(generateStudentRoster(activeSchool), filters);
   }, [activeSchool, filters]);
 
-  const prevProficiency = useMemo(() => {
+  const prev = useMemo(() => {
     if (!activeSchool) return null;
     const prevSchool = { ...activeSchool, year: String(parseInt(activeSchool.year || "2026") - 1) };
-    return avgScores(applyFilters(generateStudentRoster(prevSchool), filters));
+    const pf = applyFilters(generateStudentRoster(prevSchool), filters);
+    const total = pf.length;
+    const attVals = pf.map((r) => r.attendanceRate).filter((v) => v != null);
+    const chronic = pf.filter((r) => r.attendanceRate < 90).length;
+    return {
+      total,
+      avgAttendance: avg(attVals),
+      chronic,
+      chronicRate: total ? Math.round((chronic / total) * 1000) / 10 : null,
+      econDisadvantaged: pf.filter((r) => r.economically_disadvantaged).length,
+      proficiency: avgScores(pf),
+    };
   }, [activeSchool, filters]);
 
   return useMemo(() => {
@@ -103,11 +114,11 @@ export function useStudentMetrics() {
     const rankings = subjEntries
       .sort((a, b) => b.value - a.value)
       .map((r, i) => {
-        const prev = prevProficiency ? prevProficiency[r.subject.toLowerCase()] : null;
+        const prevVal = prev?.proficiency ? prev.proficiency[r.subject.toLowerCase()] : null;
         let movement = "same";
-        if (prev != null) {
-          if (r.value > prev + 1) movement = "up";
-          else if (r.value < prev - 1) movement = "down";
+        if (prevVal != null) {
+          if (r.value > prevVal + 1) movement = "up";
+          else if (r.value < prevVal - 1) movement = "down";
         }
         return { rank: i + 1, subject: r.subject, value: r.value, movement };
       });
@@ -116,7 +127,7 @@ export function useStudentMetrics() {
       total, roster: filtered, race, subgroups, proficiency,
       matrixRows, gradeBreakdown,
       avgAttendance: proficiency.attendance, chronic, approaching, onTrack, attendanceByGrade,
-      rankings, loading,
+      rankings, prev, loading,
     };
-  }, [filtered, prevProficiency, loading]);
+  }, [filtered, prev, loading]);
 }
