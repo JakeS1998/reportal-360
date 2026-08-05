@@ -17,13 +17,15 @@ import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
 
 export default function ExecutiveOverview() {
-  const { school, loading } = useSchool();
+  const { school, activeSchool, loading, filters } = useSchool();
   const navigate = useNavigate();
   const [countyLb, setCountyLb] = useState({ loading: true });
   const [stateLb, setStateLb] = useState({ loading: true });
 
   const overall = school ? computeOverallScore(school) : null;
   const schoolWithScore = school ? { ...school, _overall: overall } : null;
+  const activeOverall = activeSchool ? computeOverallScore(activeSchool) : null;
+  const activeSchoolWithScore = activeSchool ? { ...activeSchool, _overall: activeOverall } : null;
 
   useEffect(() => {
     if (!school || !school.system_code) return;
@@ -44,7 +46,7 @@ export default function ExecutiveOverview() {
       .catch(() => setStateLb({ error: "Unable to load leaderboard" }));
   }, [school, overall]);
 
-  if (loading || !school) {
+  if (loading || !activeSchool) {
     return (
       <div className="space-y-8">
         <Skeleton className="h-32 w-full" />
@@ -62,38 +64,38 @@ export default function ExecutiveOverview() {
     );
   }
 
-  const p = school.previous || {};
+  const p = activeSchool.previous || {};
 
   return (
     <div className="space-y-8">
       <FadeIn>
-        <SchoolHero school={school} />
+        <SchoolHero school={activeSchool} />
       </FadeIn>
 
       <FadeIn delay={40}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Academic Achievement" value={school.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" year={school.year} tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." onClick={() => navigate("/academics")} />
-          <KpiCard label="Academic Growth" value={school.academic_growth} previous={p.academic_growth} accent="#7C3AED" year={school.year} tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." onClick={() => navigate("/academics")} />
-          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} tooltip="Percentage of students missing 15 or more school days. Lower values are better." onClick={() => navigate("/attendance")} />
-          <KpiCard label="Graduation Rate" value={school.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" year={school.year} tooltip="Percentage of students graduating within four years of entering high school." onClick={() => navigate("/academics")} />
+          <KpiCard label="Academic Achievement" value={activeSchool.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" year={activeSchool.year} tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." onClick={() => navigate("/academics")} />
+          <KpiCard label="Academic Growth" value={activeSchool.academic_growth} previous={p.academic_growth} accent="#7C3AED" year={activeSchool.year} tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." onClick={() => navigate("/academics")} />
+          <KpiCard label="Chronic Absenteeism" value={activeSchool.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={activeSchool.year} tooltip="Percentage of students missing 15 or more school days. Lower values are better." onClick={() => navigate("/attendance")} />
+          <KpiCard label="Graduation Rate" value={activeSchool.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" year={activeSchool.year} tooltip="Percentage of students graduating within four years of entering high school." onClick={() => navigate("/academics")} />
         </div>
       </FadeIn>
 
       <FadeIn delay={80}>
-        <QuickInsightCards school={school} />
+        <QuickInsightCards school={activeSchool} />
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={120}>
-          <AccountabilityBar school={school} />
+          <AccountabilityBar school={activeSchool} />
         </FadeIn>
         <FadeIn delay={160}>
-          <AiExecutiveSummary school={school} overall={overall} />
+          <AiExecutiveSummary school={activeSchool} overall={activeOverall} />
         </FadeIn>
       </div>
 
       <FadeIn delay={200}>
-        <BenchmarkTable school={schoolWithScore} county={school.county} state={school.state} />
+        <BenchmarkTable school={activeSchoolWithScore} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -145,7 +147,7 @@ export default function ExecutiveOverview() {
 
       <FadeIn delay={320}>
         <SectionCard title="Performance Radar" subtitle="School vs county vs state across all dimensions" icon={RadarIcon}>
-          <RadarComparison school={school} county={school.county} state={school.state} />
+          <RadarComparison school={activeSchool} county={activeSchool.county} state={activeSchool.state} />
         </SectionCard>
       </FadeIn>
     </div>

@@ -10,7 +10,7 @@ import { GraduationCap, Trophy, Layers, TrendingUp, TrendingDown } from "lucide-
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 
 export default function AcademicPerformance() {
-  const { school, loading } = useSchool();
+  const { school, activeSchool, loading, filters } = useSchool();
   const [ai, setAi] = useState(null);
   const [aiLoading, setAiLoading] = useState(true);
 
@@ -54,17 +54,22 @@ Return JSON: {
       .finally(() => setAiLoading(false));
   }, [school]);
 
-  if (loading || !school) {
+  if (loading || !activeSchool) {
     return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-72" />)}</div>;
   }
 
-  const gradeData = (ai?.gradeBreakdown || []).map((g) => ({ grade: g.grade, Math: g.math, Reading: g.reading, Science: g.science }));
+  const s = activeSchool;
+  const gradeData = (ai?.gradeBreakdown || [])
+    .filter((g) => filters.grade === "All Grades" || g.grade === filters.grade)
+    .map((g) => ({ grade: g.grade, Math: g.math, Reading: g.reading, Science: g.science }));
+  const showSubject = (sub) => filters.subject === "All Subjects" || filters.subject === sub;
+  const rankings = filters.subject !== "All Subjects" ? (ai?.rankings || []).filter((r) => r.subject === filters.subject) : (ai?.rankings || []);
 
   return (
     <div className="space-y-8">
       <FadeIn>
         <SectionCard title="Subject Proficiency" subtitle="Current vs previous year, county, and state with 80% target" icon={GraduationCap}>
-          <SubjectProficiencyChart school={school} county={school.county} state={school.state} />
+          <SubjectProficiencyChart school={s} county={s.county} state={s.state} subject={filters.subject} />
         </SectionCard>
       </FadeIn>
 
@@ -81,9 +86,9 @@ Return JSON: {
                 <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 12 }} formatter={(v) => (v != null ? `${v}%` : "—")} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <ReferenceLine y={80} stroke="#F97316" strokeDasharray="5 4" />
-                <Bar dataKey="Math" fill="#1D4ED8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Reading" fill="#7C3AED" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Science" fill="#10B981" radius={[4, 4, 0, 0]} />
+                {showSubject("Math") && <Bar dataKey="Math" fill="#1D4ED8" radius={[4, 4, 0, 0]} />}
+                {showSubject("Reading") && <Bar dataKey="Reading" fill="#7C3AED" radius={[4, 4, 0, 0]} />}
+                {showSubject("Science") && <Bar dataKey="Science" fill="#10B981" radius={[4, 4, 0, 0]} />}
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -93,16 +98,16 @@ Return JSON: {
       </FadeIn>
 
       <FadeIn delay={120}>
-        <SubgroupMatrix data={ai?.subgroups} />
+        <SubgroupMatrix data={ai?.subgroups} studentGroup={filters.studentGroup} gender={filters.gender} />
       </FadeIn>
 
       <FadeIn delay={180}>
         <SectionCard title="Subject Rankings" subtitle="Ordered by current proficiency with year-over-year movement" icon={Trophy}>
           {aiLoading ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : ai?.rankings?.length ? (
+          ) : rankings.length ? (
             <div className="space-y-2">
-              {ai.rankings.map((r) => (
+              {rankings.map((r) => (
                 <div key={r.subject} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="w-7 h-7 rounded-lg bg-[#1D4ED8] text-white text-sm font-bold flex items-center justify-center">{r.rank}</span>

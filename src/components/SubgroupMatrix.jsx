@@ -16,10 +16,13 @@ function cellText(val) {
   return val >= 80 ? "#166534" : val >= 60 ? "#854D0E" : val >= 40 ? "#9A3412" : "#991B1B";
 }
 
-export default function SubgroupMatrix({ data }) {
-  if (!data || !data.length) return null;
+export default function SubgroupMatrix({ data, studentGroup, gender }) {
+  let rows = data || [];
+  if (studentGroup && studentGroup !== "All Students") rows = rows.filter((r) => r.name === studentGroup);
+  if (gender && gender !== "All Gender") rows = rows.filter((r) => r.name === gender);
+  if (!rows.length) return null;
   let min = null, max = null;
-  data.forEach((r) => COLS.forEach((c) => {
+  rows.forEach((r) => COLS.forEach((c) => {
     const v = r[c.toLowerCase()];
     if (v != null) { if (min == null || v < min.min) min = { min: v, name: r.name, col: c }; if (max == null || v > max.max) max = { max: v, name: r.name, col: c }; }
   }));
@@ -35,7 +38,7 @@ export default function SubgroupMatrix({ data }) {
             </tr>
           </thead>
           <tbody>
-            {data.map((r) => (
+            {rows.map((r) => (
               <tr key={r.name} className="border-b border-slate-100 last:border-0">
                 <td className="py-2.5 pr-4 font-medium text-slate-700 whitespace-nowrap">{r.name}</td>
                 {COLS.map((c) => {

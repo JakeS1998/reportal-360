@@ -19,7 +19,7 @@ function getBadgeClass(diff, lowerIsBetter) {
   return isBetter ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100";
 }
 
-export default function BenchmarkTable({ school, county, state }) {
+export default function BenchmarkTable({ school, county, state, subject }) {
   if (!county && !state) return null;
   const countyOverall = county ? computeOverallScore(county) : null;
   const stateOverall = state ? computeOverallScore(state) : null;
@@ -32,7 +32,11 @@ export default function BenchmarkTable({ school, county, state }) {
     { label: "Science Proficiency", school: school.science_proficiency, county: county?.science_proficiency, state: state?.science_proficiency, suffix: "%" },
     { label: "Graduation Rate", school: school.graduation_rate, county: county?.graduation_rate, state: state?.graduation_rate, suffix: "%" },
     { label: "Overall Score", school: school._overall, county: countyOverall, state: stateOverall, suffix: "" },
-  ].filter((r) => r.school != null && (r.county != null || r.state != null));
+  ].filter((r) => {
+    if (r.school == null || (r.county == null && r.state == null)) return false;
+    if (subject && subject !== "All Subjects") return r.label.toLowerCase().includes(subject.toLowerCase());
+    return true;
+  });
 
   if (rows.length === 0) return null;
 

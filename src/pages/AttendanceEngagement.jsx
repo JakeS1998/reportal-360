@@ -8,12 +8,13 @@ import { CalendarCheck, AlertTriangle, Activity, Users } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 export default function AttendanceEngagement() {
-  const { school, loading } = useSchool();
+  const { activeSchool, loading, filters } = useSchool();
 
-  if (loading || !school) {
+  if (loading || !activeSchool) {
     return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
   }
 
+  const school = activeSchool;
   const p = school.previous || {};
   const attendancePct = school.chronic_absenteeism != null ? Math.round((100 - school.chronic_absenteeism) * 100) / 100 : null;
   const prevAttendance = p.chronic_absenteeism != null ? Math.round((100 - p.chronic_absenteeism) * 100) / 100 : null;
@@ -73,7 +74,7 @@ export default function AttendanceEngagement() {
       <FadeIn delay={180}>
         <SectionCard title="Attendance by Grade" subtitle="Average attendance by grade level (modeled)" icon={Users}>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {(school.school_type === "High" ? ["9", "10", "11", "12"] : school.school_type === "Middle" ? ["6", "7", "8"] : ["K", "1", "2", "3", "4", "5"]).slice(0, 6).map((g, i) => {
+            {(school.school_type === "High" ? ["9", "10", "11", "12"] : school.school_type === "Middle" ? ["6", "7", "8"] : ["K", "1", "2", "3", "4", "5"]).filter((g) => filters.grade === "All Grades" || `Grade ${g}` === filters.grade).map((g, i) => {
               const v = Math.round((attendancePct - 0.5 + (i % 2) * 0.8) * 10) / 10;
               return (
                 <div key={g} className="bg-slate-50 rounded-xl p-4 text-center">

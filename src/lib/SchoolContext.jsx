@@ -1,8 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
 const SchoolContext = createContext(null);
+
+const DEFAULT_FILTERS = {
+  year: "2025",
+  grade: "All Grades",
+  subject: "All Subjects",
+  studentGroup: "All Students",
+  gender: "All Gender",
+};
 
 export function SchoolProvider({ children }) {
   const navigate = useNavigate();
@@ -10,6 +18,19 @@ export function SchoolProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [systemSchools, setSystemSchools] = useState([]);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+
+  const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+
+  // Year filter: swap in previous-year metrics when a prior year is selected
+  const activeSchool = useMemo(() => {
+    if (!school) return null;
+    const prevYear = String(parseInt(school.year) - 1);
+    if (filters.year === prevYear && school.previous) {
+      return { ...school, ...school.previous, year: prevYear, previous: null };
+    }
+    return school;
+  }, [school, filters.year]);
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
@@ -63,7 +84,7 @@ export function SchoolProvider({ children }) {
   };
 
   return (
-    <SchoolContext.Provider value={{ school, user, loading, switchSchool, selectSchool, systemSchools }}>
+    <SchoolContext.Provider value={{ school, activeSchool, user, loading, switchSchool, selectSchool, systemSchools, filters, setFilter }}>
       {children}
     </SchoolContext.Provider>
   );

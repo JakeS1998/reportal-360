@@ -16,18 +16,20 @@ const RACE_COLORS = {
 };
 
 export default function StudentsDemographics() {
-  const { school, loading } = useSchool();
+  const { activeSchool, loading, filters } = useSchool();
 
-  if (loading || !school) {
+  if (loading || !activeSchool) {
     return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
   }
 
+  const school = activeSchool;
   const p = school.previous || {};
   const growth = school.enrollment != null && p.enrollment != null ? Math.round(((school.enrollment - p.enrollment) / p.enrollment) * 1000) / 10 : null;
   const gained = school.enrollment != null && p.enrollment != null ? school.enrollment - p.enrollment : null;
   const race = school.demographics_race || [];
-  const subgroups = school.demographics_subgroups || [];
-  const econDis = subgroups.find((s) => s.label === "Economically Disadvantaged");
+  const allSubgroups = school.demographics_subgroups || [];
+  const subgroups = filters.studentGroup !== "All Students" ? allSubgroups.filter((sg) => sg.label === filters.studentGroup) : allSubgroups;
+  const econDis = allSubgroups.find((sg) => sg.label === "Economically Disadvantaged");
   const freeMealsCount = econDis ? econDis.count : null;
   const freeMealsPct = freeMealsCount != null && school.enrollment ? Math.round((freeMealsCount / school.enrollment) * 1000) / 10 : null;
 
