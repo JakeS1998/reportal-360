@@ -21,18 +21,23 @@ function gradeStyle(grade) {
 }
 
 function Badge({ children, color, tooltip }) {
+  const [show, setShow] = React.useState(false);
   const colors = {
     amber: "bg-amber-50 text-amber-700 border-amber-200",
     blue: "bg-blue-50 text-blue-700 border-blue-200",
     purple: "bg-purple-50 text-purple-700 border-purple-200",
   };
   return (
-    <span className="relative inline-flex group/icon">
+    <span
+      className="relative inline-flex"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
       <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border cursor-help ${colors[color] || colors.amber}`}>
         {children}
       </span>
-      {tooltip && (
-        <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] font-medium text-white opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 shadow-lg z-50 leading-relaxed text-center">
+      {tooltip && show && (
+        <span className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 rounded-lg bg-slate-800 px-3 py-2 text-[11px] font-medium text-white shadow-lg z-50 leading-relaxed text-center">
           {tooltip}
         </span>
       )}

@@ -12,12 +12,14 @@ import SchoolHero from "@/components/SchoolHero";
 import QuickInsightCards from "@/components/QuickInsightCards";
 import AiExecutiveSummary from "@/components/AiExecutiveSummary";
 import { computeOverallScore } from "@/lib/schoolUtils";
-import { Trophy, Crown, Radar as RadarIcon } from "lucide-react";
+import { Trophy, Crown, Radar as RadarIcon, Users } from "lucide-react";
+import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
 
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters } = useSchool();
+  const metrics = useStudentMetrics();
   const navigate = useNavigate();
   const [countyLb, setCountyLb] = useState({ loading: true });
   const [stateLb, setStateLb] = useState({ loading: true });
@@ -84,6 +86,29 @@ export default function ExecutiveOverview() {
 
       <FadeIn delay={80}>
         <QuickInsightCards school={activeSchool} subject={filters.subject} />
+      </FadeIn>
+
+      <FadeIn delay={100}>
+        <SectionCard title="Student Roster Snapshot" subtitle={`Live metrics from ${metrics.total} students (2026 sample data · updates with filters)`} icon={Users}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Students</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.total}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Avg Math Score</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.proficiency.math ?? "—"}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Avg Reading Score</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.proficiency.reading ?? "—"}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Avg Attendance</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.avgAttendance != null ? `${metrics.avgAttendance}%` : "—"}</p>
+            </div>
+          </div>
+        </SectionCard>
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
