@@ -52,7 +52,7 @@ function Shell() {
         </div>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
           <div>
             <h1 className="text-xl font-bold text-slate-900">{school?.school_name || "—"}</h1>
             <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
