@@ -11,100 +11,123 @@ export default async function (req) {
     const base44 = createClientFromRequest(req);
     const db = base44.asServiceRole.entities;
 
-    // Check cache first
-    const cacheKey = action === "county" ? `county:${systemCode}` : `state:${schoolCode || "unknown"}`;
-    const now = Date.now();
-    const cached = await db.LeaderboardCache.filter({ cache_key: cacheKey }, "-created_date", 1);
-    if (cached && cached.length > 0) {
-      const age = now - new Date(cached[0].created_date).getTime();
-      if (age < CACHE_TTL_MS) {
-        return Response.json(cached[0].payload);
-      }
-    }
-
     if (action === "county") {
       if (!systemCode || !schoolCode) {
         return Response.json({ error: "systemCode and schoolCode required" }, { status: 400 });
       }
 
-      const directory = await db.SchoolDirectory.filter(
-        { system_code: systemCode, active: true },
-        "school_name",
-        100
-      );
+      const cacheKey = `county:${systemCode}`;
+      const now = Date.now();
+      const cached = await db.LeaderboardCache.filter({ cache_key: cacheKey }, "-created_date", 1);
 
-      const schools = (directory || []).filter((s) => s.school_code !== "0000").slice(0, 40);
+      let results = null;
 
-      if (schools.length < 2) {
-        return Response.json({
-          error: "Not enough schools discovered for this system yet. Please try again shortly."
-        });
+      if (cached && cached.length > 0) {
+        const age = now - new Date(cached[0].created_date).getTime();
+        if (age < CACHE_TTL_MS && Array.isArray(cached[0].payload?.results)) {
+          results = cached[0].payload.results;
+        }
       }
 
-      const batchSize = 8;
-      const results = [];
+      if (!results) {
+        const directory = await db.SchoolDirectory.filter(
+          { system_code: systemCode, active: true },
+          "school_name",
+          100
+        );
 
-      for (let i = 0; i < schools.length; i += batchSize) {
-        const batch = schools.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(async (s) => {
+        const schools = (directory || []).filter((s) => s.school_code !== "0000").slice(0, 40);
+
+        if (schools.length < 2) {
+          return Response.json({
+            error: "Not enough schools discovered for this system yet. Please try again shortly."
+          });
+        }
+
+        const batchSize = 8;
+        const resultsArr = [];
+
+        for (let i = 0; i < schools.length; i += batchSize) {
+          const batch = schools.slice(i, i + batchSize);
+          const batchResults = await Promise.all(
+            batch.map(async (s) => {
+              try {
+                const html = await fetchHtml(CURRENT_YEAR, systemCode, s.school_code);
+                const data = parseSchool(html, CURRENT_YEAR, systemCode, s.school_code);
+                if (!data) return null;
+                const score = computeScore(data);
+                if (score == null) return null;
+                return {
+                  school_name: data.school_name || s.school_name,
+                  school_code: s.school_code,
+                  school_type: data.school_type,
+                  score,
+                  academic_achievement: data.academic_achievement,
+                  enrollment: data.enrollment,
+                };
+              } catch {
+                return null;
+              }
+            })
+          );
+          resultsArr.push(...batchResults.filter((r) => r !== null));
+        }
+
+        resultsArr.sort((a, b) => b.score - a.score);
+
+        // Fetch previous-year scores for top 5
+        await Promise.all(
+          resultsArr.slice(0, 5).map(async (s) => {
             try {
-              const html = await fetchHtml(CURRENT_YEAR, systemCode, s.school_code);
-              const data = parseSchool(html, CURRENT_YEAR, systemCode, s.school_code);
-              if (!data) return null;
-              const score = computeScore(data);
-              if (score == null) return null;
-              return {
-                school_name: data.school_name || s.school_name,
-                school_code: s.school_code,
-                school_type: data.school_type,
-                score,
-                academic_achievement: data.academic_achievement,
-                enrollment: data.enrollment,
-              };
+              const prevHtml = await fetchHtml(PREVIOUS_YEAR, systemCode, s.school_code);
+              const prevData = parseSchool(prevHtml, PREVIOUS_YEAR, systemCode, s.school_code);
+              s.prevScore = prevData ? computeScore(prevData) : null;
             } catch {
-              return null;
+              s.prevScore = null;
             }
           })
         );
-        results.push(...batchResults.filter((r) => r !== null));
+
+        results = resultsArr;
+        await db.LeaderboardCache.create({ cache_key: cacheKey, payload: { results, totalSchools: results.length } }).catch(() => {});
       }
 
-      results.sort((a, b) => b.score - a.score);
-
+      // Compute per-request rank and school from the shared results
       const myIndex = results.findIndex((r) => r.school_code === schoolCode);
       const myRank = myIndex >= 0 ? myIndex + 1 : null;
-      const mySchool = myIndex >= 0 ? results[myIndex] : null;
+      const mySchool = myIndex >= 0 ? { ...results[myIndex] } : null;
+
+      // Fetch prevScore for the user's school if not already present (e.g. outside top 5)
+      if (mySchool && mySchool.prevScore == null) {
+        try {
+          const prevHtml = await fetchHtml(PREVIOUS_YEAR, systemCode, mySchool.school_code);
+          const prevData = parseSchool(prevHtml, PREVIOUS_YEAR, systemCode, mySchool.school_code);
+          mySchool.prevScore = prevData ? computeScore(prevData) : null;
+        } catch {
+          mySchool.prevScore = null;
+        }
+      }
+
       const top5 = results.slice(0, 5);
-
-      // Fetch previous-year scores for visible schools (top 5 + user's school)
-      const trendSchools = [...top5];
-      if (mySchool && !top5.includes(mySchool)) trendSchools.push(mySchool);
-      await Promise.all(
-        trendSchools.map(async (s) => {
-          try {
-            const prevHtml = await fetchHtml(PREVIOUS_YEAR, systemCode, s.school_code);
-            const prevData = parseSchool(prevHtml, PREVIOUS_YEAR, systemCode, s.school_code);
-            s.prevScore = prevData ? computeScore(prevData) : null;
-          } catch {
-            s.prevScore = null;
-          }
-        })
-      );
-
-      const countyPayload = {
+      return Response.json({
         top5,
         myRank,
         mySchool,
         totalSchools: results.length,
-      };
-
-      await db.LeaderboardCache.create({ cache_key: cacheKey, payload: countyPayload }).catch(() => {});
-
-      return Response.json(countyPayload);
+      });
     }
 
     if (action === "state") {
+      const stateCacheKey = `state:${schoolCode || "unknown"}`;
+      const stateNow = Date.now();
+      const stateCached = await db.LeaderboardCache.filter({ cache_key: stateCacheKey }, "-created_date", 1);
+      if (stateCached && stateCached.length > 0) {
+        const stateAge = stateNow - new Date(stateCached[0].created_date).getTime();
+        if (stateAge < CACHE_TTL_MS) {
+          return Response.json(stateCached[0].payload);
+        }
+      }
+
       const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `Search for Alabama State Department of Education (ALSDE) report card data for the 2024-2025 school year.
 
@@ -135,7 +158,7 @@ Return JSON with: top5 (array of {name, system, score}), myPercentile (number 0-
         },
       });
 
-      await db.LeaderboardCache.create({ cache_key: cacheKey, payload: res }).catch(() => {});
+      await db.LeaderboardCache.create({ cache_key: stateCacheKey, payload: res }).catch(() => {});
 
       return Response.json(res);
     }
