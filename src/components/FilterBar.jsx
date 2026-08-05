@@ -3,7 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 
 export default function FilterBar({ school }) {
   return (
-    <div className="sticky top-20 z-20 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm px-4 py-3 mb-6 print:hidden">
+    <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm px-4 py-3 mb-6 print:hidden">
       <div className="flex items-center gap-2 mb-2.5 md:mb-0">
         <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Filters</span>
