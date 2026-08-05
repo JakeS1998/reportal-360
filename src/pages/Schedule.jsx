@@ -15,13 +15,13 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const session = localStorage.getItem("schoolSession");
-    if (!session) {
+    const session = JSON.parse(localStorage.getItem("userSession") || "null");
+    if (!session || session.user.role !== "teacher") {
       navigate("/");
       return;
     }
-    setSchool(JSON.parse(session));
-    base44.auth.me().then(setUser).catch(() => {});
+    setSchool(session.school);
+    setUser(session.user);
   }, [navigate]);
 
   const loadData = useCallback(async () => {
@@ -45,7 +45,7 @@ export default function Schedule() {
   }, [loadData]);
 
   const handleLogout = () => {
-    localStorage.removeItem("schoolSession");
+    localStorage.removeItem("userSession");
     navigate("/");
   };
 

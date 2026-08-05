@@ -21,9 +21,9 @@ export default function QuickAttendance() {
   useEffect(() => {
     const load = async () => {
       try {
-        const session = localStorage.getItem("schoolSession");
-        if (!session) { setLoading(false); return; }
-        const school = JSON.parse(session);
+        const session = JSON.parse(localStorage.getItem("userSession") || "null");
+        if (!session || session.user.role !== "teacher") { setLoading(false); return; }
+        const school = session.school;
         const data = await base44.entities.Class.filter({ school_code: school.school_code }, "-created_date", 500);
         setClasses(data);
       } catch (err) {

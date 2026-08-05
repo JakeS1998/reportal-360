@@ -1,0 +1,62 @@
+{
+  "name": "Teacher",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "title": "Username"
+    },
+    "password": {
+      "type": "string",
+      "title": "Password"
+    },
+    "full_name": {
+      "type": "string",
+      "title": "Full Name"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    }
+  },
+  "required": [
+    "username",
+    "password",
+    "school_code",
+    "system_code"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
