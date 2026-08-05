@@ -115,7 +115,7 @@ export default function ExecutiveOverview() {
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FadeIn delay={120}>
+        <FadeIn delay={120} className="relative z-30">
           <AccountabilityBar school={activeSchool} />
         </FadeIn>
         <FadeIn delay={160}>
