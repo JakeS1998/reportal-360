@@ -1,5 +1,6 @@
 import React from "react";
 import { useSchool } from "@/lib/SchoolContext";
+import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import KpiCard from "@/components/KpiCard";
 import SectionCard from "@/components/SectionCard";
 import FadeIn from "@/components/FadeIn";
@@ -8,15 +9,17 @@ import { Users, TrendingUp, UserPlus, UserMinus } from "lucide-react";
 
 const RACE_COLORS = {
   White: "#6366f1",
-  "Black or African American": "#0ea5e9",
+  Black: "#0ea5e9",
+  Hispanic: "#f59e0b",
   Asian: "#10b981",
-  "American Indian / Alaska Native": "#f59e0b",
-  "Native Hawaiian / Pacific Islander": "#ec4899",
-  "Two or more races": "#8b5cf6",
+  "Two or more": "#8b5cf6",
+  "American Indian": "#ec4899",
+  "Native Hawaiian": "#14b8a6",
 };
 
 export default function StudentsDemographics() {
-  const { activeSchool, loading, filters } = useSchool();
+  const { activeSchool, loading } = useSchool();
+  const metrics = useStudentMetrics();
 
   if (loading || !activeSchool) {
     return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
@@ -26,16 +29,11 @@ export default function StudentsDemographics() {
   const p = school.previous || {};
   const growth = school.enrollment != null && p.enrollment != null ? Math.round(((school.enrollment - p.enrollment) / p.enrollment) * 1000) / 10 : null;
   const gained = school.enrollment != null && p.enrollment != null ? school.enrollment - p.enrollment : null;
-  const race = school.demographics_race || [];
-  const allSubgroups = school.demographics_subgroups || [];
-  const subgroups = allSubgroups.filter((sg) => {
-    if (filters.studentGroup !== "All Students" && sg.label !== filters.studentGroup) return false;
-    if (filters.gender !== "All Gender" && sg.label !== filters.gender) return false;
-    return true;
-  });
-  const econDis = allSubgroups.find((sg) => sg.label === "Economically Disadvantaged");
+  const race = metrics.race;
+  const subgroups = metrics.subgroups;
+  const econDis = subgroups.find((sg) => sg.label === "Economically Disadvantaged");
   const freeMealsCount = econDis ? econDis.count : null;
-  const freeMealsPct = freeMealsCount != null && school.enrollment ? Math.round((freeMealsCount / school.enrollment) * 1000) / 10 : null;
+  const freeMealsPct = freeMealsCount != null && metrics.total ? Math.round((freeMealsCount / metrics.total) * 1000) / 10 : null;
 
   return (
     <div className="space-y-8">
@@ -44,50 +42,43 @@ export default function StudentsDemographics() {
           <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
           <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year={school.year} />
           <KpiCard label="Net Population Change" value={gained ?? null} signed accent={gained >= 0 ? "#10B981" : "#EF4444"} year={school.year} tooltip="Net change in enrollment compared to the previous report year." />
-          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of enrollment` : ""}`} />
+          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
         </div>
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={60}>
-          <SectionCard title="Race & Ethnicity" subtitle="Share of enrollment" icon={Users}>
+          <SectionCard title="Race & Ethnicity" subtitle={`Distribution across ${metrics.total} students (2026 roster)`} icon={Users}>
             <div className="space-y-3">
               {race.length ? (
-                race.map((d) => {
-                  const pct = d.percent != null ? d.percent : 0;
-                  return (
-                    <div key={d.label}>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-600">{d.label}</span>
-                        <span className="font-semibold text-slate-900">{d.percent != null ? `${pct}%` : "< 1%"}</span>
-                      </div>
-                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: RACE_COLORS[d.label] || "#64748b" }} />
-                      </div>
+                race.map((d) => (
+                  <div key={d.label}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-slate-600">{d.label}</span>
+                      <span className="font-semibold text-slate-900">{d.percent != null ? `${d.percent}%` : "< 1%"} <span className="text-slate-400 font-normal">({d.count})</span></span>
                     </div>
-                  );
-                })
+                    <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.percent}%`, backgroundColor: RACE_COLORS[d.label] || "#64748b" }} />
+                    </div>
+                  </div>
+                ))
               ) : (
-                <p className="text-sm text-slate-400">Race data unavailable.</p>
+                <p className="text-sm text-slate-400">No student data available.</p>
               )}
             </div>
           </SectionCard>
         </FadeIn>
 
         <FadeIn delay={120}>
-          <SectionCard title="Population Breakdown" subtitle="Student subgroup counts" icon={TrendingUp}>
+          <SectionCard title="Population Breakdown" subtitle="Student subgroup counts (2026 roster)" icon={TrendingUp}>
             <div className="grid grid-cols-2 gap-3">
-              {subgroups.length ? (
-                subgroups.map((s) => (
-                  <div key={s.label} className="rounded-xl bg-slate-50 px-4 py-3">
-                    <p className="text-xs text-slate-500 leading-tight">{s.label}</p>
-                    <p className="text-lg font-bold text-slate-900 mt-1">{(s.count || 0).toLocaleString()}</p>
-                    <p className="text-[11px] text-slate-400">{school.enrollment ? Math.round(((s.count || 0) / school.enrollment) * 100) : 0}% of enrollment</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400 col-span-2">Subgroup data unavailable.</p>
-              )}
+              {subgroups.map((s) => (
+                <div key={s.label} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-xs text-slate-500 leading-tight">{s.label}</p>
+                  <p className="text-lg font-bold text-slate-900 mt-1">{s.count}</p>
+                  <p className="text-[11px] text-slate-400">{metrics.total ? Math.round((s.count / metrics.total) * 100) : 0}% of roster</p>
+                </div>
+              ))}
             </div>
           </SectionCard>
         </FadeIn>

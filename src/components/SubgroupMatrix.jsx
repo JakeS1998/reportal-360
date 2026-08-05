@@ -28,7 +28,7 @@ export default function SubgroupMatrix({ data, studentGroup, gender }) {
   }));
 
   return (
-    <SectionCard title="Student Subgroup Analysis" subtitle="Proficiency by subgroup (modeled estimates)" icon={Grid3x3}>
+    <SectionCard title="Student Subgroup Analysis" subtitle="Proficiency by subgroup (2026 student roster)" icon={Grid3x3}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

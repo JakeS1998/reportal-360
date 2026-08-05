@@ -1,5 +1,6 @@
 import React from "react";
 import { useSchool } from "@/lib/SchoolContext";
+import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import KpiCard from "@/components/KpiCard";
 import SectionCard from "@/components/SectionCard";
 import FadeIn from "@/components/FadeIn";
@@ -9,19 +10,16 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export default function AttendanceEngagement() {
   const { activeSchool, loading, filters } = useSchool();
+  const metrics = useStudentMetrics();
 
   if (loading || !activeSchool) {
     return <div className="grid grid-cols-2 md:grid-cols-4 gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-36" />)}</div>;
   }
 
   const school = activeSchool;
-  const p = school.previous || {};
-  const attendancePct = school.chronic_absenteeism != null ? Math.round((100 - school.chronic_absenteeism) * 100) / 100 : null;
-  const prevAttendance = p.chronic_absenteeism != null ? Math.round((100 - p.chronic_absenteeism) * 100) / 100 : null;
-  const chronicStudents = school.enrollment && school.chronic_absenteeism != null ? Math.round((school.enrollment * school.chronic_absenteeism) / 100) : null;
-  const approaching = chronicStudents != null ? Math.round(chronicStudents * 0.6) : null;
+  const attendancePct = metrics.avgAttendance;
+  const chronicRate = metrics.total ? Math.round((metrics.chronic / metrics.total) * 1000) / 10 : null;
 
-  // Modeled monthly attendance pattern around the annual average
   const months = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"];
   const monthly = months.map((m, i) => {
     const seasonal = Math.sin((i / 11) * Math.PI) * 1.5;
@@ -32,16 +30,16 @@ export default function AttendanceEngagement() {
     <div className="space-y-8">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Average Daily Attendance" value={attendancePct} previous={prevAttendance} suffix="%" accent="#10B981" year={school.year} />
-          <KpiCard label="Chronic Absenteeism" value={school.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} />
-          <KpiCard label="Chronic Students" value={chronicStudents} accent="#EF4444" year={school.year} />
-          <KpiCard label="Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
+          <KpiCard label="Average Daily Attendance" value={attendancePct} suffix="%" accent="#10B981" year={school.year} tooltip="Average attendance rate across all students in the 2026 roster." />
+          <KpiCard label="Chronic Absenteeism" value={chronicRate} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} tooltip="Percentage of students with attendance below 90%." />
+          <KpiCard label="Chronic Students" value={metrics.chronic} accent="#EF4444" year={school.year} tooltip="Students with attendance below 90%." />
+          <KpiCard label="Students in Roster" value={metrics.total} accent="#1D4ED8" year={school.year} tooltip="Total students in the 2026 sample roster matching current filters." />
         </div>
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <FadeIn delay={60} className="lg:col-span-2">
-          <SectionCard title="Attendance Trends" subtitle="Modeled monthly attendance pattern" icon={Activity}>
+          <SectionCard title="Attendance Trends" subtitle="Modeled monthly pattern from roster average" icon={Activity}>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -55,34 +53,33 @@ export default function AttendanceEngagement() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <p className="text-[11px] text-slate-400 mt-2">Monthly breakdown is modeled from the annual chronic-absenteeism rate; connect a SIS for actual daily counts.</p>
+            <p className="text-[11px] text-slate-400 mt-2">Monthly pattern modeled from the roster average attendance; connect a SIS for actual daily counts.</p>
           </SectionCard>
         </FadeIn>
 
         <FadeIn delay={120}>
-          <SectionCard title="Attendance Risk" subtitle="Students needing attention" icon={AlertTriangle}>
+          <SectionCard title="Attendance Risk" subtitle="Students needing attention (2026 roster)" icon={AlertTriangle}>
             <div className="space-y-3">
-              <RiskRow label="Chronically absent" value={chronicStudents} color="#EF4444" />
-              <RiskRow label="Approaching threshold" value={approaching} color="#F59E0B" />
-              <RiskRow label="On track" value={school.enrollment != null && chronicStudents != null ? school.enrollment - chronicStudents : null} color="#10B981" />
+              <RiskRow label="Chronically absent (< 90%)" value={metrics.chronic} color="#EF4444" />
+              <RiskRow label="Approaching threshold (90–95%)" value={metrics.approaching} color="#F59E0B" />
+              <RiskRow label="On track (≥ 95%)" value={metrics.onTrack} color="#10B981" />
             </div>
-            <p className="text-[11px] text-slate-400 mt-4">Derived from enrollment × chronic-absenteeism rate. Student-level risk lists require SIS integration.</p>
+            <p className="text-[11px] text-slate-400 mt-4">Calculated from individual student attendance rates in the 2026 roster.</p>
           </SectionCard>
         </FadeIn>
       </div>
 
       <FadeIn delay={180}>
-        <SectionCard title="Attendance by Grade" subtitle="Average attendance by grade level (modeled)" icon={Users}>
+        <SectionCard title="Attendance by Grade" subtitle="Average attendance by grade level (2026 roster)" icon={Users}>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {(school.school_type === "High" ? ["9", "10", "11", "12"] : school.school_type === "Middle" ? ["6", "7", "8"] : ["K", "1", "2", "3", "4", "5"]).filter((g) => filters.grade === "All Grades" || `Grade ${g}` === filters.grade).map((g, i) => {
-              const v = Math.round((attendancePct - 0.5 + (i % 2) * 0.8) * 10) / 10;
-              return (
-                <div key={g} className="bg-slate-50 rounded-xl p-4 text-center">
-                  <p className="text-xs text-slate-500">Grade {g}</p>
-                  <p className="text-xl font-bold text-slate-900 mt-1">{v}%</p>
+            {metrics.attendanceByGrade
+              .filter((g) => filters.grade === "All Grades" || `Grade ${g.grade}` === filters.grade)
+              .map((g) => (
+                <div key={g.grade} className="bg-slate-50 rounded-xl p-4 text-center">
+                  <p className="text-xs text-slate-500">Grade {g.grade}</p>
+                  <p className="text-xl font-bold text-slate-900 mt-1">{g.attendance != null ? `${g.attendance}%` : "—"}</p>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </SectionCard>
       </FadeIn>
