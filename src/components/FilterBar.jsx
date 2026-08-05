@@ -1,7 +1,12 @@
 import React from "react";
 import { SlidersHorizontal } from "lucide-react";
+import { useSchool } from "@/lib/SchoolContext";
 
 export default function FilterBar({ school }) {
+  const { user, systemSchools, selectSchool } = useSchool();
+  const isCommissioner = user?.role === "commissioner";
+  const commissionerSchools = isCommissioner && systemSchools?.length ? systemSchools : null;
+
   return (
     <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm px-4 py-3 mb-6 print:hidden">
       <div className="flex items-center gap-2 mb-2.5 md:mb-0">
@@ -11,7 +16,15 @@ export default function FilterBar({ school }) {
       <div className="flex flex-wrap items-center gap-2.5">
         <FilterSelect label="School Year" value={school?.year || "2025"} options={["2025", "2024", "2023"]} />
         <Divider />
-        <FilterSelect label="School" value={school?.school_name || "—"} options={[school?.school_name || "—"]} />
+        <FilterSelect
+          label="School"
+          value={school?.school_name || "—"}
+          options={commissionerSchools ? commissionerSchools.map((s) => s.school_name) : [school?.school_name || "—"]}
+          onChange={commissionerSchools ? (val) => {
+            const sc = commissionerSchools.find((s) => s.school_name === val);
+            if (sc) selectSchool(sc.school_code);
+          } : null}
+        />
         <Divider />
         <FilterSelect label="Grade" value="All Grades" options={["All Grades", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]} />
         <Divider />
@@ -29,13 +42,15 @@ function Divider() {
   return <span className="hidden md:inline-block w-px h-5 bg-slate-200" />;
 }
 
-function FilterSelect({ label, value, options }) {
+function FilterSelect({ label, value, options, onChange }) {
   return (
     <div className="flex items-center gap-1.5">
       <label className="text-[11px] font-medium text-slate-400 uppercase tracking-wide whitespace-nowrap">{label}</label>
       <select
         value={value}
-        className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 cursor-pointer transition-colors"
+        onChange={(e) => onChange?.(e.target.value)}
+        disabled={!onChange}
+        className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 cursor-pointer transition-colors disabled:cursor-default"
       >
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>

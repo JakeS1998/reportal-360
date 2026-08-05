@@ -16,17 +16,45 @@ export default async function (req) {
     }
 
     if (action === "create") {
-      const { code, school_code, school_name, expires_at, notes } = body;
-      if (!code || !school_code) {
-        return Response.json({ error: "code and school_code are required" }, { status: 400 });
+      const { code, scope, school_code, school_name, system_code, system_name, expires_at, notes } = body;
+      if (!code) {
+        return Response.json({ error: "code is required" }, { status: 400 });
+      }
+      const finalScope = scope === "system" ? "system" : "school";
+
+      if (finalScope === "system") {
+        if (!system_code) {
+          return Response.json({ error: "system_code is required for system-scope codes" }, { status: 400 });
+        }
+        const existing = await db.AccessCode.filter({ code, scope: "system", system_code, active: true });
+        if (existing.length) {
+          return Response.json({ error: "An active system access code with this value already exists for this system" }, { status: 409 });
+        }
+        const record = await db.AccessCode.create({
+          code,
+          scope: "system",
+          school_code: "0000",
+          school_name: null,
+          system_code,
+          system_name: system_name || null,
+          active: true,
+          expires_at: expires_at || null,
+          notes: notes || null,
+        });
+        return Response.json({ code: record });
+      }
+
+      if (!school_code) {
+        return Response.json({ error: "school_code is required for school-scope codes" }, { status: 400 });
       }
       // Prevent duplicate active codes for the same school
-      const existing = await db.AccessCode.filter({ code, school_code, active: true });
+      const existing = await db.AccessCode.filter({ code, scope: "school", school_code, active: true });
       if (existing.length) {
         return Response.json({ error: "An active access code with this value already exists for this school" }, { status: 409 });
       }
       const record = await db.AccessCode.create({
         code,
+        scope: "school",
         school_code,
         school_name: school_name || null,
         active: true,

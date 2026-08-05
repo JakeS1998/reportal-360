@@ -6,6 +6,15 @@
       "type": "string",
       "title": "Access Code"
     },
+    "scope": {
+      "type": "string",
+      "title": "Scope",
+      "enum": [
+        "school",
+        "system"
+      ],
+      "default": "school"
+    },
     "school_code": {
       "type": "string",
       "title": "School Code"
@@ -13,6 +22,14 @@
     "school_name": {
       "type": "string",
       "title": "School Name"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "system_name": {
+      "type": "string",
+      "title": "System Name"
     },
     "active": {
       "type": "boolean",
@@ -31,7 +48,7 @@
   },
   "required": [
     "code",
-    "school_code"
+    "scope"
   ],
   "rls": {
     "read": {

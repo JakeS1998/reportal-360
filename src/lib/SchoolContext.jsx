@@ -9,6 +9,7 @@ export function SchoolProvider({ children }) {
   const [school, setSchool] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [systemSchools, setSystemSchools] = useState([]);
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
@@ -17,6 +18,7 @@ export function SchoolProvider({ children }) {
       return;
     }
     setUser(session.user);
+    setSystemSchools(session.systemSchools || []);
     const initial = session.school;
     setSchool(initial);
     setLoading(false);
@@ -38,7 +40,33 @@ export function SchoolProvider({ children }) {
     navigate("/");
   };
 
-  return <SchoolContext.Provider value={{ school, user, loading, switchSchool }}>{children}</SchoolContext.Provider>;
+  // Commissioner: switch to a different school within their system
+  const selectSchool = async (schoolCode) => {
+    if (!school || !school.system_code) return;
+    if (schoolCode === school.school_code) return;
+    setLoading(true);
+    try {
+      const res = await base44.functions.invoke("fetchSchoolData", {
+        system_code: school.system_code,
+        school_code: schoolCode,
+      });
+      if (res.data && !res.data.error) {
+        setSchool(res.data);
+        const session = JSON.parse(localStorage.getItem("userSession") || "{}");
+        localStorage.setItem("userSession", JSON.stringify({ ...session, school: res.data }));
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SchoolContext.Provider value={{ school, user, loading, switchSchool, selectSchool, systemSchools }}>
+      {children}
+    </SchoolContext.Provider>
+  );
 }
 
 export function useSchool() {

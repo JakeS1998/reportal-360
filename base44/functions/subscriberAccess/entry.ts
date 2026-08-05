@@ -3,7 +3,7 @@ import { discoverSchoolsForSystems } from '../../shared/providers/alabama.ts';
 
 // Public (no auth) endpoint for the subscriber login flow.
 // - action: "schoolsBySystem"  -> lists active schools in a system (auto-discovers on first lookup)
-// - action: "validate"         -> validates an access code for a school
+// - action: "validate"         -> validates an access code for a school OR system (school_code "0000" = system scope)
 export default async function (req) {
   try {
     const body = await req.json().catch(() => ({}));
@@ -71,14 +71,58 @@ export default async function (req) {
     }
 
     if (action === "validate") {
-      if (!schoolCode || !accessCode) {
+      if (!accessCode) {
         return Response.json(
-          { valid: false, error: "School code and access code are required" },
+          { valid: false, error: "Access code is required" },
           { status: 400 }
         );
       }
+
+      // System-level login: school_code is "0000" (or blank) with a system code
+      const isSystemLogin = !schoolCode || schoolCode === "0000";
+      if (isSystemLogin) {
+        if (!systemCode) {
+          return Response.json({ valid: false, error: "System code is required for system-level login" }, { status: 400 });
+        }
+        const codes = await db.AccessCode.filter({
+          code: accessCode,
+          scope: "system",
+          system_code: systemCode,
+          active: true,
+        });
+        if (codes.length === 0) {
+          return Response.json({ valid: false, error: "Invalid or inactive system access code" });
+        }
+        const rec = codes[0];
+        if (rec.expires_at && new Date(rec.expires_at) < new Date()) {
+          return Response.json({ valid: false, error: "Access code has expired" });
+        }
+        // Return the list of schools in this system so the dashboard can populate filters
+        const schools = await db.SchoolDirectory.filter(
+          { system_code: systemCode, active: true },
+          "school_name",
+          500
+        );
+        return Response.json({
+          valid: true,
+          scope: "system",
+          system_code: systemCode,
+          system_name: rec.system_name || null,
+          schools: schools.map((s) => ({
+            school_code: s.school_code,
+            school_name: s.school_name,
+            school_type: s.school_type,
+          })),
+        });
+      }
+
+      // School-level login
+      if (!systemCode) {
+        return Response.json({ valid: false, error: "System code is required" }, { status: 400 });
+      }
       const codes = await db.AccessCode.filter({
         code: accessCode,
+        scope: "school",
         school_code: schoolCode,
         active: true,
       });
@@ -89,7 +133,7 @@ export default async function (req) {
       if (rec.expires_at && new Date(rec.expires_at) < new Date()) {
         return Response.json({ valid: false, error: "Access code has expired" });
       }
-      return Response.json({ valid: true, school_name: rec.school_name });
+      return Response.json({ valid: true, scope: "school", school_name: rec.school_name });
     }
 
     return Response.json({ error: "Unknown action" }, { status: 400 });
