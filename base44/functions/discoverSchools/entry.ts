@@ -1,13 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { verifyAdmin } from '../../shared/adminAuth.ts';
-import { discoverSystems, discoverSchoolsForSystem } from '../../shared/providers/alabama.ts';
+import { discoverSystems, discoverSchoolsForSystems } from '../../shared/providers/alabama.ts';
 
 export default async function (req) {
   try {
     const body = await req.json();
     const { phase = "systems", batchStart = 0, batchSize = 8, runType = "full", trigger = "manual", runId } = body;
 
-    const ok = await verifyAdmin(req);
+    const ok = await verifyAdmin(req, body);
     if (!ok) return Response.json({ error: "Admin access required" }, { status: 403 });
 
     const base44 = createClientFromRequest(req);
@@ -36,6 +36,74 @@ export default async function (req) {
     const log = (run.log || []).slice();
     const errors = (run.errors || []).slice();
     const pushLog = (msg) => { log.push(`[${new Date().toISOString()}] ${msg}`); };
+
+    // Helper: upsert a system
+    const upsertSystem = async (s) => {
+      if (!s.system_code) return false;
+      const existing = await db.SchoolSystem.filter({ system_code: s.system_code });
+      if (existing.length) {
+        await db.SchoolSystem.update(existing[0].id, { district_name: s.district_name, active: true, last_verified: now, last_updated: now });
+        return false;
+      }
+      await db.SchoolSystem.create({ system_code: s.system_code, district_name: s.district_name, active: true, date_discovered: now, last_verified: now, last_updated: now });
+      return true;
+    };
+    // Helper: upsert a school
+    const upsertSchool = async (sysCode, sc) => {
+      if (!sc.school_code) return null;
+      const key = `${sysCode}-${sc.school_code}`;
+      const existing = await db.SchoolDirectory.filter({ school_key: key });
+      if (existing.length) {
+        const changed = existing[0].school_name !== sc.school_name;
+        await db.SchoolDirectory.update(existing[0].id, { school_name: sc.school_name, active: true, status: changed ? "updated" : "active", last_verified: now, last_updated: now });
+        return changed ? "updated" : "same";
+      }
+      await db.SchoolDirectory.create({ school_key: key, system_code: sysCode, school_code: sc.school_code, school_name: sc.school_name, active: true, status: "new", date_discovered: now, last_verified: now, last_updated: now });
+      return "new";
+    };
+
+    // SCHEDULED PHASE: refresh systems + process a rotating chunk of schools (one function call)
+    if (phase === "scheduled") {
+      const sysResult = await discoverSystems();
+      let systemsCount = 0;
+      if (sysResult.error) {
+        pushLog("Systems refresh error: " + sysResult.error);
+        errors.push({ time: now, system: "*", message: sysResult.error });
+      } else {
+        for (const s of sysResult.systems) { if (await upsertSystem(s)) systemsCount++; }
+        pushLog(`Refreshed ${sysResult.systems.length} systems.`);
+      }
+      const allSystems = await db.SchoolSystem.filter({ active: true });
+      const chunkSize = 20;
+      const numChunks = Math.max(1, Math.ceil(allSystems.length / chunkSize));
+      const dayIndex = Math.floor(Date.now() / 86400000);
+      const chunkIndex = dayIndex % numChunks;
+      const chunk = allSystems.slice(chunkIndex * chunkSize, chunkIndex * chunkSize + chunkSize);
+      let schoolsFound = 0, newSchools = 0, updatedSchools = 0;
+      try {
+        const result = await discoverSchoolsForSystems(chunk);
+        if (result.error) { pushLog("Chunk error: " + result.error); errors.push({ time: now, system: "*", message: result.error }); }
+        for (const sys of chunk) {
+          const schools = (result.results && result.results[sys.system_code]) || [];
+          for (const sc of schools) {
+            const r = await upsertSchool(sys.system_code, sc);
+            if (r === "new") newSchools++;
+            else if (r === "updated") updatedSchools++;
+            if (r) schoolsFound++;
+          }
+          pushLog(`✔ ${sys.district_name} (${sys.system_code}): ${schools.length} schools`);
+        }
+      } catch (e) {
+        pushLog(`✘ Chunk exception: ${e.message}`);
+        errors.push({ time: now, system: "*", message: e.message });
+      }
+      const totals = await db.SchoolDirectory.filter({ active: true });
+      await db.DiscoveryRun.update(run.id, {
+        log, errors, status: "completed", finish_time: now, duration_ms: Date.now() - new Date(run.start_time).getTime(),
+        systems_count: allSystems.length, schools_count: totals.length, new_schools: newSchools, updated_schools: updatedSchools,
+      });
+      return Response.json({ runId: run.id, phase: "scheduled", chunkIndex, numChunks, systemsTotal: allSystems.length, schoolsFound, newSchools, updatedSchools, totalSchools: totals.length, done: true, log, errors });
+    }
 
     // PHASE 1: discover systems
     if (phase === "systems") {
@@ -84,24 +152,26 @@ export default async function (req) {
       });
     }
 
-    // PHASE 2: discover schools in batches
+    // PHASE 2: discover schools in batches (one browser session per batch)
     const allSystems = await db.SchoolSystem.filter({ active: true });
     const batch = allSystems.slice(batchStart, batchStart + batchSize);
     let schoolsFound = 0, newSchools = 0, updatedSchools = 0;
 
-    for (const sys of batch) {
-      try {
-        const result = await discoverSchoolsForSystem(sys.system_code, sys.district_name);
-        if (result.error) {
-          pushLog(`System ${sys.system_code} (${sys.district_name}): ${result.error}`);
-          errors.push({ time: now, system: sys.system_code, message: result.error });
+    try {
+      const result = await discoverSchoolsForSystems(batch);
+      if (result.error) {
+        pushLog(`Batch error: ${result.error}`);
+        errors.push({ time: now, system: "*", message: result.error });
+      }
+      for (const sys of batch) {
+        const schools = (result.results && result.results[sys.system_code]) || [];
+        if (!schools.length) {
+          pushLog(`○ ${sys.district_name} (${sys.system_code}): no schools`);
           continue;
         }
-        const discoveredCodes = new Set();
-        for (const sc of result.schools) {
+        for (const sc of schools) {
           if (!sc.school_code) continue;
           const key = `${sys.system_code}-${sc.school_code}`;
-          discoveredCodes.add(sc.school_code);
           const existing = await db.SchoolDirectory.filter({ school_key: key });
           if (existing.length) {
             const changed = existing[0].school_name !== sc.school_name;
@@ -129,11 +199,11 @@ export default async function (req) {
           }
           schoolsFound++;
         }
-        pushLog(`✔ ${sys.district_name} (${sys.system_code}): ${result.schools.length} schools`);
-      } catch (e) {
-        pushLog(`✘ ${sys.district_name} (${sys.system_code}): ${e.message}`);
-        errors.push({ time: now, system: sys.system_code, message: e.message });
+        pushLog(`✔ ${sys.district_name} (${sys.system_code}): ${schools.length} schools`);
       }
+    } catch (e) {
+      pushLog(`✘ Batch exception: ${e.message}`);
+      errors.push({ time: now, system: "*", message: e.message });
     }
 
     const nextBatch = batchStart + batchSize;

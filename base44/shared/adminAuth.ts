@@ -4,10 +4,10 @@ const ADMIN_USERNAME = "BRGAdmin";
 const ADMIN_PASSWORD = "BRGAdmin";
 
 // Verifies admin credentials (hardcoded BRGAdmin). Returns true if valid.
-export async function verifyAdmin(req) {
+export async function verifyAdmin(req, body) {
   try {
-    const body = await req.clone().json().catch(() => ({}));
-    const { username, password, scheduled } = body || {};
+    const b = body || (await req.clone().json().catch(() => ({})));
+    const { username, password, scheduled } = b || {};
     // Scheduled workflow calls run with service role and pass scheduled=true
     if (scheduled === true) return true;
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) return true;

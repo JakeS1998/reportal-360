@@ -1,0 +1,50 @@
+{
+  "description": "Refreshes the ALSDE system list and processes a rotating chunk of 20 schools each day, cycling through all systems over ~8 days",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "daily_school_discovery",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "discover": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "discoverSchools",
+            "args": {
+              "phase": "scheduled",
+              "scheduled": true,
+              "trigger": "daily",
+              "runType": "scheduled"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Refresh school master list",
+            "description": "Systems + rotating school chunk"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 2 * * *",
+      "one_time_date": null,
+      "timezone": "America/Chicago",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Daily School Discovery"
+}

@@ -57,17 +57,18 @@ export default function Administration() {
         let batchStart = 0;
         let runId = sysRes.data?.runId;
         let done = false;
+        let logSeen = (sysRes.data?.log || []).length;
         while (!done) {
           const batchRes = await base44.functions.invoke("discoverSchools", {
-            phase: "schools", batchStart, batchSize: 8, runType, trigger, runId, ...creds,
+            phase: "schools", batchStart, batchSize: 3, runType, trigger, runId, ...creds,
           });
           if (batchRes.data?.error) { addLog("Error: " + batchRes.data.error); break; }
-          (batchRes.data?.log || []).forEach((l) => {
-            if (!progress.includes(l)) addLog(l);
-          });
+          const newLogs = (batchRes.data?.log || []).slice(logSeen);
+          newLogs.forEach((l) => addLog(l));
+          logSeen = (batchRes.data?.log || []).length;
           if (batchRes.data?.errors) setErrors((e) => [...e, ...batchRes.data.errors]);
           done = batchRes.data?.done;
-          batchStart = batchRes.data?.batchStart || batchStart + 8;
+          batchStart = batchRes.data?.batchStart || batchStart + 3;
           setSummary({
             systemsTotal: batchRes.data?.systemsTotal || systemsTotal,
             totalSchools: batchRes.data?.totalSchools || 0,
