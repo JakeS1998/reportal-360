@@ -13,7 +13,6 @@ const RACE_COLORS = {
   "American Indian / Alaska Native": "#f59e0b",
   "Native Hawaiian / Pacific Islander": "#ec4899",
   "Two or more races": "#8b5cf6",
-  Hispanic: "#f97316",
 };
 
 export default function StudentsDemographics() {
@@ -26,17 +25,21 @@ export default function StudentsDemographics() {
   const p = school.previous || {};
   const growth = school.enrollment != null && p.enrollment != null ? Math.round(((school.enrollment - p.enrollment) / p.enrollment) * 1000) / 10 : null;
   const gained = school.enrollment != null && p.enrollment != null ? school.enrollment - p.enrollment : null;
-  const race = (school.demographics_race || []).filter((d) => d.percent != null);
+  const race = school.demographics_race || [];
   const subgroups = school.demographics_subgroups || [];
+  const econDis = subgroups.find((s) => s.label === "Economically Disadvantaged");
+  const freeMealsCount = econDis ? econDis.count : null;
+  const freeMealsPct = freeMealsCount != null && school.enrollment ? Math.round((freeMealsCount / school.enrollment) * 1000) / 10 : null;
 
   return (
     <div className="space-y-6">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" />
-          <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} />
-          <KpiCard label="Students Gained" value={gained >= 0 ? gained : 0} accent="#10B981" />
-          <KpiCard label="Students Lost" value={gained < 0 ? Math.abs(gained) : 0} accent="#EF4444" />
+          <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
+          <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year={school.year} />
+          <KpiCard label="Students Gained" value={gained >= 0 ? gained : 0} accent="#10B981" year={school.year} />
+          <KpiCard label="Students Lost" value={gained < 0 ? Math.abs(gained) : 0} accent="#EF4444" year={school.year} />
+          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of enrollment` : ""}`} />
         </div>
       </FadeIn>
 
@@ -45,17 +48,20 @@ export default function StudentsDemographics() {
           <SectionCard title="Race & Ethnicity" subtitle="Share of enrollment" icon={Users}>
             <div className="space-y-3">
               {race.length ? (
-                race.map((d) => (
-                  <div key={d.label}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-600">{d.label}</span>
-                      <span className="font-semibold text-slate-900">{d.percent}%</span>
+                race.map((d) => {
+                  const pct = d.percent != null ? d.percent : 0;
+                  return (
+                    <div key={d.label}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-600">{d.label}</span>
+                        <span className="font-semibold text-slate-900">{d.percent != null ? `${pct}%` : "< 1%"}</span>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: RACE_COLORS[d.label] || "#64748b" }} />
+                      </div>
                     </div>
-                    <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${d.percent}%`, backgroundColor: RACE_COLORS[d.label] || "#64748b" }} />
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <p className="text-sm text-slate-400">Race data unavailable.</p>
               )}

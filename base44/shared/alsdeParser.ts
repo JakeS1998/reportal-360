@@ -102,14 +102,17 @@ export function parseSchool(html, year, sysCode, schCode) {
   const demoRow = text.match(
     /All Grades\s+All Gender\s+All Ethnicity\s+All SubPopulation\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/
   );
+  const demoEnrollment = demoRow ? parseInt(demoRow[1]) : null;
+  const raceCount = (idx) => parseNum(demoRow ? demoRow[idx] : null);
+  const racePct = (count) => count != null && demoEnrollment ? Math.round((count / demoEnrollment) * 1000) / 10 : null;
   const demographics_race = demoRow
     ? [
-        { label: "White", percent: parseNum(demoRow[11]) },
-        { label: "Black or African American", percent: parseNum(demoRow[5]) },
-        { label: "Asian", percent: parseNum(demoRow[3]) },
-        { label: "American Indian / Alaska Native", percent: parseNum(demoRow[7]) },
-        { label: "Native Hawaiian / Pacific Islander", percent: parseNum(demoRow[9]) },
-        { label: "Two or more races", percent: parseNum(demoRow[13]) },
+        { label: "White", count: raceCount(10), percent: racePct(raceCount(10)) },
+        { label: "Black or African American", count: raceCount(4), percent: racePct(raceCount(4)) },
+        { label: "Asian", count: raceCount(2), percent: racePct(raceCount(2)) },
+        { label: "American Indian / Alaska Native", count: raceCount(6), percent: racePct(raceCount(6)) },
+        { label: "Native Hawaiian / Pacific Islander", count: raceCount(8), percent: racePct(raceCount(8)) },
+        { label: "Two or more races", count: raceCount(12), percent: racePct(raceCount(12)) },
       ]
     : [];
 
