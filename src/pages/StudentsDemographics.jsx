@@ -28,7 +28,11 @@ export default function StudentsDemographics() {
   const gained = school.enrollment != null && p.enrollment != null ? school.enrollment - p.enrollment : null;
   const race = school.demographics_race || [];
   const allSubgroups = school.demographics_subgroups || [];
-  const subgroups = filters.studentGroup !== "All Students" ? allSubgroups.filter((sg) => sg.label === filters.studentGroup) : allSubgroups;
+  const subgroups = allSubgroups.filter((sg) => {
+    if (filters.studentGroup !== "All Students" && sg.label !== filters.studentGroup) return false;
+    if (filters.gender !== "All Gender" && sg.label !== filters.gender) return false;
+    return true;
+  });
   const econDis = allSubgroups.find((sg) => sg.label === "Economically Disadvantaged");
   const freeMealsCount = econDis ? econDis.count : null;
   const freeMealsPct = freeMealsCount != null && school.enrollment ? Math.round((freeMealsCount / school.enrollment) * 1000) / 10 : null;

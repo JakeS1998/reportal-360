@@ -1,8 +1,8 @@
 import React from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
-export default function RadarComparison({ school, county, state }) {
-  const metrics = [
+export default function RadarComparison({ school, county, state, subject }) {
+  const allMetrics = [
     { key: "academic_achievement", label: "Achievement" },
     { key: "academic_growth", label: "Growth" },
     { key: "math_proficiency", label: "Math" },
@@ -10,6 +10,10 @@ export default function RadarComparison({ school, county, state }) {
     { key: "science_proficiency", label: "Science" },
     { key: "chronic_absenteeism", label: "Attendance", inverse: true },
   ];
+  const proficiencyLabels = ["Math", "Reading", "Science"];
+  const metrics = subject && subject !== "All Subjects"
+    ? allMetrics.filter((m) => !proficiencyLabels.includes(m.label) || m.label === subject)
+    : allMetrics;
 
   const data = metrics.map((m) => {
     const transform = (src) => {

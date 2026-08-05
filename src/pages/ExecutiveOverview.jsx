@@ -82,7 +82,7 @@ export default function ExecutiveOverview() {
       </FadeIn>
 
       <FadeIn delay={80}>
-        <QuickInsightCards school={activeSchool} />
+        <QuickInsightCards school={activeSchool} subject={filters.subject} />
       </FadeIn>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,7 +90,7 @@ export default function ExecutiveOverview() {
           <AccountabilityBar school={activeSchool} />
         </FadeIn>
         <FadeIn delay={160}>
-          <AiExecutiveSummary school={activeSchool} overall={activeOverall} />
+          <AiExecutiveSummary school={activeSchool} overall={activeOverall} subject={filters.subject} />
         </FadeIn>
       </div>
 
@@ -147,7 +147,7 @@ export default function ExecutiveOverview() {
 
       <FadeIn delay={320}>
         <SectionCard title="Performance Radar" subtitle="School vs county vs state across all dimensions" icon={RadarIcon}>
-          <RadarComparison school={activeSchool} county={activeSchool.county} state={activeSchool.state} />
+          <RadarComparison school={activeSchool} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
         </SectionCard>
       </FadeIn>
     </div>

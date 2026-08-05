@@ -4,7 +4,7 @@ import SectionCard from "./SectionCard";
 import Skeleton from "./Skeleton";
 import { Sparkles, CheckCircle2, AlertCircle, Lightbulb } from "lucide-react";
 
-export default function AiExecutiveSummary({ school, overall }) {
+export default function AiExecutiveSummary({ school, overall, subject }) {
   const [ai, setAi] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +14,8 @@ export default function AiExecutiveSummary({ school, overall }) {
     const p = school.previous || {};
     const c = school.county || {};
     const s = school.state || {};
-    const prompt = `You are an education analytics assistant for Alabama school leaders. Given this ALSDE report card data, produce a structured executive analysis.
+    const focusSubject = subject && subject !== "All Subjects" ? `\nFocus your analysis specifically on ${subject} proficiency performance.` : "";
+    const prompt = `You are an education analytics assistant for Alabama school leaders. Given this ALSDE report card data, produce a structured executive analysis.${focusSubject}
 
 School: ${school.school_name} — ${school.system_name} (${school.school_type}, FY ${school.year})
 - Academic Achievement: ${school.academic_achievement} (prev ${p.academic_achievement ?? "—"})
@@ -51,7 +52,7 @@ Return JSON with:
       .then((res) => setAi(res))
       .catch(() => setAi(null))
       .finally(() => setLoading(false));
-  }, [school, overall]);
+  }, [school, overall, subject]);
 
   if (loading) {
     return (

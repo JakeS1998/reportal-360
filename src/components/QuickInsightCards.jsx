@@ -1,8 +1,8 @@
 import React from "react";
 import { TrendingUp, AlertTriangle, ArrowUpRight } from "lucide-react";
 
-export default function QuickInsightCards({ school }) {
-  const insights = computeInsights(school);
+export default function QuickInsightCards({ school, subject }) {
+  const insights = computeInsights(school, subject);
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       <InsightCard icon={TrendingUp} label="Top Strength" value={insights.strength.text} accent="#10B981" bg="#ECFDF5" />
@@ -26,10 +26,11 @@ function InsightCard({ icon: Icon, label, value, accent, bg }) {
   );
 }
 
-function computeInsights(school) {
+function computeInsights(school, subject) {
   const p = school.previous || {};
   const c = school.county || {};
   const s = school.state || {};
+  const subjectMatch = (label) => !subject || subject === "All Subjects" || !label.includes("Proficiency") || label.includes(subject);
 
   const benchmarks = [
     { label: "Academic Achievement", school: school.academic_achievement, county: c.academic_achievement, state: s.academic_achievement },
@@ -38,7 +39,7 @@ function computeInsights(school) {
     { label: "Reading Proficiency", school: school.reading_proficiency, county: c.reading_proficiency, state: s.reading_proficiency, suffix: "%" },
     { label: "Science Proficiency", school: school.science_proficiency, county: c.science_proficiency, state: s.science_proficiency, suffix: "%" },
     { label: "Graduation Rate", school: school.graduation_rate, county: c.graduation_rate, state: s.graduation_rate, suffix: "%" },
-  ].filter((b) => b.school != null && b.county != null);
+  ].filter((b) => subjectMatch(b.label) && b.school != null && b.county != null);
 
   let strength = { text: "No benchmark data available." };
   if (benchmarks.length) {
@@ -64,7 +65,7 @@ function computeInsights(school) {
     { label: "Reading Proficiency", current: school.reading_proficiency, previous: p.reading_proficiency },
     { label: "Science Proficiency", current: school.science_proficiency, previous: p.science_proficiency },
     { label: "Graduation Rate", current: school.graduation_rate, previous: p.graduation_rate },
-  ].filter((y) => y.current != null && y.previous != null);
+  ].filter((y) => subjectMatch(y.label) && y.current != null && y.previous != null);
 
   let improvement = { text: "No year-over-year data available." };
   if (yoy.length) {
