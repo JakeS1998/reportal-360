@@ -30,10 +30,10 @@ export default function AttendanceEngagement() {
     <div className="space-y-8">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Average Daily Attendance" value={attendancePct} previous={metrics.prev?.avgAttendance} suffix="%" accent="#10B981" year={school.year} tooltip="Average attendance rate across all students in the 2026 roster." />
-          <KpiCard label="Chronic Absenteeism" value={chronicRate} previous={metrics.prev?.chronicRate} suffix="%" lowerIsBetter accent="#F59E0B" year={school.year} tooltip="Percentage of students with attendance below 90%." />
-          <KpiCard label="Chronic Students" value={metrics.chronic} previous={metrics.prev?.chronic} accent="#EF4444" year={school.year} tooltip="Students with attendance below 90%." />
-          <KpiCard label="Students in Roster" value={metrics.total} previous={metrics.prev?.total} accent="#1D4ED8" year={school.year} tooltip="Total students in the 2026 sample roster matching current filters." />
+          <KpiCard label="Average Daily Attendance" value={attendancePct} previous={metrics.prev?.avgAttendance} suffix="%" accent="#10B981" year="2026" tooltip="Average attendance rate across all students in the 2026 roster." />
+          <KpiCard label="Chronic Absenteeism" value={chronicRate} previous={metrics.prev?.chronicRate} suffix="%" lowerIsBetter accent="#F59E0B" year="2026" tooltip="Percentage of students with attendance below 90%." />
+          <KpiCard label="Chronic Students" value={metrics.chronic} previous={metrics.prev?.chronic} accent="#EF4444" year="2026" tooltip="Students with attendance below 90%." />
+          <KpiCard label="Students in Roster" value={metrics.total} previous={metrics.prev?.total} accent="#1D4ED8" year="2026" tooltip="Total students in the 2026 sample roster matching current filters." />
         </div>
       </FadeIn>
 

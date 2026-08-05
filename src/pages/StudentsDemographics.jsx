@@ -39,10 +39,10 @@ export default function StudentsDemographics() {
     <div className="space-y-8">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year={school.year} />
-          <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year={school.year} />
-          <KpiCard label="Net Population Change" value={gained ?? null} signed accent={gained >= 0 ? "#10B981" : "#EF4444"} year={school.year} tooltip="Net change in enrollment compared to the previous report year." />
-          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} previous={metrics.prev?.econDisadvantaged} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year={school.year} tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
+          <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year="2026" />
+          <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year="2026" />
+          <KpiCard label="Net Population Change" value={gained ?? null} signed accent={gained >= 0 ? "#10B981" : "#EF4444"} year="2026" tooltip="Net change in enrollment compared to the previous report year." />
+          <KpiCard label="Free & Reduced Meals" value={freeMealsCount} previous={metrics.prev?.econDisadvantaged} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year="2026" tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
         </div>
       </FadeIn>
 
