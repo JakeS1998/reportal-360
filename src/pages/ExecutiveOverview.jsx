@@ -14,10 +14,11 @@ import AiExecutiveSummary from "@/components/AiExecutiveSummary";
 import AiInsightColumns from "@/components/AiInsightColumns";
 import { useAiSummary } from "@/lib/useAiSummary";
 import { computeOverallScore } from "@/lib/schoolUtils";
-import { Trophy, Crown, Radar as RadarIcon, Users } from "lucide-react";
+import { Trophy, Crown, Radar as RadarIcon, Users, GraduationCap, Gauge, Sparkles } from "lucide-react";
 import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
+import SectionHeader from "@/components/SectionHeader";
 
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters } = useSchool();
@@ -77,6 +78,9 @@ export default function ExecutiveOverview() {
         <SchoolHero school={activeSchool} />
       </FadeIn>
 
+      {/* Academic Performance */}
+      <SectionHeader title="Academic Performance" subtitle="Proficiency and engagement metrics from the 2026 student roster" icon={GraduationCap} />
+
       <FadeIn delay={40}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
           <KpiCard label="Math Proficiency" value={metrics.proficiency.math} previous={metrics.prev?.proficiency.math} accent="#1D4ED8" year="2026" tooltip="Average math score across all students in the 2026 roster. Trend compares against the previous year." onClick={() => navigate("/academics")} />
@@ -87,10 +91,6 @@ export default function ExecutiveOverview() {
       </FadeIn>
 
       <FadeIn delay={80}>
-        <QuickInsightCards school={activeSchool} subject={filters.subject} />
-      </FadeIn>
-
-      <FadeIn delay={100}>
         <SectionCard title="Student Roster Snapshot" subtitle={`Live metrics from ${metrics.total} students (2026 sample data · updates with filters)`} icon={Users}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-50 rounded-xl p-4">
@@ -113,22 +113,35 @@ export default function ExecutiveOverview() {
         </SectionCard>
       </FadeIn>
 
+      <FadeIn delay={120}>
+        <BenchmarkTable school={activeSchoolWithScore} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
+      </FadeIn>
+
+      {/* Accountability */}
+      <SectionHeader title="Accountability" subtitle="Weighted contribution to the overall school score" icon={Gauge} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FadeIn delay={120} className="relative z-30">
+        <FadeIn delay={140} className="relative z-30">
           <AccountabilityBar school={activeSchool} />
         </FadeIn>
-        <FadeIn delay={160}>
+        <FadeIn delay={180}>
           <AiExecutiveSummary ai={ai} loading={aiLoading} />
         </FadeIn>
       </div>
 
-      <FadeIn delay={180}>
+      {/* AI Insights */}
+      <SectionHeader title="AI Insights" subtitle="Automated analysis and actionable recommendations" icon={Sparkles} />
+
+      <FadeIn delay={200}>
+        <QuickInsightCards school={activeSchool} subject={filters.subject} />
+      </FadeIn>
+
+      <FadeIn delay={220}>
         <AiInsightColumns ai={ai} loading={aiLoading} />
       </FadeIn>
 
-      <FadeIn delay={200}>
-        <BenchmarkTable school={activeSchoolWithScore} county={activeSchool.county} state={activeSchool.state} subject={filters.subject} />
-      </FadeIn>
+      {/* Rankings & Comparisons */}
+      <SectionHeader title="Rankings & Comparisons" subtitle="Performance relative to peer schools and benchmarks" icon={Trophy} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={240}>
