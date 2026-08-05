@@ -21,7 +21,10 @@ export default function QuickAttendance() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await base44.entities.Class.list("-created_date", 500);
+        const session = localStorage.getItem("schoolSession");
+        if (!session) { setLoading(false); return; }
+        const school = JSON.parse(session);
+        const data = await base44.entities.Class.filter({ school_code: school.school_code }, "-created_date", 500);
         setClasses(data);
       } catch (err) {
         console.error(err);
@@ -117,7 +120,7 @@ export default function QuickAttendance() {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <button onClick={() => navigate("/management")} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-3">
+          <button onClick={() => navigate("/schedule")} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-3">
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <h1 className="text-2xl font-bold text-slate-900">Quick Attendance</h1>

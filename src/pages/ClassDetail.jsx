@@ -63,10 +63,10 @@ export default function ClassDetail() {
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <button
-            onClick={() => navigate("/management")}
+            onClick={() => navigate("/schedule")}
             className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-3"
           >
-            <ArrowLeft className="w-4 h-4" /> All Classes
+            <ArrowLeft className="w-4 h-4" /> Schedule
           </button>
           <h1 className="text-2xl font-bold text-slate-900">{cls.class_name}</h1>
           <div className="flex items-center gap-4 mt-1 text-sm text-slate-500">

@@ -6,6 +6,10 @@
       "type": "string",
       "title": "Class Name"
     },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
     "school_name": {
       "type": "string",
       "title": "School Name"
@@ -22,6 +26,14 @@
       "type": "string",
       "title": "Teacher Name"
     },
+    "period": {
+      "type": "string",
+      "title": "Period"
+    },
+    "room": {
+      "type": "string",
+      "title": "Room"
+    },
     "year": {
       "type": "string",
       "title": "Academic Year"
@@ -29,6 +41,6 @@
   },
   "required": [
     "class_name",
-    "school_name"
+    "school_code"
   ]
 }

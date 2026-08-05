@@ -7,9 +7,8 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
-import Home from './pages/Home';
-import SchoolDetail from './pages/SchoolDetail';
-import Management from './pages/Management';
+import SelectSchool from './pages/SelectSchool';
+import Schedule from './pages/Schedule';
 import ClassDetail from './pages/ClassDetail';
 import QuickAttendance from './pages/QuickAttendance';
 
@@ -40,11 +39,10 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
-      <Route path="/" element={<Home />} />
-      <Route path="/school/:id" element={<SchoolDetail />} />
-      <Route path="/management" element={<Management />} />
-      <Route path="/management/class/:classId" element={<ClassDetail />} />
-      <Route path="/management/quick-attendance" element={<QuickAttendance />} />
+      <Route path="/" element={<SelectSchool />} />
+      <Route path="/schedule" element={<Schedule />} />
+      <Route path="/class/:classId" element={<ClassDetail />} />
+      <Route path="/quick-attendance" element={<QuickAttendance />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
