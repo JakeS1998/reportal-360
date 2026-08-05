@@ -109,6 +109,22 @@ export default function Schedule() {
             <p className="text-xs text-slate-500">Enrollment</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{school.enrollment ?? "—"}</p>
           </Card>
+          <Card className="p-4 border-slate-200">
+            <p className="text-xs text-slate-500">Graduation Rate</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{school.graduation_rate != null ? school.graduation_rate + "%" : "—"}</p>
+          </Card>
+          <Card className="p-4 border-slate-200">
+            <p className="text-xs text-slate-500">Math Proficiency</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{school.math_proficiency != null ? school.math_proficiency + "%" : "—"}</p>
+          </Card>
+          <Card className="p-4 border-slate-200">
+            <p className="text-xs text-slate-500">Reading Proficiency</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{school.reading_proficiency != null ? school.reading_proficiency + "%" : "—"}</p>
+          </Card>
+          <Card className="p-4 border-slate-200">
+            <p className="text-xs text-slate-500">Science Proficiency</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{school.science_proficiency != null ? school.science_proficiency + "%" : "—"}</p>
+          </Card>
         </div>
 
         {user?.role === "school_admin" && (

@@ -38,7 +38,16 @@ export default async function(req) {
     function extractScore(indicator) {
       const pattern = new RegExp(
         indicator +
-          "\\s+All Grades\\s+All Gender\\s+All Race\\s+All Ethnicity\\s+All SubPopulation\\s+([\\d.]+)"
+          "\\s+All Grades\\s+All Gender\\s+All Race\\s+All Ethnicity\\s+All SubPopulation\\s+(\\d+\\.\\d+)"
+      );
+      const match = text.match(pattern);
+      return match ? parseFloat(match[1]) : null;
+    }
+
+    function extractProficiency(subject) {
+      const pattern = new RegExp(
+        subject +
+          "\\s+All Grades\\s+All Gender\\s+All Race\\s+All Ethnicity\\s+All SubPopulation\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+([\\d.]+)"
       );
       const match = text.match(pattern);
       return match ? parseFloat(match[1]) : null;
@@ -47,6 +56,10 @@ export default async function(req) {
     const academic_achievement = extractScore("Academic Achievement");
     const academic_growth = extractScore("Academic Growth");
     const chronic_absenteeism = extractScore("Chronic Absenteeism");
+    const graduation_rate = extractScore("Graduation Rate");
+    const math_proficiency = extractProficiency("Math");
+    const reading_proficiency = extractProficiency("ELA");
+    const science_proficiency = extractProficiency("Science");
 
     // Extract school and system names from the first data row
     const namePattern = new RegExp(
@@ -69,6 +82,13 @@ export default async function(req) {
       );
     }
 
+    const lower = school_name.toLowerCase();
+    let school_type = "Other";
+    if (lower.includes("elementary")) school_type = "Elementary";
+    else if (lower.includes("middle") || lower.includes("junior high")) school_type = "Middle";
+    else if (lower.includes("high")) school_type = "High";
+    else if (lower.includes("k-12") || lower.includes("k12")) school_type = "K-12";
+
     return Response.json({
       school_name,
       system_name,
@@ -78,7 +98,12 @@ export default async function(req) {
       academic_achievement,
       academic_growth,
       chronic_absenteeism,
+      graduation_rate,
+      math_proficiency,
+      reading_proficiency,
+      science_proficiency,
       enrollment,
+      school_type,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
