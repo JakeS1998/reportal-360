@@ -8,12 +8,15 @@ function scoreColor(score) {
   return "text-rose-600";
 }
 
-function scoreBg(score) {
-  if (score == null) return "bg-slate-50";
-  if (score >= 80) return "bg-emerald-50";
-  if (score >= 70) return "bg-blue-50";
-  if (score >= 60) return "bg-amber-50";
-  return "bg-rose-50";
+function gradeStyle(grade) {
+  switch (grade) {
+    case "A": return "bg-emerald-100 text-emerald-700";
+    case "B": return "bg-blue-100 text-blue-700";
+    case "C": return "bg-amber-100 text-amber-700";
+    case "D": return "bg-orange-100 text-orange-700";
+    case "F": return "bg-rose-100 text-rose-700";
+    default: return "bg-slate-100 text-slate-500";
+  }
 }
 
 function Badge({ children, color }) {
@@ -25,10 +28,21 @@ function Badge({ children, color }) {
   return <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium border ${colors[color] || colors.amber}`}>{children}</span>;
 }
 
-export default function StudentRosterTable({ rows }) {
+function ScoreCell({ score, grade, highlight }) {
+  if (score == null) return <span className="text-slate-300">—</span>;
+  return (
+    <div className={`inline-flex items-center gap-1.5 ${highlight ? "ring-2 ring-blue-200 rounded-lg px-1.5 py-0.5" : ""}`}>
+      <span className={`font-semibold ${scoreColor(score)}`}>{score}</span>
+      <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${gradeStyle(grade)}`}>{grade}</span>
+    </div>
+  );
+}
+
+export default function StudentRosterTable({ rows, subjectFilter }) {
   if (!rows.length) {
     return <p className="text-sm text-slate-400 py-8 text-center">No students found for the current filters.</p>;
   }
+  const subjects = ["Math", "Reading", "Science"];
   return (
     <div className="overflow-x-auto -mx-4">
       <table className="w-full text-sm">
@@ -48,7 +62,7 @@ export default function StudentRosterTable({ rows }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.id || r.student_number} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+            <tr key={r.student_number} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
               <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{r.student_name}</td>
               <td className="px-3 py-3 text-slate-500 font-mono text-xs">{r.student_number}</td>
               <td className="px-3 py-3 text-slate-600">{r.grade_level}</td>
@@ -62,12 +76,14 @@ export default function StudentRosterTable({ rows }) {
                   {!r.economically_disadvantaged && !r.english_learner && !r.disability && <span className="text-xs text-slate-300">—</span>}
                 </div>
               </td>
-              <td className={`px-3 py-3 text-center font-semibold ${scoreColor(r.math)}`}>{r.math != null ? r.math : "—"}</td>
-              <td className={`px-3 py-3 text-center font-semibold ${scoreColor(r.reading)}`}>{r.reading != null ? r.reading : "—"}</td>
-              <td className={`px-3 py-3 text-center font-semibold ${scoreColor(r.science)}`}>{r.science != null ? r.science : "—"}</td>
+              {subjects.map((subj) => (
+                <td key={subj} className="px-3 py-3 text-center">
+                  <ScoreCell score={r.scores[subj]} grade={r.grades[subj]} highlight={subjectFilter === subj} />
+                </td>
+              ))}
               <td className="px-3 py-3 text-center">
                 {r.attendanceRate != null ? (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${scoreBg(r.attendanceRate)} ${scoreColor(r.attendanceRate)}`}>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-700">
                     {r.attendanceRate}%
                   </span>
                 ) : "—"}
