@@ -29,6 +29,15 @@
     "email": {
       "type": "string",
       "title": "Email"
+    },
+    "role": {
+      "type": "string",
+      "title": "Role",
+      "enum": [
+        "teacher",
+        "school_admin"
+      ],
+      "default": "teacher"
     }
   },
   "required": [

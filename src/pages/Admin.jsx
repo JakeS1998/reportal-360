@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Shield, Copy, Plus, Power, LogOut, UserCog, Trash2, School as SchoolIcon } from "lucide-react";
+import { Shield, Copy, Plus, Power, LogOut, UserCog, Trash2, School as SchoolIcon, ShieldCheck } from "lucide-react";
 
 function generateCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -142,6 +142,12 @@ export default function Admin() {
 
   const handleDeleteTeacher = async (teacher) => {
     await base44.entities.Teacher.delete(teacher.id);
+    await loadTeachers();
+  };
+
+  const toggleSchoolAdmin = async (teacher) => {
+    const newRole = teacher.role === "school_admin" ? "teacher" : "school_admin";
+    await base44.entities.Teacher.update(teacher.id, { role: newRole });
     await loadTeachers();
   };
 
@@ -296,13 +302,26 @@ export default function Admin() {
                 <div className="space-y-2">
                   {schoolTeachers.map(t => (
                     <Card key={t.id} className="p-4 border-slate-200 flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900">{t.full_name || t.username}</p>
-                        <p className="text-sm text-slate-500">@{t.username}</p>
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="font-medium text-slate-900">{t.full_name || t.username}</p>
+                          <p className="text-sm text-slate-500">@{t.username}</p>
+                        </div>
+                        {t.role === "school_admin" && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                            <ShieldCheck className="w-3 h-3" /> School Admin
+                          </span>
+                        )}
                       </div>
-                      <Button onClick={() => handleDeleteTeacher(t)} variant="outline" size="sm" className="border-slate-300 text-rose-600 hover:text-rose-700">
-                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button onClick={() => toggleSchoolAdmin(t)} variant="outline" size="sm" className="border-slate-300">
+                          <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                          {t.role === "school_admin" ? "Demote" : "Make Admin"}
+                        </Button>
+                        <Button onClick={() => handleDeleteTeacher(t)} variant="outline" size="sm" className="border-slate-300 text-rose-600 hover:text-rose-700">
+                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                        </Button>
+                      </div>
                     </Card>
                   ))}
                 </div>

@@ -54,7 +54,7 @@ export default async function(req) {
     return Response.json({
       success: true,
       user: {
-        role: "teacher",
+        role: teacher.role === "school_admin" ? "school_admin" : "teacher",
         username: teacher.username,
         full_name: teacher.full_name,
         school_code: teacher.school_code,

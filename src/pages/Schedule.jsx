@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Users, LogOut, Clock, MapPin, Zap, Shield } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import ClassForm from "@/components/management/ClassForm";
+import SchoolAdminPanel from "@/components/management/SchoolAdminPanel";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function Schedule() {
 
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
-    if (!session || session.user.role !== "teacher") {
+    if (!session || (session.user.role !== "teacher" && session.user.role !== "school_admin")) {
       navigate("/");
       return;
     }
@@ -96,6 +97,12 @@ export default function Schedule() {
             <p className="text-2xl font-bold text-slate-900 mt-1">{school.enrollment ?? "—"}</p>
           </Card>
         </div>
+
+        {user?.role === "school_admin" && (
+          <div className="mb-8">
+            <SchoolAdminPanel school={school} user={user} />
+          </div>
+        )}
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Teaching Schedule</h2>
