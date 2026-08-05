@@ -68,6 +68,11 @@ export default function Schedule() {
                 <Shield className="w-4 h-4 mr-1" /> Admin
               </Button>
             )}
+            {user?.role === 'school_admin' && (
+              <Button onClick={() => navigate("/school-admin")} variant="outline" className="border-slate-300">
+                <Shield className="w-4 h-4 mr-1" /> School Admin
+              </Button>
+            )}
             <Button onClick={() => navigate("/quick-attendance")} className="bg-slate-900 hover:bg-slate-800">
               <Zap className="w-4 h-4 mr-1" /> Quick Attendance
             </Button>

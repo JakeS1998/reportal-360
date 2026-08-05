@@ -17,10 +17,13 @@
     "grade_level": {
       "type": "string",
       "title": "Grade Level"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
     }
   },
   "required": [
-    "student_name",
-    "class_id"
+    "student_name"
   ]
 }
