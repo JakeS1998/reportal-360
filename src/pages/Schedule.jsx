@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import ProficiencyChart from "@/components/ProficiencyChart";
+import MetricDelta from "@/components/MetricDelta";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -41,12 +42,43 @@ export default function Schedule() {
 
   if (!school) return null;
 
+  const prev = school.previous || {};
+
   const metrics = [
-    { label: "Academic Achievement", value: school.academic_achievement },
-    { label: "Academic Growth", value: school.academic_growth },
-    { label: "Chronic Absenteeism", value: school.chronic_absenteeism != null ? school.chronic_absenteeism + "%" : null },
-    { label: "Enrollment", value: school.enrollment },
-    { label: "Graduation Rate", value: school.graduation_rate != null ? school.graduation_rate + "%" : null },
+    {
+      label: "Academic Achievement",
+      value: school.academic_achievement,
+      previous: prev.academic_achievement,
+      lowerIsBetter: false,
+    },
+    {
+      label: "Academic Growth",
+      value: school.academic_growth,
+      previous: prev.academic_growth,
+      lowerIsBetter: false,
+    },
+    {
+      label: "Chronic Absenteeism",
+      value: school.chronic_absenteeism,
+      displayValue: school.chronic_absenteeism != null ? school.chronic_absenteeism + "%" : null,
+      previous: prev.chronic_absenteeism,
+      lowerIsBetter: true,
+      suffix: "%",
+    },
+    {
+      label: "Enrollment",
+      value: school.enrollment,
+      previous: prev.enrollment,
+      lowerIsBetter: false,
+    },
+    {
+      label: "Graduation Rate",
+      value: school.graduation_rate,
+      displayValue: school.graduation_rate != null ? school.graduation_rate + "%" : null,
+      previous: prev.graduation_rate,
+      lowerIsBetter: false,
+      suffix: "%",
+    },
   ];
 
   return (
@@ -74,7 +106,15 @@ export default function Schedule() {
           {metrics.map((m) => (
             <Card key={m.label} className="p-4 border-slate-200">
               <p className="text-xs text-slate-500">{m.label}</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{m.value ?? "—"}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {m.displayValue != null ? m.displayValue : m.value != null ? m.value : "—"}
+              </p>
+              <MetricDelta
+                current={m.value}
+                previous={m.previous}
+                lowerIsBetter={m.lowerIsBetter}
+                suffix={m.suffix}
+              />
             </Card>
           ))}
         </div>

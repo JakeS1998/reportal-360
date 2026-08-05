@@ -8,9 +8,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  ReferenceLine,
 } from "recharts";
 
-export default function ProficiencyChart({ data }) {
+export default function ProficiencyChart({ data, target = 80 }) {
   const chartData = [
     { subject: "Math", proficiency: data.math_proficiency ?? 0 },
     { subject: "Reading", proficiency: data.reading_proficiency ?? 0 },
@@ -40,6 +41,13 @@ export default function ProficiencyChart({ data }) {
               <Cell key={index} fill={colors[index]} />
             ))}
           </Bar>
+          <ReferenceLine
+            y={target}
+            stroke="#f97316"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            label={{ value: `Target ${target}%`, position: "right", fill: "#f97316", fontSize: 11, fontWeight: 600 }}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
