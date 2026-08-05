@@ -31,6 +31,7 @@ export default function ExecutiveOverview() {
   const activeOverall = activeSchool ? computeOverallScore(activeSchool) : null;
   const activeSchoolWithScore = activeSchool ? { ...activeSchool, _overall: activeOverall } : null;
   const prevOverall = school?.previous ? computeOverallScore(school.previous) : null;
+  const chronicRate = metrics.total ? Math.round((metrics.chronic / metrics.total) * 1000) / 10 : null;
   const { ai, aiLoading } = useAiSummary({ school: activeSchool, overall: activeOverall, subject: filters.subject });
 
   useEffect(() => {
@@ -70,8 +71,6 @@ export default function ExecutiveOverview() {
     );
   }
 
-  const p = activeSchool.previous || {};
-
   return (
     <div className="space-y-8">
       <FadeIn>
@@ -80,10 +79,10 @@ export default function ExecutiveOverview() {
 
       <FadeIn delay={40}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Academic Achievement" value={activeSchool.academic_achievement} previous={p.academic_achievement} accent="#1D4ED8" year={activeSchool.year} tooltip="ALSDE Academic Achievement indicator — measures proficiency on state assessments (ACAP/ACT)." onClick={() => navigate("/academics")} />
-          <KpiCard label="Academic Growth" value={activeSchool.academic_growth} previous={p.academic_growth} accent="#7C3AED" year={activeSchool.year} tooltip="ALSDE Academic Growth indicator — measures student academic progress relative to peers over time." onClick={() => navigate("/academics")} />
-          <KpiCard label="Chronic Absenteeism" value={activeSchool.chronic_absenteeism} previous={p.chronic_absenteeism} suffix="%" lowerIsBetter accent="#F59E0B" year={activeSchool.year} tooltip="Percentage of students missing 15 or more school days. Lower values are better." onClick={() => navigate("/attendance")} />
-          <KpiCard label="Graduation Rate" value={activeSchool.graduation_rate} previous={p.graduation_rate} suffix="%" accent="#10B981" year={activeSchool.year} tooltip="Percentage of students graduating within four years of entering high school." onClick={() => navigate("/academics")} />
+          <KpiCard label="Math Proficiency" value={metrics.proficiency.math} previous={metrics.prev?.proficiency.math} accent="#1D4ED8" year="2026" tooltip="Average math score across all students in the 2026 roster. Trend compares against the previous year." onClick={() => navigate("/academics")} />
+          <KpiCard label="Reading Proficiency" value={metrics.proficiency.reading} previous={metrics.prev?.proficiency.reading} accent="#7C3AED" year="2026" tooltip="Average reading score across all students in the 2026 roster. Trend compares against the previous year." onClick={() => navigate("/academics")} />
+          <KpiCard label="Chronic Absenteeism" value={chronicRate} previous={metrics.prev?.chronicRate} suffix="%" lowerIsBetter accent="#F59E0B" year="2026" tooltip="Percentage of students with attendance below 90% (missing 15+ school days). Lower values are better." onClick={() => navigate("/attendance")} />
+          <KpiCard label="Avg Attendance" value={metrics.avgAttendance} previous={metrics.prev?.avgAttendance} suffix="%" accent="#10B981" year="2026" tooltip="Average daily attendance rate across all students in the 2026 roster." onClick={() => navigate("/attendance")} />
         </div>
       </FadeIn>
 
