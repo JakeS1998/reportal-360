@@ -8,7 +8,12 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import SelectSchool from './pages/SelectSchool';
-import Schedule from './pages/Schedule';
+import DashboardLayout from '@/components/DashboardLayout';
+import ExecutiveOverview from './pages/ExecutiveOverview';
+import AcademicPerformance from './pages/AcademicPerformance';
+import AttendanceEngagement from './pages/AttendanceEngagement';
+import StudentsDemographics from './pages/StudentsDemographics';
+import PredictiveInsights from './pages/PredictiveInsights';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -38,7 +43,13 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Add your page Route elements here */}
       <Route path="/" element={<SelectSchool />} />
-      <Route path="/schedule" element={<Schedule />} />
+      <Route element={<DashboardLayout />}>
+        <Route path="/overview" element={<ExecutiveOverview />} />
+        <Route path="/academics" element={<AcademicPerformance />} />
+        <Route path="/attendance" element={<AttendanceEngagement />} />
+        <Route path="/demographics" element={<StudentsDemographics />} />
+        <Route path="/insights" element={<PredictiveInsights />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

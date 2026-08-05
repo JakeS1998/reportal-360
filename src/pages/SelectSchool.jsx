@@ -46,7 +46,7 @@ export default function SelectSchool() {
         return;
       }
       localStorage.setItem("userSession", JSON.stringify({ user: loggedInUser, school: data }));
-      navigate("/schedule");
+      navigate("/overview");
     } catch (err) {
       setError(err.response?.data?.error || "Login failed");
     } finally {
