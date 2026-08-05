@@ -11,6 +11,7 @@ import SelectSchool from './pages/SelectSchool';
 import Schedule from './pages/Schedule';
 import ClassDetail from './pages/ClassDetail';
 import QuickAttendance from './pages/QuickAttendance';
+import Admin from './pages/Admin';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,6 +44,7 @@ const AuthenticatedApp = () => {
       <Route path="/schedule" element={<Schedule />} />
       <Route path="/class/:classId" element={<ClassDetail />} />
       <Route path="/quick-attendance" element={<QuickAttendance />} />
+      <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

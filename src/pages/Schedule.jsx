@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Users, LogOut, Clock, MapPin, Zap } from "lucide-react";
+import { Users, LogOut, Clock, MapPin, Zap, Shield } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import ClassForm from "@/components/management/ClassForm";
 
 export default function Schedule() {
   const navigate = useNavigate();
   const [school, setSchool] = useState(null);
+  const [user, setUser] = useState(null);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,7 @@ export default function Schedule() {
       return;
     }
     setSchool(JSON.parse(session));
+    base44.auth.me().then(setUser).catch(() => {});
   }, [navigate]);
 
   const loadData = useCallback(async () => {
@@ -60,6 +62,11 @@ export default function Schedule() {
             <p className="text-sm text-slate-500">{school.system_name} · Code {school.school_code}</p>
           </div>
           <div className="flex items-center gap-3">
+            {user?.role === 'admin' && (
+              <Button onClick={() => navigate("/admin")} variant="outline" className="border-slate-300">
+                <Shield className="w-4 h-4 mr-1" /> Admin
+              </Button>
+            )}
             <Button onClick={() => navigate("/quick-attendance")} className="bg-slate-900 hover:bg-slate-800">
               <Zap className="w-4 h-4 mr-1" /> Quick Attendance
             </Button>

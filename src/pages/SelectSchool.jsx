@@ -9,6 +9,7 @@ import { GraduationCap, ArrowRight } from "lucide-react";
 export default function SelectSchool() {
   const [systemCode, setSystemCode] = useState("");
   const [schoolCode, setSchoolCode] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -18,6 +19,14 @@ export default function SelectSchool() {
     setLoading(true);
     setError("");
     try {
+      const validation = await base44.functions.invoke("validateAccessCode", {
+        school_code: schoolCode,
+        access_code: accessCode,
+      });
+      if (!validation.data.valid) {
+        setError(validation.data.error || "Invalid access code");
+        return;
+      }
       const response = await base44.functions.invoke("fetchSchoolData", {
         system_code: systemCode,
         school_code: schoolCode,
@@ -68,6 +77,17 @@ export default function SelectSchool() {
               className="mt-1"
             />
             <p className="text-xs text-slate-400 mt-1">Your school code from ALSDE</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-slate-700">Access Code</Label>
+            <Input
+              required
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+              placeholder="Enter your access code"
+              className="mt-1"
+            />
+            <p className="text-xs text-slate-400 mt-1">Provided by your administrator</p>
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">

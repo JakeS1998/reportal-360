@@ -1,0 +1,58 @@
+{
+  "name": "AccessCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "title": "Access Code"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date",
+      "title": "Expires At"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "code",
+    "school_code"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
