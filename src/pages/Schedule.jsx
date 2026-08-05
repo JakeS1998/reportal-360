@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,8 +17,21 @@ export default function Schedule() {
       navigate("/");
       return;
     }
-    setSchool(session.school);
     setUser(session.user);
+    const initialSchool = session.school;
+    setSchool(initialSchool);
+    if (initialSchool && initialSchool.math_proficiency == null && initialSchool.system_code && initialSchool.school_code) {
+      base44.functions.invoke("fetchSchoolData", {
+        system_code: initialSchool.system_code,
+        school_code: initialSchool.school_code,
+      }).then((res) => {
+        const data = res.data;
+        if (data && !data.error) {
+          setSchool(data);
+          localStorage.setItem("userSession", JSON.stringify({ ...session, school: data }));
+        }
+      }).catch(() => {});
+    }
   }, [navigate]);
 
   const handleLogout = () => {
