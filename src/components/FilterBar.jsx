@@ -18,9 +18,13 @@ export default function FilterBar({ school }) {
         <Divider />
         <FilterSelect
           label="School"
-          value={school?.school_name || "—"}
-          options={commissionerSchools ? commissionerSchools.map((s) => s.school_name) : [school?.school_name || "—"]}
+          value={commissionerSchools ? (school?.school_code === "0000" ? "All Schools" : school?.school_name || "—") : school?.school_name || "—"}
+          options={commissionerSchools ? ["All Schools", ...commissionerSchools.map((s) => s.school_name)] : [school?.school_name || "—"]}
           onChange={commissionerSchools ? (val) => {
+            if (val === "All Schools") {
+              selectSchool("0000");
+              return;
+            }
             const sc = commissionerSchools.find((s) => s.school_name === val);
             if (sc) selectSchool(sc.school_code);
           } : null}
