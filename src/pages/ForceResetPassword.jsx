@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, ArrowRight, ShieldCheck } from "lucide-react";
-import { completeLogin, getTempSession, clearTempSession } from "@/lib/authFlow";
+import { getTempSession, clearTempSession } from "@/lib/authFlow";
 
 export default function ForceResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -61,7 +61,16 @@ export default function ForceResetPassword() {
       }
 
       clearTempSession();
-      await completeLogin(loginRes.data.user);
+      // Store minimal session — SchoolContext will fetch full school data on mount
+      const minimalSession = {
+        user: loginRes.data.user,
+        school: {
+          system_code: loginRes.data.user.system_code,
+          school_code: loginRes.data.user.school_code,
+        },
+        systemSchools: [],
+      };
+      localStorage.setItem("userSession", JSON.stringify(minimalSession));
       navigate("/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to reset password");
