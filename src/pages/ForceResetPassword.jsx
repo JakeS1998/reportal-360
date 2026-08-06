@@ -33,7 +33,7 @@ export default function ForceResetPassword() {
   useEffect(() => {
     const ts = getTempSession();
     if (!ts) {
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true });
       return;
     }
     setTempSession(ts);
@@ -77,7 +77,7 @@ export default function ForceResetPassword() {
       if (!loginRes.data?.success) {
         setError("Password reset but login failed. Please sign in manually.");
         clearTempSession();
-        navigate("/", { replace: true });
+        navigate("/login", { replace: true });
         return;
       }
 
@@ -158,7 +158,7 @@ export default function ForceResetPassword() {
     setEmailHint("");
     setError("");
     clearTempSession();
-    navigate("/", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   if (!tempSession) return null;

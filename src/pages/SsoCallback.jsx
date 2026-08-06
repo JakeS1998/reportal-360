@@ -65,7 +65,7 @@ export default function SsoCallback() {
           </div>
           <h1 className="text-lg font-bold text-slate-900 mb-2">Sign-in Failed</h1>
           <p className="text-sm text-slate-600 mb-6">{error}</p>
-          <button onClick={() => navigate("/")} className="text-sm font-medium text-slate-900 underline">
+          <button onClick={() => navigate("/login")} className="text-sm font-medium text-slate-900 underline">
             Back to login
           </button>
         </div>

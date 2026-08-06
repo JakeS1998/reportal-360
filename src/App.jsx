@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
+import Landing from './pages/Landing';
 import SelectSchool from './pages/SelectSchool';
 import ForceResetPassword from './pages/ForceResetPassword';
 import StaffManagement from './pages/StaffManagement';
@@ -60,7 +61,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
-      <Route path="/" element={<SelectSchool />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<SelectSchool />} />
       <Route path="/reset-password" element={<ForceResetPassword />} />
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />

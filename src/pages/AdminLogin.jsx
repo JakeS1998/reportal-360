@@ -86,7 +86,7 @@ export default function AdminLogin() {
           to="/"
           className="mt-4 flex items-center justify-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to school selection
+          <ArrowLeft className="w-4 h-4" /> Back to home
         </Link>
       </div>
     </div>

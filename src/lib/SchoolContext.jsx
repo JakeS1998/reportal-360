@@ -35,7 +35,7 @@ export function SchoolProvider({ children }) {
   useEffect(() => {
     const session = JSON.parse(localStorage.getItem("userSession") || "null");
     if (!session) {
-      navigate("/");
+      navigate("/login");
       return;
     }
     setUser(session.user);
@@ -58,7 +58,7 @@ export function SchoolProvider({ children }) {
 
   const switchSchool = () => {
     localStorage.removeItem("userSession");
-    navigate("/");
+    navigate("/login");
   };
 
   // Area users: switch to a different school within their system
