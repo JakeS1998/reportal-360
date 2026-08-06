@@ -1,8 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { logAudit, validatePasswordComplexity } from '../../shared/security.ts';
+import { logAudit, validatePasswordComplexity, getAdminCredentials } from '../../shared/security.ts';
 
-const ADMIN_USERNAME = "BRGAdmin";
-const ADMIN_PASSWORD = "BRGAdmin";
+const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
 
 function generateRandomPassword(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
@@ -245,11 +244,49 @@ export default async function(req) {
       if (callerRole !== "admin") {
         return Response.json({ success: false, error: "Admin access required to view audit logs" }, { status: 403 });
       }
-      const { limit = 100, event_type } = params;
+      const { limit = 100, event_type, username, school_code, system_code, student_id } = params;
       let filter: any = {};
       if (event_type) filter.event_type = event_type;
+      if (username) filter.username = username;
+      if (school_code) filter.school_code = school_code;
+      if (system_code) filter.system_code = system_code;
+      if (student_id) filter.student_id = student_id;
       const logs = await base44.asServiceRole.entities.AuditLog.filter(filter, "-created_date", limit);
       return Response.json({ success: true, logs });
+    }
+
+    // --- SECURITY STATS (admin only) ---
+    if (action === "security_stats") {
+      if (callerRole !== "admin") {
+        return Response.json({ success: false, error: "Admin access required" }, { status: 403 });
+      }
+      const logs = await base44.asServiceRole.entities.AuditLog.filter({}, "-created_date", 500);
+      const teachers = await base44.asServiceRole.entities.Teacher.filter({}, "-created_date", 500);
+      const now = new Date();
+      const loginSuccess = logs.filter((l) => l.event_type === "login_success");
+      const loginFailed = logs.filter((l) => l.event_type === "login_failed");
+      const lockedAccounts = teachers.filter((t) => t.locked_until && new Date(t.locked_until) > now);
+      const failedAttemptAccounts = teachers.filter((t) => (t.failed_login_attempts || 0) > 0);
+      const mfaEnabled = teachers.filter((t) => t.mfa_enabled !== false);
+      const studentAccessEvents = logs.filter((l) =>
+        ["view_student", "search_student", "edit_student", "view_assessment", "view_attendance", "view_discipline"].includes(l.event_type)
+      );
+      const exportEvents = logs.filter((l) => l.event_type === "data_export");
+      return Response.json({
+        success: true,
+        stats: {
+          totalLogins: loginSuccess.length,
+          failedLogins: loginFailed.length,
+          lockedAccounts: lockedAccounts.length,
+          studentAccessEvents: studentAccessEvents.length,
+          exportEvents: exportEvents.length,
+          totalUsers: teachers.length,
+          mfaEnabled: mfaEnabled.length,
+          mfaCoverage: teachers.length > 0 ? Math.round((mfaEnabled.length / teachers.length) * 100) : 0,
+          failedAttemptAccounts: failedAttemptAccounts.length,
+          recentLogs: logs.slice(0, 100),
+        },
+      });
     }
 
     return Response.json({ success: false, error: "Unknown action" }, { status: 400 });

@@ -123,6 +123,7 @@ export default function Administration() {
           <p className="text-xs text-slate-500 mt-0.5">Automated master list from ALSDE Report Card</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/admin/security")}>Security Dashboard</Button>
           <Button variant="outline" onClick={() => navigate("/admin/ferpa")}>FERPA Compliance</Button>
           <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
           <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>

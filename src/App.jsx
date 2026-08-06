@@ -19,6 +19,7 @@ import ClassDashboard from './pages/ClassDashboard';
 import StudentProfile from './pages/StudentProfile';
 import Administration from './pages/Administration';
 import FerpaCompliance from './pages/FerpaCompliance';
+import SecurityDashboard from './pages/SecurityDashboard';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExecutiveOverview from './pages/ExecutiveOverview';
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
+      <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />
         <Route path="/academics" element={<AcademicPerformance />} />
