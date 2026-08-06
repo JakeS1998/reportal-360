@@ -243,7 +243,9 @@ export default function SelectSchool() {
 
           <div className="text-center mt-4 space-y-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-3">
             <div>
-              <p className="text-sm font-semibold text-white">ReportAL 360</p>
+              <a href="https://blueridge-group.co.uk" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-white hover:underline">
+                ReportAL 360 by Blueridge Group
+              </a>
               <p className="text-[11px] text-slate-200">Alabama School Reporting Platform</p>
             </div>
             <div className="flex items-center justify-center gap-2 text-[10px] text-slate-100">
