@@ -36,11 +36,19 @@ export default async function(req) {
       });
     }
 
-    // Look up by username only (to support failed-attempt tracking)
-    const users = await base44.asServiceRole.entities.Teacher.filter({ username });
+    // Parse the 4-digit school code from the username (format: schoolcode.name)
+    const dotIndex = username.indexOf(".");
+    const parsedSchoolCode = dotIndex > 0 ? username.slice(0, dotIndex) : null;
+
+    // Look up by username; if a school code was parsed, also match on school_code
+    const query: any = { username };
+    if (parsedSchoolCode) {
+      query.school_code = parsedSchoolCode;
+    }
+    const users = await base44.asServiceRole.entities.Teacher.filter(query);
 
     if (users.length === 0) {
-      await logAudit(base44, "login_failed", username, "", "User not found", undefined, auditExtra);
+      await logAudit(base44, "login_failed", username, "", "User not found", parsedSchoolCode || undefined, auditExtra);
       return Response.json({
         success: false,
         error: "Invalid username or password",
