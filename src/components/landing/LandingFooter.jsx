@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import LogoMono from "@/components/LogoMono";
+import LogoLanding from "@/components/LogoLanding";
 import AlabamaOutline from "@/components/AlabamaOutline";
 
 const NAVY = "#0B1530";
@@ -12,7 +12,9 @@ export default function LandingFooter() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-10 pb-10 border-b border-white/10">
           <div className="md:col-span-2">
-            <LogoMono className="w-40 mb-4" />
+            <div className="bg-black rounded-xl p-2.5 ring-1 ring-white/10 mb-4 inline-flex">
+              <LogoLanding className="h-11 w-auto" />
+            </div>
             <p className="text-sm text-white/60 max-w-sm leading-relaxed">
               A centralized insight dashboard for Alabama schools — extracting
               performance metrics directly from ALSDE data for commissioners,
