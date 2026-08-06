@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
 import FadeIn from "@/components/FadeIn";
 import SectionCard from "@/components/SectionCard";
@@ -224,6 +225,59 @@ export default function FerpaCompliance() {
   const implemented = (counts.done || 0) + (counts.platform || 0);
   const compliancePct = Math.round((implemented / total) * 100);
 
+  const handleExportReport = () => {
+    const doc = new jsPDF();
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("FERPA Compliance Summary Report", 105, y, { align: "center" });
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, y, { align: "center" });
+    y += 4;
+    doc.text("ReportAL 360 — Alabama Schools Reporting Platform", 105, y, { align: "center" });
+    y += 10;
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("Compliance Summary", 14, y);
+    y += 7;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Overall Compliance: ${compliancePct}%`, 14, y); y += 5;
+    doc.text(`Total Checklist Items: ${total}`, 14, y); y += 5;
+    doc.text(`Implemented (App-Level): ${counts.done || 0}`, 14, y); y += 5;
+    doc.text(`Platform-Handled: ${counts.platform || 0}`, 14, y); y += 5;
+    doc.text(`Policy Required: ${counts.policy || 0}`, 14, y); y += 5;
+    doc.text(`On Roadmap: ${counts.roadmap || 0}`, 14, y); y += 5;
+    doc.text(`Partially Implemented: ${counts.partial || 0}`, 14, y); y += 5;
+    doc.text(`Action Needed: ${counts.warning || 0}`, 14, y); y += 10;
+
+    SECTIONS.forEach((section) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.title, 14, y);
+      y += 6;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      section.items.forEach((item) => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        const statusLabel = STATUS_CONFIG[item.status].label;
+        doc.text(`  [${statusLabel}]  ${item.label}`, 14, y);
+        y += 5;
+      });
+      y += 4;
+    });
+
+    doc.save("FERPA_Compliance_Report.pdf");
+  };
+
   const filteredLogs = logFilter
     ? logs.filter((l) => l.event_type === logFilter)
     : logs;
@@ -236,6 +290,9 @@ export default function FerpaCompliance() {
           <p className="text-xs text-slate-500 mt-0.5">ReportAL 360 security and privacy checklist</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportReport}>
+            <Download className="w-4 h-4 mr-1" /> Export Report
+          </Button>
           <Button variant="outline" onClick={() => navigate("/admin")}>Back to Admin</Button>
           <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>
             <LogOut className="w-4 h-4 mr-1" /> Sign Out
