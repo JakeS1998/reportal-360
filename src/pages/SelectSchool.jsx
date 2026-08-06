@@ -127,6 +127,22 @@ export default function SelectSchool() {
     setError("");
   };
 
+  const handleMicrosoftSSO = async () => {
+    setError("");
+    try {
+      const redirectUri = window.location.origin + "/sso-callback";
+      const res = await base44.functions.invoke("entraSSO", { action: "authorize_url", redirect_uri: redirectUri });
+      if (res.data?.success) {
+        sessionStorage.setItem("ssoState", res.data.state);
+        window.location.href = res.data.url;
+      } else {
+        setError(res.data?.error || "Microsoft SSO is not configured. Contact your administrator.");
+      }
+    } catch {
+      setError("Unable to start Microsoft sign-in.");
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-10">
       <img
@@ -201,6 +217,16 @@ export default function SelectSchool() {
           <Button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">
             {loading ? "Signing in..." : "Sign In"}
             {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
+          </Button>
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-slate-400">or</span></div>
+          </div>
+
+          <Button type="button" variant="outline" onClick={handleMicrosoftSSO} disabled={loading} className="w-full">
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
+            Sign in with Microsoft
           </Button>
 
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-4 border-t border-slate-100">
