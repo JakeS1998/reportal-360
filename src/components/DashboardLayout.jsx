@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3 } from "lucide-react";
 import FilterBar from "./FilterBar";
 
 function Shell() {
@@ -23,9 +23,11 @@ function Shell() {
   ];
 
   nav.push({ to: "/my-classes", label: "My Classes", icon: BookOpen });
+  nav.push({ to: "/training", label: "Training", icon: Award });
 
   if (canManageStaff) {
     nav.push({ to: "/staff", label: "Admin Panel", icon: UserCog });
+    nav.push({ to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 });
     nav.push({ section: "Class Management" });
     nav.push({ to: "/classes", label: "Classes", icon: BookOpen });
     nav.push({ to: "/academic-years", label: "Academic Years", icon: Calendar });

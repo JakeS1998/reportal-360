@@ -1,0 +1,96 @@
+{
+  "name": "TrainingCompletion",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "username": {
+      "type": "string",
+      "title": "Username"
+    },
+    "full_name": {
+      "type": "string",
+      "title": "Full Name"
+    },
+    "module_id": {
+      "type": "string",
+      "title": "Module ID"
+    },
+    "module_title": {
+      "type": "string",
+      "title": "Module Title"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "role": {
+      "type": "string",
+      "title": "User Role"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed"
+      ],
+      "default": "failed",
+      "title": "Status"
+    },
+    "score": {
+      "type": "number",
+      "title": "Score (%)"
+    },
+    "answers": {
+      "type": "string",
+      "title": "User Answers (JSON)"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 1,
+      "title": "Attempts"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Passed"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Completed Date"
+    }
+  },
+  "required": [
+    "user_id",
+    "module_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

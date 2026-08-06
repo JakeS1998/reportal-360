@@ -22,6 +22,8 @@ import FerpaCompliance from './pages/FerpaCompliance';
 import SecurityDashboard from './pages/SecurityDashboard';
 import SsoCallback from './pages/SsoCallback';
 import PolicyManagement from './pages/PolicyManagement';
+import TrainingPortal from './pages/TrainingPortal';
+import TrainingDashboard from './pages/TrainingDashboard';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExecutiveOverview from './pages/ExecutiveOverview';
@@ -81,6 +83,8 @@ const AuthenticatedApp = () => {
         <Route path="/my-classes" element={<MyClasses />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
         <Route path="/students/:studentId" element={<StudentProfile />} />
+        <Route path="/training" element={<TrainingPortal />} />
+        <Route path="/training-dashboard" element={<TrainingDashboard />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

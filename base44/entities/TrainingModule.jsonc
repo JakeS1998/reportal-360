@@ -1,0 +1,126 @@
+{
+  "name": "TrainingModule",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Module Title"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "FERPA",
+        "Security",
+        "Data Handling",
+        "Incident Response",
+        "Annual Refresher"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "title": "Training Content (Markdown)"
+    },
+    "target_roles": {
+      "type": "array",
+      "title": "Target Roles",
+      "items": {
+        "type": "string",
+        "enum": [
+          "teacher",
+          "manager",
+          "area",
+          "admin"
+        ]
+      }
+    },
+    "questions": {
+      "type": "array",
+      "title": "Quiz Questions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "title": "Answer Options"
+          },
+          "correct_answer": {
+            "type": "number",
+            "title": "Correct Answer Index"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "required": [
+          "question",
+          "options",
+          "correct_answer"
+        ]
+      }
+    },
+    "passing_score": {
+      "type": "number",
+      "title": "Passing Score (%)",
+      "default": 80
+    },
+    "duration_minutes": {
+      "type": "number",
+      "title": "Duration (minutes)",
+      "default": 15
+    },
+    "is_annual_refresher": {
+      "type": "boolean",
+      "title": "Annual Refresher",
+      "default": false
+    },
+    "order": {
+      "type": "number",
+      "title": "Display Order",
+      "default": 0
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
