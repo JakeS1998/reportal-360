@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
+import MfaInput from "@/components/MfaInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
 import AlabamaOutline from "@/components/AlabamaOutline";
 
@@ -31,6 +32,8 @@ export default function SelectSchool() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [emailHint, setEmailHint] = useState("");
   const navigate = useNavigate();
   const [scene] = useState(() => ALABAMA_SCENES[Math.floor(Math.random() * ALABAMA_SCENES.length)]);
 
@@ -40,6 +43,11 @@ export default function SelectSchool() {
     setError("");
     try {
       const res = await base44.functions.invoke("loginUser", { username, password });
+      if (res.data?.mfa_required) {
+        setMfaRequired(true);
+        setEmailHint(res.data.email_hint || "your email");
+        return;
+      }
       if (!res.data?.success) {
         setError(res.data?.error || "Invalid credentials");
         return;
@@ -68,6 +76,55 @@ export default function SelectSchool() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMfaVerify = async (code) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", { username, password, mfa_code: code });
+      if (res.data?.mfa_required) {
+        setError("Invalid or expired code. Please try again.");
+        return;
+      }
+      if (!res.data?.success) {
+        setError(res.data?.error || "Verification failed");
+        return;
+      }
+      const user = res.data.user;
+      if (user.password_reset_required) {
+        setTempSession({ username, password });
+        navigate("/reset-password", { replace: true });
+        return;
+      }
+      await completeLogin(user);
+      navigate("/overview", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Unable to verify");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaResend = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", { username, password });
+      if (res.data?.mfa_required) {
+        setEmailHint(res.data.email_hint || "your email");
+      }
+    } catch {
+      setError("Unable to resend code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaCancel = () => {
+    setMfaRequired(false);
+    setEmailHint("");
+    setError("");
   };
 
   return (
@@ -101,7 +158,18 @@ export default function SelectSchool() {
           <p className="text-sm text-white/90 mt-1.5 font-medium">Supporting Alabama Educators with Better Data</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 space-y-4 shadow-2xl">
+        <div className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 shadow-2xl">
+          {mfaRequired ? (
+            <MfaInput
+              emailHint={emailHint}
+              onVerify={handleMfaVerify}
+              onResend={handleMfaResend}
+              onCancel={handleMfaCancel}
+              loading={loading}
+              error={error}
+            />
+          ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label className="text-sm font-medium text-slate-700">Username</Label>
             <div className="relative mt-1">
@@ -147,6 +215,8 @@ export default function SelectSchool() {
             </span>
           </div>
           </form>
+          )}
+        </div>
 
           <div className="text-center mt-4">
             <Link to="/admin-login" className="text-xs text-slate-300 hover:text-white transition-colors">

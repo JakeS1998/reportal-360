@@ -32,7 +32,7 @@ const SECTIONS = [
       { label: "School administrators restricted to their school's data", status: "done" },
       { label: "District administrators restricted to their district", status: "done" },
       { label: "Inactive accounts blocked from login", status: "done" },
-      { label: "Multi-Factor Authentication (MFA)", status: "roadmap" },
+      { label: "Multi-Factor Authentication (MFA) via email", status: "done" },
       { label: "SSO (Microsoft Entra ID / Google Workspace)", status: "roadmap" },
       { label: "Permissions reviewed regularly", status: "policy" },
     ],

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, ArrowRight, ShieldCheck, CheckCircle2, Circle } from "lucide-react";
 import { getTempSession, clearTempSession } from "@/lib/authFlow";
+import MfaInput from "@/components/MfaInput";
 
 const PASSWORD_REQUIREMENTS = [
   { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
@@ -25,6 +26,8 @@ export default function ForceResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [tempSession, setTempSession] = useState(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [emailHint, setEmailHint] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -66,6 +69,11 @@ export default function ForceResetPassword() {
         username: tempSession.username,
         password: newPassword,
       });
+      if (loginRes.data?.mfa_required) {
+        setMfaRequired(true);
+        setEmailHint(loginRes.data.email_hint || "your email");
+        return;
+      }
       if (!loginRes.data?.success) {
         setError("Password reset but login failed. Please sign in manually.");
         clearTempSession();
@@ -92,20 +100,94 @@ export default function ForceResetPassword() {
     }
   };
 
+  const handleMfaVerify = async (code) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", {
+        username: tempSession.username,
+        password: newPassword,
+        mfa_code: code,
+      });
+      if (res.data?.mfa_required) {
+        setError("Invalid or expired code. Please try again.");
+        return;
+      }
+      if (!res.data?.success) {
+        setError(res.data?.error || "Verification failed");
+        return;
+      }
+      clearTempSession();
+      const minimalSession = {
+        user: res.data.user,
+        school: {
+          system_code: res.data.user.system_code,
+          school_code: res.data.user.school_code,
+        },
+        systemSchools: [],
+      };
+      localStorage.setItem("userSession", JSON.stringify(minimalSession));
+      navigate("/overview", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Unable to verify");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaResend = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", {
+        username: tempSession.username,
+        password: newPassword,
+      });
+      if (res.data?.mfa_required) {
+        setEmailHint(res.data.email_hint || "your email");
+      }
+    } catch {
+      setError("Unable to resend code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaCancel = () => {
+    setMfaRequired(false);
+    setEmailHint("");
+    setError("");
+    clearTempSession();
+    navigate("/", { replace: true });
+  };
+
   if (!tempSession) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-8 h-8 text-white" />
+        {!mfaRequired && (
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
+              <ShieldCheck className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">Set Your Password</h1>
+            <p className="text-sm text-slate-500 mt-1">First login — please choose a new password</p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Set Your Password</h1>
-          <p className="text-sm text-slate-500 mt-1">First login — please choose a new password</p>
-        </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200">
+          {mfaRequired ? (
+            <MfaInput
+              emailHint={emailHint}
+              onVerify={handleMfaVerify}
+              onResend={handleMfaResend}
+              onCancel={handleMfaCancel}
+              loading={loading}
+              error={error}
+            />
+          ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label className="text-sm font-medium text-slate-700">New Password</Label>
             <Input
@@ -144,7 +226,9 @@ export default function ForceResetPassword() {
             {loading ? "Saving..." : "Set Password & Continue"}
             {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
-        </form>
+          </form>
+          )}
+        </div>
       </div>
     </div>
   );

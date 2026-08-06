@@ -5,11 +5,12 @@ const ADMIN_USERNAME = "BRGAdmin";
 const ADMIN_PASSWORD = "BRGAdmin";
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+const MFA_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
 export default async function(req) {
   try {
     const body = await req.json();
-    const { username, password } = body;
+    const { username, password, mfa_code } = body;
 
     if (!username || !password) {
       return Response.json(
@@ -20,7 +21,7 @@ export default async function(req) {
 
     const base44 = createClientFromRequest(req);
 
-    // Admin login (hardcoded super admin)
+    // Admin login (hardcoded super admin — no MFA)
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       await logAudit(base44, "login_success", username, "admin", "Super admin login");
       return Response.json({
@@ -82,7 +83,7 @@ export default async function(req) {
       });
     }
 
-    // Successful login — reset failed attempt counters
+    // Password correct — reset failed attempt counters
     if (user.failed_login_attempts > 0 || user.locked_until) {
       await base44.asServiceRole.entities.Teacher.update(user.id, {
         failed_login_attempts: 0,
@@ -90,6 +91,73 @@ export default async function(req) {
       });
     }
 
+    // --- MFA check ---
+    // Only for teachers with an email on file, MFA enabled, and not in first-login reset flow
+    const needsMfa = user.email && user.mfa_enabled !== false && !user.password_reset_required;
+
+    if (needsMfa) {
+      if (mfa_code) {
+        // Verify the provided code
+        if (!user.mfa_code || user.mfa_code !== mfa_code) {
+          await logAudit(base44, "login_failed", username, user.role, "Invalid MFA code", user.school_code);
+          return Response.json({ success: false, error: "Invalid verification code" });
+        }
+        if (!user.mfa_code_expires_at || new Date(user.mfa_code_expires_at) < new Date()) {
+          await logAudit(base44, "login_failed", username, user.role, "Expired MFA code", user.school_code);
+          return Response.json({ success: false, error: "Verification code has expired. Please request a new one." });
+        }
+        // Code valid — clear it and proceed
+        await base44.asServiceRole.entities.Teacher.update(user.id, {
+          mfa_code: null,
+          mfa_code_expires_at: null,
+        });
+      } else {
+        // Generate a new 6-digit code and email it
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const expiresAt = new Date(Date.now() + MFA_CODE_EXPIRY_MS).toISOString();
+        await base44.asServiceRole.entities.Teacher.update(user.id, {
+          mfa_code: code,
+          mfa_code_expires_at: expiresAt,
+        });
+
+        // Send via Resend
+        try {
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "ReportAL 360 <onboarding@resend.dev>",
+              to: user.email,
+              subject: "Your ReportAL 360 Verification Code",
+              html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2 style="color: #1e293b;">Your Verification Code</h2>
+                <p style="color: #475569;">Your ReportAL 360 verification code is:</p>
+                <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
+                <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
+              </div>`,
+            }),
+          });
+        } catch (e) {
+          // Email send failed — still return mfa_required so user can retry
+        }
+
+        const emailParts = user.email.split("@");
+        const emailHint = emailParts.length === 2
+          ? emailParts[0].slice(0, 2) + "***@" + emailParts[1]
+          : "your email";
+
+        return Response.json({
+          success: false,
+          mfa_required: true,
+          email_hint: emailHint,
+        });
+      }
+    }
+
+    // Full login successful
     await logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code);
 
     return Response.json({

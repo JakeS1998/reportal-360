@@ -79,6 +79,20 @@
       "type": "string",
       "format": "date-time",
       "title": "Locked Until"
+    },
+    "mfa_enabled": {
+      "type": "boolean",
+      "title": "MFA Enabled",
+      "default": true
+    },
+    "mfa_code": {
+      "type": "string",
+      "title": "MFA Code"
+    },
+    "mfa_code_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "MFA Code Expires At"
     }
   },
   "required": [
