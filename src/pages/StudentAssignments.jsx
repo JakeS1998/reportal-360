@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,11 @@ export default function StudentAssignments() {
   const [fGrade, setFGrade] = useState("");
   const [fHomeroom, setFHomeroom] = useState("");
   const [showImport, setShowImport] = useState(false);
+
+  useEffect(() => {
+    if (selectedClass?.grade_level) setFGrade(selectedClass.grade_level);
+    else setFGrade("");
+  }, [selectedClassId]);
 
   const activeClasses = useMemo(() => cm.classes.filter((c) => c.status !== "archived"), [cm.classes]);
   const selectedClass = cm.classes.find((c) => c.id === selectedClassId);

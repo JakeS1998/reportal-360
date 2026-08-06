@@ -51,7 +51,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject } = params;
 
       if (!full_name || !role || !school_code || !system_code) {
         return Response.json(
@@ -101,6 +101,7 @@ export default async function(req) {
         school_name: school_name || "",
         system_name: system_name || "",
         email: email || "",
+        subject: subject || "",
         teacher_id: username,
         password_reset_required: true,
       });

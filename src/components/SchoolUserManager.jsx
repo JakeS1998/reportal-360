@@ -42,6 +42,7 @@ export default function SchoolUserManager({
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [subject, setSubject] = useState("");
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -128,6 +129,7 @@ export default function SchoolUserManager({
         school_name: selectedSchool.school_name,
         system_name: selectedSchool.system_name || getSystemName(selectedSchool.system_code),
         email,
+        subject,
         username: username || undefined,
         password: password || undefined,
       });
@@ -137,6 +139,7 @@ export default function SchoolUserManager({
         setEmail("");
         setUsername("");
         setPassword("");
+        setSubject("");
         loadUsers();
       } else {
         setError(res.data?.error || "Failed to create user");
@@ -406,6 +409,16 @@ export default function SchoolUserManager({
                   placeholder="name@school.edu"
                   className="mt-1"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <Label className="text-sm font-medium text-slate-700">Subject (optional)</Label>
+                <Input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g. Mathematics"
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-400 mt-1">Used to match teachers to classes with the same subject</p>
               </div>
             </div>
             {error && <p className="text-sm text-rose-600">{error}</p>}

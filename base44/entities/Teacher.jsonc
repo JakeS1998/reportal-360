@@ -52,6 +52,10 @@
       "type": "string",
       "title": "Department"
     },
+    "subject": {
+      "type": "string",
+      "title": "Subject"
+    },
     "job_title": {
       "type": "string",
       "title": "Job Title"
