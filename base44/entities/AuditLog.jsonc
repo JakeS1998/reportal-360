@@ -15,8 +15,18 @@
         "password_reset",
         "password_reset_admin",
         "data_export",
-        "admin_action"
+        "admin_action",
+        "view_student",
+        "search_student",
+        "edit_student",
+        "view_assessment",
+        "view_attendance",
+        "view_discipline"
       ]
+    },
+    "action_type": {
+      "type": "string",
+      "title": "Action Type"
     },
     "username": {
       "type": "string",
@@ -29,6 +39,39 @@
     "school_code": {
       "type": "string",
       "title": "School Code"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System/District Code"
+    },
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "ip_address": {
+      "type": "string",
+      "title": "IP Address"
+    },
+    "user_agent": {
+      "type": "string",
+      "title": "Browser/User Agent"
+    },
+    "success": {
+      "type": "boolean",
+      "title": "Success",
+      "default": true
+    },
+    "export_format": {
+      "type": "string",
+      "title": "Export Format"
+    },
+    "export_record_count": {
+      "type": "number",
+      "title": "Export Record Count"
+    },
+    "report_name": {
+      "type": "string",
+      "title": "Report Name"
     },
     "details": {
       "type": "string",

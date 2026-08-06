@@ -1,8 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { logAudit } from '../../shared/security.ts';
+import { logAudit, extractRequestInfo, getAdminCredentials } from '../../shared/security.ts';
 
-const ADMIN_USERNAME = "BRGAdmin";
-const ADMIN_PASSWORD = "BRGAdmin";
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const MFA_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
@@ -11,6 +9,8 @@ export default async function(req) {
   try {
     const body = await req.json();
     const { username, password, mfa_code } = body;
+    const { ip, userAgent } = extractRequestInfo(req);
+    const auditExtra = { ip_address: ip, user_agent: userAgent };
 
     if (!username || !password) {
       return Response.json(
@@ -20,15 +20,16 @@ export default async function(req) {
     }
 
     const base44 = createClientFromRequest(req);
+    const admin = getAdminCredentials();
 
-    // Admin login (hardcoded super admin — no MFA)
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      await logAudit(base44, "login_success", username, "admin", "Super admin login");
+    // Admin login (env-var backed super admin — no MFA)
+    if (username === admin.username && password === admin.password) {
+      await logAudit(base44, "login_success", username, "admin", "Super admin login", undefined, auditExtra);
       return Response.json({
         success: true,
         user: {
           role: "admin",
-          username: ADMIN_USERNAME,
+          username: admin.username,
           full_name: "Administrator",
           password_reset_required: false,
         },
@@ -39,7 +40,7 @@ export default async function(req) {
     const users = await base44.asServiceRole.entities.Teacher.filter({ username });
 
     if (users.length === 0) {
-      await logAudit(base44, "login_failed", username, "", "User not found");
+      await logAudit(base44, "login_failed", username, "", "User not found", undefined, auditExtra);
       return Response.json({
         success: false,
         error: "Invalid username or password",
@@ -50,7 +51,7 @@ export default async function(req) {
 
     // Check if account is active
     if (user.active === false) {
-      await logAudit(base44, "login_failed", username, user.role, "Inactive account login attempt", user.school_code);
+      await logAudit(base44, "login_failed", username, user.role, "Inactive account login attempt", user.school_code, auditExtra);
       return Response.json({
         success: false,
         error: "This account has been deactivated. Please contact your administrator.",
@@ -59,7 +60,7 @@ export default async function(req) {
 
     // Check if account is locked due to repeated failures
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      await logAudit(base44, "login_locked", username, user.role, "Login attempt on locked account", user.school_code);
+      await logAudit(base44, "login_locked", username, user.role, "Login attempt on locked account", user.school_code, auditExtra);
       return Response.json({
         success: false,
         error: "Account temporarily locked due to repeated failed attempts. Please try again later or contact your administrator.",
@@ -76,7 +77,8 @@ export default async function(req) {
         detail = `Account locked after ${attempts} failed attempts`;
       }
       await base44.asServiceRole.entities.Teacher.update(user.id, updates);
-      await logAudit(base44, "login_failed", username, user.role, detail, user.school_code);
+      const eventType = attempts >= MAX_FAILED_ATTEMPTS ? "login_locked" : "login_failed";
+      await logAudit(base44, eventType, username, user.role, detail, user.school_code, auditExtra);
       return Response.json({
         success: false,
         error: "Invalid username or password",
@@ -92,18 +94,17 @@ export default async function(req) {
     }
 
     // --- MFA check ---
-    // Only for teachers with an email on file, MFA enabled, and not in first-login reset flow
     const needsMfa = user.email && user.mfa_enabled !== false && !user.password_reset_required;
 
     if (needsMfa) {
       if (mfa_code) {
         // Verify the provided code
         if (!user.mfa_code || user.mfa_code !== mfa_code) {
-          await logAudit(base44, "login_failed", username, user.role, "Invalid MFA code", user.school_code);
+          await logAudit(base44, "login_failed", username, user.role, "Invalid MFA code", user.school_code, auditExtra);
           return Response.json({ success: false, error: "Invalid verification code" });
         }
         if (!user.mfa_code_expires_at || new Date(user.mfa_code_expires_at) < new Date()) {
-          await logAudit(base44, "login_failed", username, user.role, "Expired MFA code", user.school_code);
+          await logAudit(base44, "login_failed", username, user.role, "Expired MFA code", user.school_code, auditExtra);
           return Response.json({ success: false, error: "Verification code has expired. Please request a new one." });
         }
         // Code valid — clear it and proceed
@@ -120,7 +121,8 @@ export default async function(req) {
           mfa_code_expires_at: expiresAt,
         });
 
-        // Send via Resend
+        // Send via Resend using env-var configured from address
+        const fromEmail = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
         try {
           await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -129,7 +131,7 @@ export default async function(req) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "ReportAL 360 <onboarding@resend.dev>",
+              from: fromEmail,
               to: user.email,
               subject: "Your ReportAL 360 Verification Code",
               html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
@@ -158,7 +160,7 @@ export default async function(req) {
     }
 
     // Full login successful
-    await logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code);
+    await logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code, auditExtra);
 
     return Response.json({
       success: true,
