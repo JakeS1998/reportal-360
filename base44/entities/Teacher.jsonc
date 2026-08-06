@@ -26,6 +26,10 @@
       "type": "string",
       "title": "School Name"
     },
+    "system_name": {
+      "type": "string",
+      "title": "System Name"
+    },
     "email": {
       "type": "string",
       "title": "Email"
@@ -34,17 +38,28 @@
       "type": "string",
       "title": "Role",
       "enum": [
-        "teacher",
-        "school_admin"
+        "area",
+        "manager",
+        "teacher"
       ],
       "default": "teacher"
+    },
+    "teacher_id": {
+      "type": "string",
+      "title": "Teacher ID"
+    },
+    "password_reset_required": {
+      "type": "boolean",
+      "title": "Password Reset Required",
+      "default": false
     }
   },
   "required": [
     "username",
     "password",
     "school_code",
-    "system_code"
+    "system_code",
+    "role"
   ],
   "rls": {
     "read": {

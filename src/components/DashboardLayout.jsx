@@ -1,26 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog } from "lucide-react";
 import FilterBar from "./FilterBar";
 
-const nav = [
-  { to: "/overview", label: "Executive Overview", icon: LayoutDashboard },
-  { to: "/academics", label: "Academic Performance", icon: GraduationCap },
-  { to: "/attendance", label: "Attendance & Engagement", icon: CalendarCheck },
-  { to: "/demographics", label: "Students & Demographics", icon: Users },
-  { to: "/students", label: "Student Roster", icon: ClipboardList },
-  { to: "/insights", label: "Predictive Insights", icon: Sparkles },
-];
-
 function Shell() {
-  const { school, switchSchool } = useSchool();
+  const { school, switchSchool, user, isArea, canManageStaff } = useSchool();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const contentRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
   }, [collapsed]);
+
+  const nav = [
+    { to: "/overview", label: "Executive Overview", icon: LayoutDashboard },
+    { to: "/academics", label: "Academic Performance", icon: GraduationCap },
+    { to: "/attendance", label: "Attendance & Engagement", icon: CalendarCheck },
+    { to: "/demographics", label: "Students & Demographics", icon: Users },
+    { to: "/students", label: "Student Roster", icon: ClipboardList },
+    { to: "/insights", label: "Predictive Insights", icon: Sparkles },
+  ];
+
+  if (canManageStaff) {
+    nav.push({ to: "/staff", label: "Staff Management", icon: UserCog });
+  }
+
+  const roleBadge = user?.role
+    ? { area: "Area Access", manager: "Manager", teacher: "Teacher", commissioner: "Area Access", admin: "Admin" }[user.role]
+    : "";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -36,6 +44,12 @@ function Shell() {
             </div>
           )}
         </div>
+        {!collapsed && user && (
+          <div className="px-5 pb-2">
+            <p className="text-xs font-medium text-slate-700 truncate">{user.full_name || user.username}</p>
+            {roleBadge && <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{roleBadge}</span>}
+          </div>
+        )}
         <nav className="flex-1 px-3 space-y-1 mt-2">
           {nav.map((n) => (
             <NavLink
@@ -55,10 +69,10 @@ function Shell() {
         <div className="p-3 border-t border-slate-200 space-y-1">
           <button
             onClick={switchSchool}
-            title={collapsed ? "Switch School" : undefined}
+            title={collapsed ? "Sign Out" : undefined}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition-colors ${collapsed ? "justify-center" : ""}`}
           >
-            <LogOut className="w-4 h-4 shrink-0" /> {!collapsed && "Switch School"}
+            <LogOut className="w-4 h-4 shrink-0" /> {!collapsed && "Sign Out"}
           </button>
           <button
             onClick={() => setCollapsed((c) => !c)}
@@ -73,7 +87,7 @@ function Shell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{school?.school_name || "—"}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{school?.school_name || (isArea ? "All Schools" : "—")}</h1>
             <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
               <Building2 className="w-3 h-3" />
               {school?.system_name || school?.district || "—"}

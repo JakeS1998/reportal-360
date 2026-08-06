@@ -61,7 +61,7 @@ export function SchoolProvider({ children }) {
     navigate("/");
   };
 
-  // Commissioner: switch to a different school within their system
+  // Area users: switch to a different school within their system
   const selectSchool = async (schoolCode) => {
     if (!school || !school.system_code) return;
     if (schoolCode === school.school_code) return;
@@ -83,8 +83,18 @@ export function SchoolProvider({ children }) {
     }
   };
 
+  const isArea = user?.role === "area" || user?.role === "commissioner";
+  const isManager = user?.role === "manager";
+  const isTeacher = user?.role === "teacher";
+  const canManageStaff = isArea || isManager || user?.role === "admin";
+
   return (
-    <SchoolContext.Provider value={{ school, activeSchool, user, loading, switchSchool, selectSchool, systemSchools, filters, setFilter }}>
+    <SchoolContext.Provider value={{
+      school, activeSchool, user, loading,
+      switchSchool, selectSchool,
+      systemSchools, filters, setFilter,
+      isArea, isManager, isTeacher, canManageStaff,
+    }}>
       {children}
     </SchoolContext.Provider>
   );

@@ -5,8 +5,8 @@ import ExportPdfButton from "@/components/ExportPdfButton";
 import { exportDashboardPdf } from "@/lib/exportPdf";
 
 export default function FilterBar({ school, contentRef }) {
-  const { user, systemSchools, selectSchool, filters, setFilter } = useSchool();
-  const isCommissioner = user?.role === "commissioner";
+  const { user, systemSchools, selectSchool, filters, setFilter, isArea } = useSchool();
+  const isCommissioner = user?.role === "commissioner" || isArea;
   const commissionerSchools = isCommissioner && systemSchools?.length ? systemSchools : null;
   const [exporting, setExporting] = useState(false);
 

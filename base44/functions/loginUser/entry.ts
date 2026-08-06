@@ -1,65 +1,63 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
-const ADMIN_SYSTEM_CODE = "000";
-const ADMIN_SCHOOL_CODE = "0000";
 const ADMIN_USERNAME = "BRGAdmin";
 const ADMIN_PASSWORD = "BRGAdmin";
 
 export default async function(req) {
   try {
     const body = await req.json();
-    const { system_code, school_code, username, password } = body;
+    const { username, password } = body;
 
-    if (!system_code || !school_code || !username || !password) {
+    if (!username || !password) {
       return Response.json(
-        { success: false, error: "All fields are required" },
+        { success: false, error: "Username and password are required" },
         { status: 400 }
       );
     }
 
-    // Check admin login
-    if (
-      system_code === ADMIN_SYSTEM_CODE &&
-      school_code === ADMIN_SCHOOL_CODE &&
-      username === ADMIN_USERNAME &&
-      password === ADMIN_PASSWORD
-    ) {
+    // Admin login (hardcoded super admin)
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
       return Response.json({
         success: true,
         user: {
           role: "admin",
           username: ADMIN_USERNAME,
           full_name: "Administrator",
+          password_reset_required: false,
         },
       });
     }
 
-    // Check teacher login
+    // User login — look up by username only
     const base44 = createClientFromRequest(req);
-    const teachers = await base44.asServiceRole.entities.Teacher.filter({
+    const users = await base44.asServiceRole.entities.Teacher.filter({
       username: username,
       password: password,
-      school_code: school_code,
-      system_code: system_code,
     });
 
-    if (teachers.length === 0) {
+    if (users.length === 0) {
       return Response.json({
         success: false,
-        error: "Invalid credentials",
+        error: "Invalid username or password",
       });
     }
 
-    const teacher = teachers[0];
+    const user = users[0];
     return Response.json({
       success: true,
       user: {
-        role: teacher.role === "school_admin" ? "school_admin" : "teacher",
-        username: teacher.username,
-        full_name: teacher.full_name,
-        school_code: teacher.school_code,
-        system_code: teacher.system_code,
-        school_name: teacher.school_name,
+        id: user.id,
+        role: user.role,
+        username: user.username,
+        password: user.password,
+        full_name: user.full_name,
+        school_code: user.school_code,
+        system_code: user.system_code,
+        school_name: user.school_name,
+        system_name: user.system_name,
+        email: user.email,
+        teacher_id: user.teacher_id,
+        password_reset_required: user.password_reset_required,
       },
     });
   } catch (error) {

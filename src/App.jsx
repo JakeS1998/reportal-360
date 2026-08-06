@@ -8,7 +8,8 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import SelectSchool from './pages/SelectSchool';
-import SchoolAccess from './pages/SchoolAccess';
+import ForceResetPassword from './pages/ForceResetPassword';
+import StaffManagement from './pages/StaffManagement';
 import Administration from './pages/Administration';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -47,7 +48,7 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Add your page Route elements here */}
       <Route path="/" element={<SelectSchool />} />
-      <Route path="/access" element={<SchoolAccess />} />
+      <Route path="/reset-password" element={<ForceResetPassword />} />
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />
       <Route element={<DashboardLayout />}>
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/demographics" element={<StudentsDemographics />} />
         <Route path="/students" element={<Students />} />
         <Route path="/insights" element={<PredictiveInsights />} />
+        <Route path="/staff" element={<StaffManagement />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
