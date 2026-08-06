@@ -23,7 +23,7 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
   return (
     <div
       onClick={onClick}
-      className={`relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group ${
+      className={`relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden ${
         onClick ? "cursor-pointer" : ""
       } ${large ? "md:col-span-2" : ""}`}
     >
@@ -36,10 +36,12 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
         <div className="w-2 h-2 rounded-full opacity-30 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: accentBar }} />
       </div>
       <div className="flex items-end justify-between mt-3 gap-3">
-        <p className={`font-bold leading-none tabular-nums transition-all duration-500 ${large ? "text-5xl" : "text-3xl"}`} style={{ color: "#091B3D" }}>
+        <p className={`min-w-0 font-bold leading-none tabular-nums transition-all duration-500 ${large ? "text-4xl md:text-5xl" : "text-2xl sm:text-3xl"}`} style={{ color: "#091B3D" }}>
           {displayValue}
         </p>
-        <Sparkline data={series} positive={positive} year={year} />
+        <div className="min-w-0 w-16 sm:w-20 md:w-24 shrink-0">
+          <Sparkline data={series} positive={positive} year={year} />
+        </div>
       </div>
       <div className="mt-4 flex items-center gap-2 h-6">
         {hasDelta && pct != null ? (

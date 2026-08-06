@@ -52,9 +52,10 @@ export default function Sparkline({ data, positive, year }) {
     <div className="relative">
       <svg
         ref={svgRef}
-        width={w}
+        viewBox={`0 0 ${w} ${h}`}
+        width="100%"
         height={h}
-        className="overflow-visible"
+        preserveAspectRatio="none"
         onMouseMove={handleMove}
         onMouseLeave={() => setHoverIdx(null)}
       >
