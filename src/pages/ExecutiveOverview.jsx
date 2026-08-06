@@ -118,7 +118,7 @@ export default function ExecutiveOverview() {
       </FadeIn>
 
       {/* Accountability */}
-      <SectionHeader title="Accountability" subtitle="Weighted contribution to the overall school score" icon={Gauge} />
+      <SectionHeader title="Accountability" subtitle="Alabama Accountability Grade and weighted contribution to the overall school score" icon={Gauge} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={140} className="relative z-30">
@@ -141,7 +141,7 @@ export default function ExecutiveOverview() {
       </FadeIn>
 
       {/* Rankings & Comparisons */}
-      <SectionHeader title="Rankings & Comparisons" subtitle="Performance relative to peer schools and benchmarks" icon={Trophy} />
+      <SectionHeader title="Rankings & Comparisons" subtitle="Performance relative to Alabama peer schools and state benchmarks" icon={Trophy} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={240}>
