@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
 import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3 } from "lucide-react";
 import AlabamaOutline from "./AlabamaOutline";
+import Logo from "./Logo";
 import FilterBar from "./FilterBar";
 
 function Shell() {
@@ -44,15 +45,10 @@ function Shell() {
     <div className="min-h-screen bg-[#F8FAFC] flex">
       <aside className={`${collapsed ? "w-16" : "w-60"} shrink-0 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen transition-all duration-300`}>
         <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-6 flex items-center gap-3`}>
-          <div className="w-11 h-11 rounded-xl bg-[#091B3D] flex items-center justify-center shadow-md shrink-0 relative overflow-hidden">
-            <AlabamaOutline className="w-6 h-6 text-white relative z-10" />
-            <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8]/40 to-transparent" />
-          </div>
-          {!collapsed && (
-            <div>
-              <p className="font-bold text-[15px] leading-tight" style={{ color: "#091B3D" }}>ReportAL 360</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-[0.15em] font-semibold mt-0.5">Executive Analytics</p>
-            </div>
+          {collapsed ? (
+            <Logo className="w-10 h-10 rounded-lg shrink-0" fittingType="fill" focalPointX={0.5} focalPointY={0.1} />
+          ) : (
+            <Logo className="w-full max-w-[150px] shrink-0" />
           )}
         </div>
         {!collapsed && user && (

@@ -4,10 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
+import { ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
 import MfaInput from "@/components/MfaInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
-import AlabamaOutline from "@/components/AlabamaOutline";
+import Logo from "@/components/Logo";
 
 const ALABAMA_SCENES = [
   { url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
@@ -165,13 +165,8 @@ export default function SelectSchool() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mx-auto mb-4 ring-1 ring-white/20 relative overflow-hidden">
-            <AlabamaOutline className="absolute inset-0 w-full h-full text-white/10 p-1.5" />
-            <GraduationCap className="w-10 h-10 text-white relative z-10" />
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">ReportAL 360</h1>
-          <p className="text-sm text-white/90 mt-1.5 font-medium">Supporting Alabama Educators with Better Data</p>
+        <div className="flex justify-center mb-6">
+          <Logo className="w-44 rounded-xl bg-white p-2.5 shadow-lg" />
         </div>
 
         <div className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 shadow-2xl">
