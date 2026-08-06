@@ -183,6 +183,16 @@ export default function SelectSchool() {
             />
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+          <Button type="button" onClick={handleMicrosoftSSO} disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
+            Sign in with Microsoft
+          </Button>
+
+          <div className="relative py-1">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-slate-400">or</span></div>
+          </div>
+
           <div>
             <Label className="text-sm font-medium text-slate-700">Username</Label>
             <div className="relative mt-1">
@@ -211,30 +221,20 @@ export default function SelectSchool() {
             />
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">
+          <Button type="submit" variant="outline" disabled={loading} className="w-full">
             {loading ? "Signing in..." : "Sign In"}
             {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
 
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-slate-400">or</span></div>
-          </div>
-
-          <Button type="button" variant="outline" onClick={handleMicrosoftSSO} disabled={loading} className="w-full">
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
-            Sign in with Microsoft
-          </Button>
-
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-4 border-t border-slate-100">
             <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-slate-500" /> Secure Login
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Secure Login
             </span>
             <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-              <FileCheck className="w-3.5 h-3.5 text-slate-500" /> FERPA Compliant
+              <FileCheck className="w-3.5 h-3.5 text-rose-700" /> FERPA Aligned
             </span>
             <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-              <Lock className="w-3.5 h-3.5 text-slate-500" /> Encrypted
+              <Lock className="w-3.5 h-3.5 text-emerald-600" /> Encrypted
             </span>
           </div>
           </form>
