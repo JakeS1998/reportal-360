@@ -39,7 +39,16 @@ export default function SchoolUserManager({
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState(roles[0]);
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const genPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    let pw = "";
+    for (let i = 0; i < 12; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(pw);
+  };
 
   useEffect(() => {
     if (mode !== "search") return;
@@ -119,11 +128,15 @@ export default function SchoolUserManager({
         school_name: selectedSchool.school_name,
         system_name: selectedSchool.system_name || getSystemName(selectedSchool.system_code),
         email,
+        username: username || undefined,
+        password: password || undefined,
       });
       if (res.data?.success) {
         setCreated({ ...res.data.user, temp_password: res.data.temp_password });
         setFullName("");
         setEmail("");
+        setUsername("");
+        setPassword("");
         loadUsers();
       } else {
         setError(res.data?.error || "Failed to create user");
@@ -358,6 +371,31 @@ export default function SchoolUserManager({
                 {role === "area" && (
                   <p className="text-xs text-amber-600 mt-1">Area users see all schools in the system</p>
                 )}
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Username (optional)</Label>
+                <Input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Auto-generated as schoolcode.name"
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-400 mt-1">Leave blank to auto-generate</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Password (optional)</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Auto-generated"
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={genPassword} title="Generate random password">
+                    <KeyRound className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Leave blank to auto-generate</p>
               </div>
               <div className="md:col-span-2">
                 <Label className="text-sm font-medium text-slate-700">Email (optional)</Label>

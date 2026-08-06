@@ -51,7 +51,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword } = params;
 
       if (!full_name || !role || !school_code || !system_code) {
         return Response.json(
@@ -81,7 +81,7 @@ export default async function(req) {
         return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
       }
 
-      const username = makeUsername(school_code, full_name);
+      const username = (customUsername || "").trim() || makeUsername(school_code, full_name);
 
       // Check for duplicate username
       const existing = await base44.asServiceRole.entities.Teacher.filter({ username });
@@ -89,7 +89,7 @@ export default async function(req) {
         return Response.json({ success: false, error: "A user with this name already exists at this school" }, { status: 400 });
       }
 
-      const tempPassword = generateRandomPassword();
+      const tempPassword = (customPassword || "").trim() || generateRandomPassword();
 
       const created = await base44.asServiceRole.entities.Teacher.create({
         username,
