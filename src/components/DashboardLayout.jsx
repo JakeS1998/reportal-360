@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3 } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3, ChevronDown } from "lucide-react";
 import AlabamaOutline from "./AlabamaOutline";
 import LogoMono from "./LogoMono";
 import LandmarkPreview from "./LandmarkPreview";
@@ -19,27 +19,66 @@ function Shell() {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
   }, [collapsed]);
 
-  const nav = [
-    { to: "/overview", label: "Executive Overview", icon: LayoutDashboard },
-    { to: "/academics", label: "Academic Performance", icon: GraduationCap },
-    { to: "/attendance", label: "Attendance & Engagement", icon: CalendarCheck },
-    { to: "/demographics", label: "Students & Demographics", icon: Users },
-    { to: "/students", label: "Student Roster", icon: ClipboardList },
-    { to: "/insights", label: "Predictive Insights", icon: Sparkles },
+  const [openGroups, setOpenGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar-groups");
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    if (openGroups) localStorage.setItem("sidebar-groups", JSON.stringify(openGroups));
+  }, [openGroups]);
+
+  const navGroups = [
+    {
+      heading: "Insights",
+      items: [
+        { to: "/overview", label: "Executive Overview", icon: LayoutDashboard },
+        { to: "/academics", label: "Academic Performance", icon: GraduationCap },
+        { to: "/attendance", label: "Attendance & Engagement", icon: CalendarCheck },
+        { to: "/demographics", label: "Students & Demographics", icon: Users },
+        { to: "/insights", label: "Predictive Insights", icon: Sparkles },
+      ],
+    },
+    {
+      heading: "Students",
+      items: [
+        { to: "/students", label: "Student Roster", icon: ClipboardList },
+      ],
+    },
+    {
+      heading: "Classroom",
+      items: [
+        { to: "/my-classes", label: "My Classes", icon: BookOpen },
+        { to: "/training", label: "Training", icon: Award },
+      ],
+    },
   ];
 
-  nav.push({ to: "/my-classes", label: "My Classes", icon: BookOpen });
-  nav.push({ to: "/training", label: "Training", icon: Award });
-
   if (canManageStaff) {
-    nav.push({ to: "/staff", label: "Admin Panel", icon: UserCog });
-    nav.push({ to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 });
-    nav.push({ section: "Class Management" });
-    nav.push({ to: "/classes", label: "Classes", icon: BookOpen });
-    nav.push({ to: "/academic-years", label: "Academic Years", icon: Calendar });
-    nav.push({ to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck });
-    nav.push({ to: "/student-assignments", label: "Student Assignments", icon: UserPlus });
+    navGroups.push({
+      heading: "Administration",
+      items: [
+        { to: "/staff", label: "Admin Panel", icon: UserCog },
+        { to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 },
+        { to: "/classes", label: "Classes", icon: BookOpen },
+        { to: "/academic-years", label: "Academic Years", icon: Calendar },
+        { to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck },
+        { to: "/student-assignments", label: "Student Assignments", icon: UserPlus },
+      ],
+    });
   }
+
+  const isGroupOpen = (heading) =>
+    openGroups === null ? true : !!openGroups[heading];
+
+  const toggleGroup = (heading) =>
+    setOpenGroups((g) => {
+      const base = g || {};
+      const current = g === null ? true : !!g[heading];
+      return { ...base, [heading]: !current };
+    });
 
   const roleBadge = user?.role
     ? { area: "Area Access", manager: "Manager", teacher: "Teacher", commissioner: "Area Access", admin: "Admin" }[user.role]
@@ -64,31 +103,67 @@ function Shell() {
           </div>
         )}
         <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
-          {nav.map((n, i) => {
-            if (n.section) {
-              if (collapsed) return null;
-              return <p key={i} className="px-3 mt-4 mb-1 text-[10px] font-semibold uppercase tracking-wide flex items-center gap-1.5" style={{ color: CRIMSON }}><span className="inline-block w-3 h-px" style={{ backgroundColor: CRIMSON }} />{n.section}</p>;
-            }
-            return (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                title={collapsed ? n.label : undefined}
-                className={({ isActive }) =>
-                  `relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    collapsed ? "justify-center" : ""
-                  } ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {!collapsed && isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
-                    <n.icon className="w-4 h-4 shrink-0" /> {!collapsed && n.label}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
+          {collapsed ? (
+            navGroups.flatMap((group) =>
+              group.items.map((n) => (
+                <NavLink
+                  key={n.to}
+                  to={n.to}
+                  title={n.label}
+                  className={({ isActive }) =>
+                    `relative flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
+                      <n.icon className="w-4 h-4 shrink-0" />
+                    </>
+                  )}
+                </NavLink>
+              ))
+            )
+          ) : (
+            navGroups.map((group) => {
+              const open = isGroupOpen(group.heading);
+              return (
+                <div key={group.heading}>
+                  <button
+                    onClick={() => toggleGroup(group.heading)}
+                    className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/45 hover:text-white/70 transition-colors"
+                  >
+                    <span className="inline-block w-3 h-px" style={{ backgroundColor: CRIMSON }} />
+                    <span className="flex-1 text-left">{group.heading}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${open ? "" : "-rotate-90"}`} />
+                  </button>
+                  {open && (
+                    <div className="space-y-0.5">
+                      {group.items.map((n) => (
+                        <NavLink
+                          key={n.to}
+                          to={n.to}
+                          className={({ isActive }) =>
+                            `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                            }`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <>
+                              {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
+                              <n.icon className="w-4 h-4 shrink-0" /> {n.label}
+                            </>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </nav>
 
         <div className="p-3 border-t border-white/10 space-y-1">
