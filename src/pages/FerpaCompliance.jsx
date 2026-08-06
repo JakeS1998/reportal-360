@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import FadeIn from "@/components/FadeIn";
 import SectionCard from "@/components/SectionCard";
 import {
-  ShieldCheck, ShieldAlert, KeyRound, Lock, Eye, FileCheck, FileText,
+  ShieldCheck, ShieldAlert, KeyRound, Lock, Eye, FileCheck, FileText, Award,
   LogOut, ChevronRight, CheckCircle2, AlertCircle, Clock, Server, Download
 } from "lucide-react";
 
@@ -185,6 +185,7 @@ export default function FerpaCompliance() {
   const [logs, setLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [logFilter, setLogFilter] = useState("");
+  const [trainingData, setTrainingData] = useState(null);
 
   useEffect(() => {
     const s = JSON.parse(localStorage.getItem("userSession") || "null");
@@ -194,6 +195,7 @@ export default function FerpaCompliance() {
     }
     setSession(s);
     loadLogs();
+    loadTraining();
   }, [navigate]);
 
   const loadLogs = async () => {
@@ -210,6 +212,19 @@ export default function FerpaCompliance() {
       // ignore
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const loadTraining = async () => {
+    try {
+      const res = await base44.functions.invoke("manageTraining", {
+        action: "list_completions",
+        caller_username: "BRGAdmin",
+        caller_password: "BRGAdmin",
+      });
+      if (res.data?.success) setTrainingData(res.data);
+    } catch {
+      // ignore
     }
   };
 
@@ -275,6 +290,63 @@ export default function FerpaCompliance() {
       y += 4;
     });
 
+    // Training Completion Section
+    if (trainingData && trainingData.staff.length > 0) {
+      if (y > 250) { doc.addPage(); y = 20; }
+      y += 6;
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Training Completion Summary", 14, y);
+      y += 7;
+
+      const tStaff = trainingData.staff;
+      const tCompletions = trainingData.completions;
+      const tModules = trainingData.modules;
+      const tTotalPassed = tCompletions.filter(c => c.passed).length;
+      const tTotalRequired = tStaff.length * tModules.length;
+      const tOverall = tTotalRequired > 0 ? Math.round((tTotalPassed / tTotalRequired) * 100) : 0;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Overall Completion: ${tOverall}%`, 14, y); y += 5;
+      doc.text(`Total Staff: ${tStaff.length}`, 14, y); y += 5;
+      doc.text(`Active Modules: ${tModules.length}`, 14, y); y += 5;
+      doc.text(`Total Completions (passed): ${tTotalPassed}`, 14, y); y += 10;
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Per-Module Completion:", 14, y); y += 6;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      tModules.forEach(m => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        const passed = tCompletions.filter(c => c.module_id === m.id && c.passed);
+        const completedStaff = new Set(passed.map(c => c.user_id));
+        const rate = tStaff.length > 0 ? Math.round((completedStaff.size / tStaff.length) * 100) : 0;
+        doc.text(`  ${m.title}: ${completedStaff.size}/${tStaff.length} (${rate}%)`, 14, y);
+        y += 5;
+      });
+      y += 6;
+
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Staff Training Status:", 14, y); y += 6;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      tStaff.forEach(s => {
+        if (y > 280) { doc.addPage(); y = 20; }
+        const passedCount = tModules.filter(m =>
+          tCompletions.some(c => c.user_id === s.id && c.module_id === m.id && c.passed)
+        ).length;
+        const pct = tModules.length > 0 ? Math.round((passedCount / tModules.length) * 100) : 0;
+        doc.text(`  ${s.full_name || s.username} (${s.role}): ${passedCount}/${tModules.length} modules (${pct}%)`, 14, y);
+        y += 5;
+      });
+    }
+
     doc.save("FERPA_Compliance_Report.pdf");
   };
 
@@ -333,6 +405,44 @@ export default function FerpaCompliance() {
             </div>
           </div>
         </FadeIn>
+
+        {/* Training Completion */}
+        {trainingData && trainingData.staff.length > 0 && (
+          <FadeIn delay={100}>
+            <SectionCard title="Training Completion" subtitle="Staff training progress — included in exported report" icon={Award}>
+              <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="text-center p-4 rounded-xl bg-slate-50">
+                  <p className="text-2xl font-bold text-slate-900">{Math.round((trainingData.completions.filter(c => c.passed).length / Math.max(trainingData.staff.length * trainingData.modules.length, 1)) * 100)}%</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Overall Completion</p>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-slate-50">
+                  <p className="text-2xl font-bold text-slate-900">{trainingData.staff.length}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Staff Members</p>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-slate-50">
+                  <p className="text-2xl font-bold text-slate-900">{trainingData.staff.filter(s => trainingData.modules.every(m => trainingData.completions.some(c => c.user_id === s.id && c.module_id === m.id && c.passed))).length}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Fully Trained</p>
+                </div>
+              </div>
+              <div className="space-y-2.5">
+                {trainingData.modules.map(m => {
+                  const passed = trainingData.completions.filter(c => c.module_id === m.id && c.passed);
+                  const completedStaff = new Set(passed.map(c => c.user_id));
+                  const rate = trainingData.staff.length > 0 ? Math.round((completedStaff.size / trainingData.staff.length) * 100) : 0;
+                  return (
+                    <div key={m.id} className="flex items-center gap-3">
+                      <span className="text-xs text-slate-600 w-48 truncate">{m.title}</span>
+                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${rate}%` }} />
+                      </div>
+                      <span className="text-xs text-slate-500 w-16 text-right">{completedStaff.size}/{trainingData.staff.length}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+          </FadeIn>
+        )}
 
         {/* Checklist Sections */}
         {SECTIONS.map((section, si) => (
