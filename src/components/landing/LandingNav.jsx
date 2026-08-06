@@ -19,7 +19,7 @@ export default function LandingNav() {
   const links = [
     { label: "Platform", href: "#platform" },
     { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "Contact", href: "#contact" },
     { label: "Security", href: "#security" },
   ];
 
@@ -46,11 +46,11 @@ export default function LandingNav() {
             Sign In
           </Link>
           <a
-            href="#pricing"
+            href="#contact"
             className="text-sm font-semibold text-white px-5 py-2.5 rounded-lg shadow-sm hover:opacity-90 transition-opacity"
             style={{ backgroundColor: CRIMSON }}
           >
-            Get Started
+            Contact Sales
           </a>
         </div>
 

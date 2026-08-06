@@ -39,10 +39,10 @@ export default function LandingCta() {
                 Get Started <ArrowRight className="w-4 h-4" />
               </Link>
               <a
-                href="#pricing"
+                href="#contact"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-white px-6 py-3 rounded-lg bg-white/10 ring-1 ring-white/20 hover:bg-white/15 transition-colors"
               >
-                Compare Plans
+                Contact Sales
               </a>
             </div>
           </div>
