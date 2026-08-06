@@ -54,9 +54,9 @@ export default async function(req) {
     if (action === "create") {
       const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject } = params;
 
-      if (!full_name || !role || !school_code || !system_code) {
+      if (!full_name || !role || !school_code || !system_code || !email) {
         return Response.json(
-          { success: false, error: "full_name, role, school_code, system_code are required" },
+          { success: false, error: "full_name, email, role, school_code, system_code are required" },
           { status: 400 }
         );
       }

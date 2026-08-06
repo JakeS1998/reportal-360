@@ -434,14 +434,16 @@ export default function SchoolUserManager({
                 <p className="text-xs text-slate-400 mt-1">Leave blank to auto-generate</p>
               </div>
               <div className="md:col-span-2">
-                <Label className="text-sm font-medium text-slate-700">Email (optional)</Label>
+                <Label className="text-sm font-medium text-slate-700">Email <span className="text-rose-500">*</span></Label>
                 <Input
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@school.edu"
                   className="mt-1"
                 />
+                <p className="text-xs text-slate-400 mt-1">Required for MFA verification codes</p>
               </div>
               <div className="md:col-span-2">
                 <Label className="text-sm font-medium text-slate-700">Subject (optional)</Label>
@@ -556,9 +558,10 @@ export default function SchoolUserManager({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-slate-700">Email</Label>
+              <Label className="text-sm font-medium text-slate-700">Email <span className="text-rose-500">*</span></Label>
               <Input
                 type="email"
+                required
                 value={editForm.email}
                 onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                 className="mt-1"

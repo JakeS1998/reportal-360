@@ -100,7 +100,8 @@
     "password",
     "school_code",
     "system_code",
-    "role"
+    "role",
+    "email"
   ],
   "rls": {
     "read": {
