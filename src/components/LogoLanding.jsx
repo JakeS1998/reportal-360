@@ -2,7 +2,7 @@ import React from "react";
 import { Image } from "@/components/ui/image";
 
 const LOGO_URL =
-  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/4dce8ca1b_reportALlogo.png";
+  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/5e5021bde_reportALlogomono.png";
 
 /**
  * Full ReportAL 360 logo lockup (icon + wordmark + tagline) on a black
