@@ -80,7 +80,7 @@ export default function SchoolHero({ school }) {
                   </span>
                 ) : null}
                 {vsState != null ? (
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `${CRIMSON}14`, color: CRIMSON }}>
+                  <span className={`inline-flex items-center gap-1 text-sm font-semibold px-2.5 py-1 rounded-lg ${vsState >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
                     <MapPin className="w-3.5 h-3.5" />
                     {vsState >= 0 ? "+" : ""}{vsState.toFixed(1)} vs Alabama Avg
                   </span>
