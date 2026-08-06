@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSchool } from "@/lib/SchoolContext";
 import { base44 } from "@/api/base44Client";
-import { CheckCircle2, XCircle, Clock, Award } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Award, Filter } from "lucide-react";
 import FadeIn from "@/components/FadeIn";
 
 export default function TrainingDashboard() {
   const { user, school } = useSchool();
   const [data, setData] = useState({ staff: [], completions: [], modules: [] });
   const [loading, setLoading] = useState(true);
+  const [roleFilter, setRoleFilter] = useState("all");
 
   useEffect(() => {
     if (user) loadData();
@@ -50,6 +51,25 @@ export default function TrainingDashboard() {
     return Math.round((totalPassed / totalRequired) * 100);
   }, [staff, modules, completions]);
 
+  const managers = useMemo(() => staff.filter(s => s.role === "manager"), [staff]);
+
+  const managerStats = useMemo(() => {
+    const managerIds = new Set(managers.map(m => m.id));
+    const managerCompletions = completions.filter(c => managerIds.has(c.user_id) && c.passed);
+    const totalRequired = managers.length * modules.length;
+    const rate = totalRequired > 0 ? Math.round((managerCompletions.length / totalRequired) * 100) : 0;
+    const fullyTrained = managers.filter(m => {
+      const passed = modules.every(mod => completions.some(c => c.user_id === m.id && c.module_id === mod.id && c.passed));
+      return passed;
+    }).length;
+    return { rate, fullyTrained, total: managers.length };
+  }, [managers, completions, modules]);
+
+  const filteredStaff = useMemo(() => {
+    if (roleFilter === "all") return staff;
+    return staff.filter(s => s.role === roleFilter);
+  }, [staff, roleFilter]);
+
   const staffProgress = useMemo(() => {
     const map = {};
     staff.forEach(s => { map[s.id] = {}; });
@@ -85,6 +105,10 @@ export default function TrainingDashboard() {
               <div className="text-center">
                 <p className="text-2xl font-bold text-white">{modules.length}</p>
                 <p className="text-xs text-slate-400 mt-0.5">Active Modules</p>
+              </div>
+              <div className="text-center border-l border-slate-700 pl-6">
+                <p className="text-3xl font-bold text-blue-400">{managerStats.rate}%</p>
+                <p className="text-xs text-slate-400 mt-0.5">Managers ({managerStats.fullyTrained}/{managerStats.total} fully trained)</p>
               </div>
             </div>
           </div>
@@ -122,8 +146,21 @@ export default function TrainingDashboard() {
 
       <FadeIn delay={100}>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
             <h3 className="text-sm font-semibold text-slate-900">Staff Training Progress</h3>
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-600"
+              >
+                <option value="all">All Staff</option>
+                <option value="manager">Managers</option>
+                <option value="area">Area Leads</option>
+                <option value="teacher">Teachers</option>
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -140,7 +177,13 @@ export default function TrainingDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {staff.map(s => {
+                {filteredStaff.length === 0 ? (
+                  <tr>
+                    <td colSpan={modules.length + 3} className="px-6 py-8 text-center text-sm text-slate-400">
+                      No staff members in this category
+                    </td>
+                  </tr>
+                ) : filteredStaff.map(s => {
                   const progress = staffProgress[s.id] || {};
                   const passedCount = modules.filter(m => progress[m.id]?.passed).length;
                   const overallPct = modules.length > 0 ? Math.round((passedCount / modules.length) * 100) : 0;
