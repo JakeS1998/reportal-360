@@ -93,21 +93,21 @@ export default function ExecutiveOverview() {
       <FadeIn delay={80}>
         <SectionCard title="Student Roster Snapshot" subtitle={`Live metrics from ${metrics.total} students (2026 sample data · updates with filters)`} icon={Users}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-slate-50 rounded-xl p-4 border-l-2" style={{ borderColor: "#091B3D" }}>
               <p className="text-xs text-slate-500">Students</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.total}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: "#091B3D" }}>{metrics.total}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-slate-50 rounded-xl p-4 border-l-2" style={{ borderColor: "#1D4ED8" }}>
               <p className="text-xs text-slate-500">Avg Math Score</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.proficiency.math ?? "—"}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: "#1D4ED8" }}>{metrics.proficiency.math ?? "—"}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-slate-50 rounded-xl p-4 border-l-2" style={{ borderColor: "#7C3AED" }}>
               <p className="text-xs text-slate-500">Avg Reading Score</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.proficiency.reading ?? "—"}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: "#7C3AED" }}>{metrics.proficiency.reading ?? "—"}</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4">
+            <div className="bg-slate-50 rounded-xl p-4 border-l-2" style={{ borderColor: "#10B981" }}>
               <p className="text-xs text-slate-500">Avg Attendance</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{metrics.avgAttendance != null ? `${metrics.avgAttendance}%` : "—"}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: "#10B981" }}>{metrics.avgAttendance != null ? `${metrics.avgAttendance}%` : "—"}</p>
             </div>
           </div>
         </SectionCard>

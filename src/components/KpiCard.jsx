@@ -36,7 +36,7 @@ export default function KpiCard({ label, value, previous, suffix, lowerIsBetter,
         <div className="w-2 h-2 rounded-full opacity-30 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: accentBar }} />
       </div>
       <div className="flex items-end justify-between mt-3 gap-3">
-        <p className={`font-bold text-slate-900 leading-none tabular-nums transition-all duration-500 ${large ? "text-5xl" : "text-3xl"}`}>
+        <p className={`font-bold leading-none tabular-nums transition-all duration-500 ${large ? "text-5xl" : "text-3xl"}`} style={{ color: "#091B3D" }}>
           {displayValue}
         </p>
         <Sparkline data={series} positive={positive} year={year} />

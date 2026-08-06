@@ -5,7 +5,7 @@ export default function Sparkline({ data, positive, year }) {
   const svgRef = useRef(null);
 
   if (!data || data.length < 2) return null;
-  const w = 72, h = 28, pad = 3;
+  const w = 94, h = 30, pad = 3;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;

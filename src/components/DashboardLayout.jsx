@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
 import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3 } from "lucide-react";
+import AlabamaOutline from "./AlabamaOutline";
 import FilterBar from "./FilterBar";
 
 function Shell() {
@@ -42,14 +43,15 @@ function Shell() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
       <aside className={`${collapsed ? "w-16" : "w-60"} shrink-0 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen transition-all duration-300`}>
-        <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-5 flex items-center gap-2.5`}>
-          <div className="w-9 h-9 rounded-xl bg-[#1D4ED8] flex items-center justify-center shadow-sm shrink-0">
-            <GraduationCap className="w-5 h-5 text-white" />
+        <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-6 flex items-center gap-3`}>
+          <div className="w-11 h-11 rounded-xl bg-[#091B3D] flex items-center justify-center shadow-md shrink-0 relative overflow-hidden">
+            <AlabamaOutline className="w-6 h-6 text-white relative z-10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1D4ED8]/40 to-transparent" />
           </div>
           {!collapsed && (
             <div>
-              <p className="font-bold text-slate-900 leading-tight">ReportAL 360</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wide">Executive Analytics</p>
+              <p className="font-bold text-[15px] leading-tight" style={{ color: "#091B3D" }}>ReportAL 360</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-[0.15em] font-semibold mt-0.5">Executive Analytics</p>
             </div>
           )}
         </div>
@@ -102,7 +104,7 @@ function Shell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-50">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{school?.school_name || (isArea ? "All Schools" : "—")}</h1>
+            <h1 className="text-xl font-bold" style={{ color: "#091B3D" }}>{school?.school_name || (isArea ? "All Schools" : "—")}</h1>
             <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
               <Building2 className="w-3 h-3" />
               {school?.system_name || school?.district || "—"}
@@ -117,6 +119,13 @@ function Shell() {
           <div ref={contentRef}>
             <Outlet />
           </div>
+          <footer className="mt-10 pt-6 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <AlabamaOutline className="w-4 h-4 text-[#1D4ED8]" />
+              <span>Supporting Alabama Schools</span>
+            </div>
+            <span>ReportAL 360 · FY {school?.year || "2025"}</span>
+          </footer>
         </main>
       </div>
     </div>

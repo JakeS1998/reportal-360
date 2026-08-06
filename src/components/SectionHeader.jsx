@@ -9,7 +9,7 @@ export default function SectionHeader({ title, subtitle, icon: Icon }) {
         </div>
       )}
       <div className="flex-1">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">{title}</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: "#091B3D" }}>{title}</h2>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
     </div>
