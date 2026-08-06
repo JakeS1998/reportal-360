@@ -107,15 +107,6 @@ function Shell() {
           })}
         </nav>
 
-        {!collapsed && (
-          <div className="mx-3 mb-2 rounded-lg bg-white/5 ring-1 ring-white/10 px-3 py-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CRIMSON }}>
-              <MapPin className="w-3 h-3" /> Alabama Landmark Today
-            </p>
-            <p className="text-xs font-medium text-white/85 mt-1 leading-tight">{landmark}</p>
-          </div>
-        )}
-
         <div className="p-3 border-t border-white/10 space-y-1">
           <button
             onClick={switchSchool}
@@ -148,6 +139,10 @@ function Shell() {
               <span className="text-white/25">·</span> Code {school?.school_code}
               {school?.school_type ? <><span className="text-white/25">·</span>{school.school_type}</> : null}
             </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-white/5 ring-1 ring-white/10" title="Today's Alabama Landmark">
+            <MapPin className="w-3 h-3" style={{ color: CRIMSON }} />
+            <span className="text-[11px] font-medium text-white/70 truncate max-w-[160px]">{landmark}</span>
           </div>
         </header>
         <main className="flex-1 overflow-auto p-8">
