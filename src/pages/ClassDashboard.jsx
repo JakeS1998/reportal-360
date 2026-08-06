@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import SectionCard from "@/components/SectionCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import ClassAttendanceManager from "@/components/class/ClassAttendanceManager";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
-import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, BookOpen, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, ClipboardCheck, Plus } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 
@@ -14,6 +16,8 @@ export default function ClassDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [attOpen, setAttOpen] = useState(false);
+  const [asmOpen, setAsmOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -106,13 +110,28 @@ export default function ClassDashboard() {
         )}
       </SectionCard>
 
-      <SectionCard title="Take Attendance" subtitle="Mark each student for a date and save" icon={ClipboardCheck}>
-        <ClassAttendanceManager key={`att-${reloadKey}`} classId={classId} students={students} onSaved={() => { reload(); loadData(); }} />
-      </SectionCard>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => setAttOpen(true)} variant="outline" size="sm"><ClipboardCheck className="w-4 h-4 mr-1.5" /> Take Attendance</Button>
+        <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
+      </div>
 
-      <SectionCard title="Record Assessment" subtitle="Enter scores for a new assessment" icon={GraduationCap}>
-        <ClassAssessmentManager key={`asm-${reloadKey}`} classId={classId} students={students} onSaved={() => { reload(); loadData(); }} />
-      </SectionCard>
+      <Dialog open={attOpen} onOpenChange={setAttOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ClipboardCheck className="w-4 h-4" /> Take Attendance</DialogTitle>
+          </DialogHeader>
+          <ClassAttendanceManager key={`att-${reloadKey}`} classId={classId} students={students} onSaved={() => { setAttOpen(false); reload(); loadData(); }} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={asmOpen} onOpenChange={setAsmOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><GraduationCap className="w-4 h-4" /> Record Assessment</DialogTitle>
+          </DialogHeader>
+          <ClassAssessmentManager key={`asm-${reloadKey}`} classId={classId} students={students} onSaved={() => { setAsmOpen(false); reload(); loadData(); }} />
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionCard title="Recent Attendance" icon={Calendar}>
