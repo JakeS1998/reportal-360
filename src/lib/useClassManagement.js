@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
+import { generateStudentRoster } from "@/lib/sampleStudentData";
 
 export function useClassManagement() {
   const { school, user } = useSchool();
@@ -34,7 +35,30 @@ export function useClassManagement() {
       setClasses(classesRes);
       setTeacherAssignments(tcRes);
       setStudentAssignments(scRes);
-      setStudents(studentsRes);
+
+      // Seed sample roster into the database if no students exist for this school
+      let students = studentsRes;
+      if (students.length === 0 && school) {
+        const sampleRoster = generateStudentRoster(school);
+        const records = sampleRoster.map((s) => ({
+          student_name: s.student_name,
+          student_number: s.student_number,
+          grade_level: s.grade_level,
+          gender: s.gender,
+          race_ethnicity: s.race_ethnicity,
+          economically_disadvantaged: s.economically_disadvantaged,
+          english_learner: s.english_learner,
+          disability: s.disability,
+          lunch_status: s.lunch_status,
+          school_code: schoolCode,
+          status: "active",
+        }));
+        if (records.length > 0) {
+          await base44.entities.Student.bulkCreate(records);
+          students = await base44.entities.Student.filter({ school_code: schoolCode }, "student_name", 500);
+        }
+      }
+      setStudents(students);
 
       const teachersRes = await base44.functions.invoke("manageSchoolStaff", {
         action: "list",
