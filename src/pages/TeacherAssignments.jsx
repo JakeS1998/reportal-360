@@ -21,7 +21,7 @@ export default function TeacherAssignments() {
   const selectedClass = cm.classes.find((c) => c.id === selectedClassId);
   const assignedTeachers = cm.teacherAssignments.filter((ta) => ta.class_id === selectedClassId);
   const assignedIds = new Set(assignedTeachers.map((t) => t.teacher_id));
-  const availableTeachers = cm.teachers.filter((t) => t.role === "teacher" && !assignedIds.has(t.id));
+  const availableTeachers = cm.teachers.filter((t) => (t.role === "teacher" || t.role === "manager") && !assignedIds.has(t.id));
 
   const filteredAvailable = search
     ? availableTeachers.filter((t) => t.full_name?.toLowerCase().includes(search.toLowerCase()))
