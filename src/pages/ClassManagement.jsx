@@ -99,6 +99,26 @@ export default function ClassManagement() {
         </Button>
       </div>
 
+      {/* Stat Widgets */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-400">Total Classes</p>
+          <p className="text-2xl font-bold text-slate-900">{cm.classes.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-400">Active</p>
+          <p className="text-2xl font-bold text-emerald-600">{cm.classes.filter((c) => c.status === "active").length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-400">Without Teachers</p>
+          <p className="text-2xl font-bold text-amber-600">{cm.classes.filter((c) => !cm.teacherAssignments.find((ta) => ta.class_id === c.id)).length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-400">Unassigned Students</p>
+          <p className="text-2xl font-bold text-slate-900">{cm.students.filter((s) => !cm.studentAssignments.find((sa) => sa.student_id === s.id && sa.status === "active")).length}</p>
+        </div>
+      </div>
+
       {/* Search + Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px]">

@@ -22,6 +22,8 @@ function Shell() {
     { to: "/insights", label: "Predictive Insights", icon: Sparkles },
   ];
 
+  nav.push({ to: "/my-classes", label: "My Classes", icon: BookOpen });
+
   if (canManageStaff) {
     nav.push({ to: "/staff", label: "Admin Panel", icon: UserCog });
     nav.push({ section: "Class Management" });

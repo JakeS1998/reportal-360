@@ -14,6 +14,9 @@ import ClassManagement from './pages/ClassManagement';
 import AcademicYears from './pages/AcademicYears';
 import TeacherAssignments from './pages/TeacherAssignments';
 import StudentAssignments from './pages/StudentAssignments';
+import MyClasses from './pages/MyClasses';
+import ClassDashboard from './pages/ClassDashboard';
+import StudentProfile from './pages/StudentProfile';
 import Administration from './pages/Administration';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -67,6 +70,9 @@ const AuthenticatedApp = () => {
         <Route path="/academic-years" element={<AcademicYears />} />
         <Route path="/teacher-assignments" element={<TeacherAssignments />} />
         <Route path="/student-assignments" element={<StudentAssignments />} />
+        <Route path="/my-classes" element={<MyClasses />} />
+        <Route path="/classes/:classId" element={<ClassDashboard />} />
+        <Route path="/students/:studentId" element={<StudentProfile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

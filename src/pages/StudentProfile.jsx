@@ -1,0 +1,173 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import SectionCard from "@/components/SectionCard";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen } from "lucide-react";
+
+const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
+const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
+
+export default function StudentProfile() {
+  const { studentId } = useParams();
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const student = await base44.entities.Student.get(studentId);
+        const [classAssignments, attendance, attainment, behaviour] = await Promise.all([
+          base44.entities.StudentClass.filter({ student_id: studentId, status: "active" }),
+          base44.entities.AttendanceRecord.filter({ student_id: studentId }, "-date", 500),
+          base44.entities.AttainmentRecord.filter({ student_id: studentId }, "-date", 500),
+          base44.entities.BehaviourRecord.filter({ student_id: studentId }, "-date", 100),
+        ]);
+        const classIds = classAssignments.map((ca) => ca.class_id);
+        let classes = [];
+        if (classIds.length > 0) {
+          const allClasses = await base44.entities.Class.filter({ school_code: student.school_code }, "-created_date", 500);
+          classes = allClasses.filter((c) => classIds.includes(c.id));
+        }
+        const present = attendance.filter((a) => a.status === "present").length;
+        const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
+        const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
+        setData({ student, classes, attendance, attainment, behaviour, attendanceRate, avgScore });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [studentId]);
+
+  if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
+  if (!data) return <p className="text-sm text-slate-400 text-center py-16">Student not found.</p>;
+
+  const { student: s, classes, attendance, attainment, behaviour, attendanceRate, avgScore } = data;
+
+  return (
+    <div className="space-y-6">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
+
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+          <span className="text-xl font-bold text-slate-500">{(s.student_name || "?").charAt(0).toUpperCase()}</span>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">{s.student_name}</h2>
+          <p className="text-sm text-slate-500">Grade {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""} {s.student_number ? `· #${s.student_number}` : ""}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="flex items-center gap-2 mb-1"><BookOpen className="w-3.5 h-3.5 text-slate-400" /><p className="text-xs text-slate-400">Classes</p></div>
+          <p className="text-2xl font-bold text-slate-900">{classes.length}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="flex items-center gap-2 mb-1"><Calendar className="w-3.5 h-3.5 text-slate-400" /><p className="text-xs text-slate-400">Attendance</p></div>
+          <p className="text-2xl font-bold text-slate-900">{attendanceRate !== null ? `${attendanceRate}%` : "—"}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="flex items-center gap-2 mb-1"><GraduationCap className="w-3.5 h-3.5 text-slate-400" /><p className="text-xs text-slate-400">Avg Score</p></div>
+          <p className="text-2xl font-bold text-slate-900">{avgScore !== null ? `${avgScore}%` : "—"}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="flex items-center gap-2 mb-1"><AlertCircle className="w-3.5 h-3.5 text-slate-400" /><p className="text-xs text-slate-400">Incidents</p></div>
+          <p className="text-2xl font-bold text-slate-900">{behaviour.length}</p>
+        </div>
+      </div>
+
+      <SectionCard title="Demographics">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+          {[
+            ["Gender", s.gender],
+            ["Race/Ethnicity", s.race_ethnicity],
+            ["Lunch Status", s.lunch_status],
+            ["Economically Disadvantaged", s.economically_disadvantaged ? "Yes" : "No"],
+            ["English Learner", s.english_learner ? "Yes" : "No"],
+            ["Disability", s.disability ? "Yes" : "No"],
+            ["State Student ID", s.state_student_id],
+            ["Status", s.status],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <p className="text-xs text-slate-400">{label}</p>
+              <p className="font-medium text-slate-700">{value || "—"}</p>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Class Memberships" icon={BookOpen}>
+        {classes.length === 0 ? (
+          <p className="text-sm text-slate-400">Not enrolled in any classes.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {classes.map((c) => (
+              <Link key={c.id} to={`/classes/${c.id}`} className="text-sm bg-slate-50 rounded-lg px-3 py-1.5 text-slate-700 hover:bg-slate-100">
+                {c.class_name} <span className="text-slate-400">· {c.subject || "—"}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SectionCard title="Attendance History" icon={Calendar}>
+          {attendance.length === 0 ? (
+            <p className="text-sm text-slate-400">No attendance records.</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-auto">
+              {attendance.slice(0, 15).map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">{a.date}</span>
+                  <span className={`font-medium ${STATUS_COLOR[a.status] || "text-slate-500"}`}>{a.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Assessment Scores" icon={GraduationCap}>
+          {attainment.length === 0 ? (
+            <p className="text-sm text-slate-400">No assessment records.</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-auto">
+              {attainment.slice(0, 15).map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-sm">
+                  <div className="min-w-0">
+                    <p className="text-slate-700 truncate">{a.assessment_name}</p>
+                    <p className="text-xs text-slate-400">{a.date}</p>
+                  </div>
+                  <span className="font-medium text-slate-700 shrink-0">{a.score}/{a.max_score || 100}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
+      <SectionCard title="Behaviour Incidents" icon={AlertCircle}>
+        {behaviour.length === 0 ? (
+          <p className="text-sm text-slate-400">No behaviour incidents recorded.</p>
+        ) : (
+          <div className="space-y-2">
+            {behaviour.map((b) => (
+              <div key={b.id} className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${INCIDENT_COLOR[b.incident_type] || "bg-slate-100"}`}>{b.incident_type}</span>
+                <div className="min-w-0">
+                  <p className="text-sm text-slate-700">{b.description}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{b.date} {b.action_taken ? `· ${b.action_taken}` : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
