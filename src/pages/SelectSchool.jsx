@@ -241,12 +241,22 @@ export default function SelectSchool() {
           )}
         </div>
 
-          <div className="text-center mt-4">
-            <Link to="/admin-login" className="text-xs text-slate-300 hover:text-white transition-colors">
+          <div className="text-center mt-4 space-y-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-200">ReportAL 360</p>
+              <p className="text-[11px] text-slate-400">Alabama School Reporting Platform</p>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+              <span>Version 1.0.0</span>
+              <span className="text-slate-600">·</span>
+              <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />System Status</span>
+              <span className="text-slate-600">·</span>
+              <span>Privacy Policy</span>
+            </div>
+            <Link to="/admin-login" className="inline-block text-[10px] text-slate-500 hover:text-slate-300 transition-colors">
               Admin login
             </Link>
           </div>
-          <p className="text-center text-xs text-slate-400 mt-3">Alabama Schools Reporting Platform</p>
         </div>
     </div>
   );
