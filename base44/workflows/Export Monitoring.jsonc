@@ -1,0 +1,45 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 6 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "export_monitoring",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "check_exports": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkExportThresholds",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Check export thresholds",
+            "description": "Scans 24h export volume and logs alerts"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Export Monitoring",
+  "description": "Monitors data export volume daily and logs alerts when thresholds are exceeded"
+}
