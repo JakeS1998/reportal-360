@@ -6,6 +6,14 @@
       "type": "string",
       "title": "Student Name"
     },
+    "first_name": {
+      "type": "string",
+      "title": "First Name"
+    },
+    "last_name": {
+      "type": "string",
+      "title": "Last Name"
+    },
     "class_id": {
       "type": "string",
       "title": "Class ID"
@@ -14,6 +22,10 @@
       "type": "string",
       "title": "Student Number"
     },
+    "state_student_id": {
+      "type": "string",
+      "title": "State Student ID"
+    },
     "grade_level": {
       "type": "string",
       "title": "Grade Level"
@@ -21,6 +33,20 @@
     "school_code": {
       "type": "string",
       "title": "School Code"
+    },
+    "homeroom": {
+      "type": "string",
+      "title": "Homeroom"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "inactive",
+        "transferred"
+      ],
+      "default": "active"
     },
     "gender": {
       "type": "string",

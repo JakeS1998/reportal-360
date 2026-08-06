@@ -1,0 +1,44 @@
+{
+  "name": "AcademicYear",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "title": "End Date"
+    },
+    "is_current": {
+      "type": "boolean",
+      "title": "Current Year",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    }
+  },
+  "required": [
+    "name",
+    "start_date",
+    "end_date",
+    "school_code"
+  ]
+}

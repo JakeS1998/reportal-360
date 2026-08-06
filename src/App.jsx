@@ -10,6 +10,10 @@ import ScrollToTop from './components/ScrollToTop';
 import SelectSchool from './pages/SelectSchool';
 import ForceResetPassword from './pages/ForceResetPassword';
 import StaffManagement from './pages/StaffManagement';
+import ClassManagement from './pages/ClassManagement';
+import AcademicYears from './pages/AcademicYears';
+import TeacherAssignments from './pages/TeacherAssignments';
+import StudentAssignments from './pages/StudentAssignments';
 import Administration from './pages/Administration';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -59,6 +63,10 @@ const AuthenticatedApp = () => {
         <Route path="/students" element={<Students />} />
         <Route path="/insights" element={<PredictiveInsights />} />
         <Route path="/staff" element={<StaffManagement />} />
+        <Route path="/classes" element={<ClassManagement />} />
+        <Route path="/academic-years" element={<AcademicYears />} />
+        <Route path="/teacher-assignments" element={<TeacherAssignments />} />
+        <Route path="/student-assignments" element={<StudentAssignments />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

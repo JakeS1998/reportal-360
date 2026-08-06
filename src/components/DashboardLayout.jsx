@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus } from "lucide-react";
 import FilterBar from "./FilterBar";
 
 function Shell() {
@@ -24,6 +24,11 @@ function Shell() {
 
   if (canManageStaff) {
     nav.push({ to: "/staff", label: "Admin Panel", icon: UserCog });
+    nav.push({ section: "Class Management" });
+    nav.push({ to: "/classes", label: "Classes", icon: BookOpen });
+    nav.push({ to: "/academic-years", label: "Academic Years", icon: Calendar });
+    nav.push({ to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck });
+    nav.push({ to: "/student-assignments", label: "Student Assignments", icon: UserPlus });
   }
 
   const roleBadge = user?.role
@@ -51,20 +56,26 @@ function Shell() {
           </div>
         )}
         <nav className="flex-1 px-3 space-y-1 mt-2">
-          {nav.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              title={collapsed ? n.label : undefined}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  collapsed ? "justify-center" : ""
-                } ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`
-              }
-            >
-              <n.icon className="w-4 h-4 shrink-0" /> {!collapsed && n.label}
-            </NavLink>
-          ))}
+          {nav.map((n, i) => {
+            if (n.section) {
+              if (collapsed) return null;
+              return <p key={i} className="px-3 mt-4 mb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{n.section}</p>;
+            }
+            return (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                title={collapsed ? n.label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    collapsed ? "justify-center" : ""
+                  } ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"}`
+                }
+              >
+                <n.icon className="w-4 h-4 shrink-0" /> {!collapsed && n.label}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="p-3 border-t border-slate-200 space-y-1">
           <button

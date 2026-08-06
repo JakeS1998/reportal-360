@@ -1,0 +1,39 @@
+{
+  "name": "TeacherClass",
+  "type": "object",
+  "properties": {
+    "teacher_id": {
+      "type": "string",
+      "title": "Teacher ID"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Teacher Name"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "role": {
+      "type": "string",
+      "title": "Role",
+      "enum": [
+        "Primary Teacher",
+        "Assistant Teacher",
+        "Co-Teacher",
+        "Substitute"
+      ],
+      "default": "Primary Teacher"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    }
+  },
+  "required": [
+    "teacher_id",
+    "class_id",
+    "role",
+    "school_code"
+  ]
+}

@@ -48,6 +48,19 @@
       "type": "string",
       "title": "Teacher ID"
     },
+    "department": {
+      "type": "string",
+      "title": "Department"
+    },
+    "job_title": {
+      "type": "string",
+      "title": "Job Title"
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    },
     "password_reset_required": {
       "type": "boolean",
       "title": "Password Reset Required",

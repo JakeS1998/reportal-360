@@ -1,0 +1,157 @@
+import { useState, useEffect, useCallback } from "react";
+import { base44 } from "@/api/base44Client";
+import { useSchool } from "@/lib/SchoolContext";
+
+export function useClassManagement() {
+  const { school, user } = useSchool();
+  const schoolCode = school?.school_code;
+  const schoolName = school?.school_name;
+  const callerCreds = {
+    caller_username: user?.username,
+    caller_password: user?.password || localStorage.getItem("userPassword") || "",
+  };
+
+  const [academicYears, setAcademicYears] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]);
+  const [studentAssignments, setStudentAssignments] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    if (!schoolCode) return;
+    setLoading(true);
+    try {
+      const [yearsRes, classesRes, tcRes, scRes, studentsRes] = await Promise.all([
+        base44.entities.AcademicYear.filter({ school_code: schoolCode }, "-start_date", 100),
+        base44.entities.Class.filter({ school_code: schoolCode }, "-created_date", 500),
+        base44.entities.TeacherClass.filter({ school_code: schoolCode }, undefined, 500),
+        base44.entities.StudentClass.filter({ school_code: schoolCode }, undefined, 500),
+        base44.entities.Student.filter({ school_code: schoolCode }, "student_name", 500),
+      ]);
+      setAcademicYears(yearsRes);
+      setClasses(classesRes);
+      setTeacherAssignments(tcRes);
+      setStudentAssignments(scRes);
+      setStudents(studentsRes);
+
+      const teachersRes = await base44.functions.invoke("manageSchoolStaff", {
+        action: "list",
+        ...callerCreds,
+        school_code: schoolCode,
+      });
+      if (teachersRes.data?.success) setTeachers(teachersRes.data.users || []);
+    } catch (err) {
+      console.error("Failed to load class management data", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [schoolCode, callerCreds.caller_username, callerCreds.caller_password]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const currentYear = academicYears.find((y) => y.is_current) || academicYears[0] || null;
+
+  // --- Class CRUD ---
+  const createClass = async (data) => {
+    await base44.entities.Class.create({ ...data, school_code: schoolCode, school_name: schoolName });
+    loadData();
+  };
+  const updateClass = async (id, data) => {
+    await base44.entities.Class.update(id, data);
+    loadData();
+  };
+  const deleteClass = async (id) => {
+    await base44.entities.TeacherClass.deleteMany({ class_id: id });
+    await base44.entities.StudentClass.deleteMany({ class_id: id });
+    await base44.entities.Class.delete(id);
+    loadData();
+  };
+  const duplicateClass = async (cls, newYearId) => {
+    await base44.entities.Class.create({
+      class_name: cls.class_name,
+      school_code: schoolCode,
+      school_name: schoolName,
+      academic_year_id: newYearId,
+      grade_level: cls.grade_level,
+      subject: cls.subject,
+      period: cls.period,
+      room: cls.room,
+      description: cls.description,
+      status: "active",
+    });
+    loadData();
+  };
+
+  // --- Academic Year CRUD ---
+  const createAcademicYear = async (data) => {
+    await base44.entities.AcademicYear.create({ ...data, school_code: schoolCode });
+    loadData();
+  };
+  const updateAcademicYear = async (id, data) => {
+    if (data.is_current) {
+      const others = academicYears.filter((y) => y.is_current && y.id !== id);
+      for (const y of others) await base44.entities.AcademicYear.update(y.id, { is_current: false });
+    }
+    await base44.entities.AcademicYear.update(id, data);
+    loadData();
+  };
+  const deleteAcademicYear = async (id) => {
+    await base44.entities.AcademicYear.delete(id);
+    loadData();
+  };
+
+  // --- Teacher Assignments ---
+  const assignTeacher = async (teacherId, teacherName, classId, role) => {
+    const existing = teacherAssignments.find((ta) => ta.teacher_id === teacherId && ta.class_id === classId);
+    if (existing) {
+      await base44.entities.TeacherClass.update(existing.id, { role });
+    } else {
+      await base44.entities.TeacherClass.create({ teacher_id: teacherId, teacher_name: teacherName, class_id: classId, role, school_code: schoolCode });
+    }
+    loadData();
+  };
+  const removeTeacher = async (assignmentId) => {
+    await base44.entities.TeacherClass.delete(assignmentId);
+    loadData();
+  };
+
+  // --- Student Assignments ---
+  const assignStudent = async (studentId, studentName, classId, academicYearId) => {
+    const existing = studentAssignments.find((sa) => sa.student_id === studentId && sa.class_id === classId && sa.status === "active");
+    if (existing) return;
+    await base44.entities.StudentClass.create({ student_id: studentId, student_name: studentName, class_id: classId, academic_year_id: academicYearId || "", school_code: schoolCode, status: "active" });
+    loadData();
+  };
+  const removeStudent = async (assignmentId) => {
+    await base44.entities.StudentClass.delete(assignmentId);
+    loadData();
+  };
+  const bulkAssignStudents = async (studentIds, classId, academicYearId) => {
+    const records = studentIds
+      .filter((sid) => !studentAssignments.find((sa) => sa.student_id === sid && sa.class_id === classId && sa.status === "active"))
+      .map((sid) => {
+        const s = students.find((st) => st.id === sid);
+        return { student_id: sid, student_name: s?.student_name || "", class_id: classId, academic_year_id: academicYearId || "", school_code: schoolCode, status: "active" };
+      });
+    if (records.length > 0) {
+      await base44.entities.StudentClass.bulkCreate(records);
+      loadData();
+    }
+  };
+  const removeAllStudents = async (classId) => {
+    await base44.entities.StudentClass.deleteMany({ class_id: classId, status: "active" });
+    loadData();
+  };
+
+  return {
+    schoolCode, schoolName, currentYear,
+    academicYears, classes, teacherAssignments, studentAssignments, teachers, students,
+    loading, loadData,
+    createClass, updateClass, deleteClass, duplicateClass,
+    createAcademicYear, updateAcademicYear, deleteAcademicYear,
+    assignTeacher, removeTeacher,
+    assignStudent, removeStudent, bulkAssignStudents, removeAllStudents,
+  };
+}
