@@ -193,6 +193,39 @@ export default async function(req) {
       return Response.json({ success: true, temp_password: newPassword });
     }
 
+    // --- UPDATE ---
+    if (action === "update") {
+      const { user_id, ...updates } = params;
+      if (!user_id) {
+        return Response.json({ success: false, error: "user_id is required" }, { status: 400 });
+      }
+      const existing = await base44.asServiceRole.entities.Teacher.get(user_id);
+      if (!existing) {
+        return Response.json({ success: false, error: "User not found" }, { status: 404 });
+      }
+      if (callerRole !== "admin") {
+        if (existing.system_code !== callerSystemCode) {
+          return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
+        }
+        if (callerRole === "manager" && existing.school_code !== callerSchoolCode) {
+          return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
+        }
+        if (callerRole === "manager" && existing.role !== "teacher") {
+          return Response.json({ success: false, error: "Managers can only edit teachers" }, { status: 403 });
+        }
+      }
+      if (updates.role !== undefined && updates.role !== existing.role && callerRole !== "admin") {
+        return Response.json({ success: false, error: "Only admins can change roles" }, { status: 403 });
+      }
+      const allowedFields = ["full_name", "email", "subject", "department", "job_title", "active", "role"];
+      const updateData = {};
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) updateData[field] = updates[field];
+      }
+      await base44.asServiceRole.entities.Teacher.update(user_id, updateData);
+      return Response.json({ success: true });
+    }
+
     return Response.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });

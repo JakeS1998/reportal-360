@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
 import {
-  UserPlus, Trash2, KeyRound, Copy, Check, Users, Search,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  UserPlus, Trash2, KeyRound, Copy, Check, Users, Search, Pencil,
   School as SchoolIcon, X,
 } from "lucide-react";
 
@@ -43,6 +46,11 @@ export default function SchoolUserManager({
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [subject, setSubject] = useState("");
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    full_name: "", email: "", subject: "", department: "", job_title: "", role: "teacher", active: true,
+  });
+  const [saving, setSaving] = useState(false);
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -186,6 +194,31 @@ export default function SchoolUserManager({
       }
     } catch {
       alert("Failed to reset password");
+    }
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("manageSchoolStaff", {
+        action: "update",
+        ...callerCreds,
+        user_id: editingUser.id,
+        ...editForm,
+      });
+      if (res.data?.success) {
+        setEditingUser(null);
+        loadUsers();
+      } else {
+        setError(res.data?.error || "Failed to update user");
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to update user");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -468,6 +501,25 @@ export default function SchoolUserManager({
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
+                      onClick={() => {
+                        setError("");
+                        setEditingUser(u);
+                        setEditForm({
+                          full_name: u.full_name || "",
+                          email: u.email || "",
+                          subject: u.subject || "",
+                          department: u.department || "",
+                          job_title: u.job_title || "",
+                          role: u.role || "teacher",
+                          active: u.active !== false,
+                        });
+                      }}
+                      title="Edit user"
+                      className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleResetPassword(u.id, u.full_name)}
                       title="Reset password"
                       className="p-2 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
@@ -488,6 +540,90 @@ export default function SchoolUserManager({
           )}
         </SectionCard>
       )}
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) setEditingUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Full Name</Label>
+              <Input
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Subject</Label>
+              <Input
+                value={editForm.subject}
+                onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })}
+                placeholder="e.g. Mathematics"
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Department</Label>
+                <Input
+                  value={editForm.department}
+                  onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Job Title</Label>
+                <Input
+                  value={editForm.job_title}
+                  onChange={(e) => setEditForm({ ...editForm, job_title: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Role</Label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  {roles.map((r) => (
+                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Status</Label>
+                <select
+                  value={editForm.active ? "true" : "false"}
+                  onChange={(e) => setEditForm({ ...editForm, active: e.target.value === "true" })}
+                  className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
+            {error && <p className="text-sm text-rose-600">{error}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+              <Button type="submit" disabled={saving} className="bg-slate-900 hover:bg-slate-800">
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
