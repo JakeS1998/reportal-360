@@ -62,7 +62,7 @@ export default function SelectSchool() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "short" });
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const handleSubmit = async (e) => {
@@ -200,8 +200,11 @@ export default function SelectSchool() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="absolute -inset-6 sm:-inset-8 bg-white/5 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/10 shadow-2xl" aria-hidden="true" />
         <div className="relative mb-6 flex flex-col items-center">
-          <LogoTransparent className="w-72" />
-          <p className="mt-4 text-center text-sm font-medium text-white/90">Alabama's School Performance Intelligence Platform</p>
+          <div className="relative">
+            <div className="absolute -inset-8 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.18),transparent_70%)] blur-2xl pointer-events-none" aria-hidden="true" />
+            <LogoTransparent className="relative w-72" />
+          </div>
+          <p className="mt-4 text-center text-sm font-medium text-white/90">Alabama Education · 360° Insight · Better Outcomes</p>
           <div className="mt-2 text-center">
             <p className="text-lg font-semibold text-white">{greeting}</p>
             <p className="text-sm text-white/70">{greetingSub}</p>
