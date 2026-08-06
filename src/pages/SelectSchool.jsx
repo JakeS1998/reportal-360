@@ -166,7 +166,7 @@ export default function SelectSchool() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-6">
-          <div className="bg-white rounded-2xl p-2.5 shadow-lg w-full">
+          <div className="bg-white rounded-2xl px-6 py-1.5 shadow-lg w-full">
             <Logo className="w-full" />
           </div>
         </div>
