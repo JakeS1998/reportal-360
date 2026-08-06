@@ -3,7 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
 import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3, MapPin } from "lucide-react";
 import AlabamaOutline from "./AlabamaOutline";
-import LogoTransparent from "./LogoTransparent";
+import LogoMono from "./LogoMono";
 import FilterBar from "./FilterBar";
 
 const NAVY = "#0B1530";
@@ -70,7 +70,7 @@ function Shell() {
               <AlabamaOutline className="w-6 h-6" style={{ color: CRIMSON }} />
             </div>
           ) : (
-            <LogoTransparent className="w-full max-w-[180px] shrink-0" />
+            <LogoMono className="w-full max-w-[180px] shrink-0 rounded-lg" />
           )}
         </div>
         {!collapsed && user && (
