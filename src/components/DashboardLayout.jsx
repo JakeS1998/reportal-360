@@ -1,28 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { SchoolProvider, useSchool } from "@/lib/SchoolContext";
-import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3, MapPin } from "lucide-react";
+import { LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles, LogOut, Building2, ClipboardList, PanelLeftClose, PanelLeftOpen, UserCog, BookOpen, Calendar, UserCheck, UserPlus, Award, BarChart3 } from "lucide-react";
 import AlabamaOutline from "./AlabamaOutline";
 import LogoMono from "./LogoMono";
+import LandmarkPreview from "./LandmarkPreview";
 import FilterBar from "./FilterBar";
 
 const NAVY = "#0B1530";
 const CRIMSON = "#9E1B32";
-
-const AL_LANDMARKS = [
-  "Big Spring Park · Huntsville",
-  "Gulf Shores Coast",
-  "Birmingham Skyline",
-  "Montgomery Capitol",
-  "U.S. Space & Rocket Center",
-  "Lake Martin",
-  "Mobile Bay",
-  "Tuscaloosa",
-];
-
-function todayLandmark() {
-  return AL_LANDMARKS[new Date().getDate() % AL_LANDMARKS.length];
-}
 
 function Shell() {
   const { school, switchSchool, user, isArea, canManageStaff } = useSchool();
@@ -58,8 +44,6 @@ function Shell() {
   const roleBadge = user?.role
     ? { area: "Area Access", manager: "Manager", teacher: "Teacher", commissioner: "Area Access", admin: "Admin" }[user.role]
     : "";
-
-  const landmark = todayLandmark();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -140,10 +124,7 @@ function Shell() {
               {school?.school_type ? <><span className="text-white/25">·</span>{school.school_type}</> : null}
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-white/5 ring-1 ring-white/10" title="Today's Alabama Landmark">
-            <MapPin className="w-3 h-3" style={{ color: CRIMSON }} />
-            <span className="text-[11px] font-medium text-white/70 truncate max-w-[160px]">{landmark}</span>
-          </div>
+          <LandmarkPreview />
         </header>
         <main className="flex-1 overflow-auto p-8">
           <FilterBar school={school} contentRef={contentRef} />
