@@ -2,7 +2,7 @@ import React from "react";
 import { Image } from "@/components/ui/image";
 
 const LOGO_URL =
-  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/44363e2b2_image.png";
+  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/48ad450a0_image.png";
 
 /**
  * Renders the ReportAL 360 logo with its solid black background removed
