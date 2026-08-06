@@ -289,6 +289,40 @@ export default async function(req) {
       });
     }
 
+    // --- LIST POLICIES (admin only) ---
+    if (action === "list_policies") {
+      if (callerRole !== "admin") {
+        return Response.json({ success: false, error: "Admin access required" }, { status: 403 });
+      }
+      const policies = await base44.asServiceRole.entities.Policy.filter({}, "title", 50);
+      return Response.json({ success: true, policies });
+    }
+
+    // --- UPDATE POLICY (admin only) ---
+    if (action === "update_policy") {
+      if (callerRole !== "admin") {
+        return Response.json({ success: false, error: "Admin access required" }, { status: 403 });
+      }
+      const { policy_id, content, title, category } = params;
+      if (!policy_id) {
+        return Response.json({ success: false, error: "policy_id is required" }, { status: 400 });
+      }
+      const existing = await base44.asServiceRole.entities.Policy.get(policy_id);
+      if (!existing) {
+        return Response.json({ success: false, error: "Policy not found" }, { status: 404 });
+      }
+      const updateData: any = {
+        version: (existing.version || 1) + 1,
+        last_updated_by: caller_username || "admin",
+      };
+      if (content !== undefined) updateData.content = content;
+      if (title !== undefined) updateData.title = title;
+      if (category !== undefined) updateData.category = category;
+      await base44.asServiceRole.entities.Policy.update(policy_id, updateData);
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Updated policy: ${existing.title}`, undefined, { action_type: "policy_updated" });
+      return Response.json({ success: true, policy: { ...existing, ...updateData } });
+    }
+
     return Response.json({ success: false, error: "Unknown action" }, { status: 400 });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });

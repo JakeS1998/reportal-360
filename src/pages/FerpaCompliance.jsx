@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import FadeIn from "@/components/FadeIn";
 import SectionCard from "@/components/SectionCard";
 import {
-  ShieldCheck, ShieldAlert, KeyRound, Lock, Eye, FileCheck,
+  ShieldCheck, ShieldAlert, KeyRound, Lock, Eye, FileCheck, FileText,
   LogOut, ChevronRight, CheckCircle2, AlertCircle, Clock, Server, Download
 } from "lucide-react";
 
@@ -290,6 +290,9 @@ export default function FerpaCompliance() {
           <p className="text-xs text-slate-500 mt-0.5">ReportAL 360 security and privacy checklist</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/admin/policies")}>
+            <FileText className="w-4 h-4 mr-1" /> Manage Policies
+          </Button>
           <Button variant="outline" onClick={handleExportReport}>
             <Download className="w-4 h-4 mr-1" /> Export Report
           </Button>

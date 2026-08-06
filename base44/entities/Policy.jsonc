@@ -1,0 +1,71 @@
+{
+  "name": "Policy",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Policy Title"
+    },
+    "slug": {
+      "type": "string",
+      "title": "URL Slug"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "Privacy",
+        "Data Governance",
+        "Security",
+        "Access Control",
+        "Compliance",
+        "Training",
+        "Vendor Management"
+      ]
+    },
+    "content": {
+      "type": "string",
+      "title": "Policy Content (Markdown)"
+    },
+    "version": {
+      "type": "number",
+      "title": "Version",
+      "default": 1
+    },
+    "last_updated_by": {
+      "type": "string",
+      "title": "Last Updated By"
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
