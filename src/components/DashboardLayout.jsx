@@ -46,9 +46,9 @@ function Shell() {
       <aside className={`${collapsed ? "w-16" : "w-60"} shrink-0 bg-white border-r border-slate-200 flex flex-col sticky top-0 h-screen transition-all duration-300`}>
         <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-6 flex items-center gap-3`}>
           {collapsed ? (
-            <Logo variant="icon" className="h-10 w-auto shrink-0 rounded-lg" />
+            <Logo variant="icon" className="h-10 w-10 shrink-0 rounded-lg" />
           ) : (
-            <Logo className="shrink-0" iconClass="h-10 w-auto shrink-0" textClass="h-5 w-auto shrink-0" />
+            <Logo className="h-12 w-full max-w-[180px] shrink-0" />
           )}
         </div>
         {!collapsed && user && (
