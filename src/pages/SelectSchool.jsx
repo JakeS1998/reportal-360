@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
 import MfaInput from "@/components/MfaInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
-import Logo from "@/components/Logo";
+import LogoTransparent from "@/components/LogoTransparent";
 
 const SCENES = [
   { time: "morning", url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
@@ -57,6 +57,13 @@ export default function SelectSchool() {
   const navigate = useNavigate();
   const [scene] = useState(() => pickScene());
   const { greeting, greetingSub, periodLabel } = getGreeting();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -185,12 +192,15 @@ export default function SelectSchool() {
         <p className="text-sm text-white/85 leading-snug mt-2.5 pt-2.5 border-t border-white/15">{scene.fact}</p>
       </div>
 
+      <div className="absolute top-6 right-6 z-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg text-right">
+        <p className="text-2xl font-bold leading-none tabular-nums">{timeStr}</p>
+        <p className="text-sm text-white/85 mt-1.5">{dateStr}</p>
+      </div>
+
       <div className="relative z-10 w-full max-w-sm">
         <div className="absolute -inset-6 sm:-inset-8 bg-white/5 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/10 shadow-2xl" aria-hidden="true" />
         <div className="relative mb-6 flex flex-col items-center">
-          <div className="w-56 drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
-            <Logo className="w-full" />
-          </div>
+          <LogoTransparent className="w-56" />
           <p className="mt-4 text-center text-sm font-medium text-white/90">Alabama's School Performance Intelligence Platform</p>
           <div className="mt-2 text-center">
             <p className="text-lg font-semibold text-white">{greeting}</p>
