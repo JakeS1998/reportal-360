@@ -2,7 +2,7 @@ import React from "react";
 import { Image } from "@/components/ui/image";
 
 const LOGO_URL =
-  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/b5895b35e_generated_image.png";
+  "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d8c290883_image.png";
 
 export default function Logo({ variant = "horizontal", className }) {
   if (variant === "icon") {
@@ -12,10 +12,10 @@ export default function Logo({ variant = "horizontal", className }) {
         alt="ReportAL 360"
         className={className}
         fittingType="fill"
-        focalPointX={0.15}
+        focalPointX={0.12}
         focalPointY={0.5}
-        originWidth={1024}
-        originHeight={1024}
+        originWidth={824}
+        originHeight={269}
       />
     );
   }
@@ -24,9 +24,9 @@ export default function Logo({ variant = "horizontal", className }) {
       src={LOGO_URL}
       alt="ReportAL 360"
       className={className}
-      fittingType="fill"
-      focalPointX={0.5}
-      focalPointY={0.5}
+      fittingType="fit"
+      originWidth={824}
+      originHeight={269}
     />
   );
 }
