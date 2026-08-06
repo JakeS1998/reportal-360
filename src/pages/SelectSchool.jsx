@@ -166,7 +166,7 @@ export default function SelectSchool() {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="flex justify-center mb-6">
-          <Logo className="bg-white rounded-2xl p-4 shadow-lg w-full h-24" />
+          <Logo className="bg-white rounded-2xl p-3 shadow-lg w-full h-16" />
         </div>
 
         <div className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 shadow-2xl">
