@@ -51,17 +51,41 @@ export default function SelectSchool() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
-            <GraduationCap className="w-8 h-8 text-white" />
+    <div className="min-h-screen flex">
+      <div className="hidden lg:block lg:w-1/2 relative">
+        <img
+          src="https://images.unsplash.com/photo-1711048090288-1ccf17fc57a4?auto=format&fit=crop&w=1600&q=80"
+          alt="Alabama Theatre, Birmingham"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/85 via-slate-900/55 to-slate-900/25" />
+        <div className="relative z-10 h-full flex flex-col justify-end p-12 text-white">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center mb-5">
+            <GraduationCap className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">ReportAL 360</h1>
-          <p className="text-sm text-slate-500 mt-1">Sign in to your dashboard</p>
+          <h2 className="text-3xl font-bold">ReportAL 360</h2>
+          <p className="text-sm text-slate-200 mt-2 max-w-sm">
+            Data-driven insights for Alabama schools, powered by official ALSDE report card data.
+          </p>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
+      <div className="flex-1 flex items-center justify-center px-4 py-10 bg-slate-50">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8 lg:hidden">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
+              <GraduationCap className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">ReportAL 360</h1>
+            <p className="text-sm text-slate-500 mt-1">Sign in to your dashboard</p>
+          </div>
+
+          <div className="hidden lg:block mb-8">
+            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+            <p className="text-sm text-slate-500 mt-1">Sign in to your dashboard</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
           <div>
             <Label className="text-sm font-medium text-slate-700">Username</Label>
             <div className="relative mt-1">
@@ -94,12 +118,13 @@ export default function SelectSchool() {
             {loading ? "Signing in..." : "Sign In"}
             {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
-        </form>
+          </form>
 
-        <div className="text-center mt-4">
-          <Link to="/admin-login" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-            Admin login
-          </Link>
+          <div className="text-center mt-4">
+            <Link to="/admin-login" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+              Admin login
+            </Link>
+          </div>
         </div>
       </div>
     </div>
