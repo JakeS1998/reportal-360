@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Download, FileText, FileSpreadsheet } from "lucide-react";
 
-export default function ExportMenu({ tableId, fileName = "schoollens-export" }) {
+export default function ExportMenu({ tableId, fileName = "reportal-360-export" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 

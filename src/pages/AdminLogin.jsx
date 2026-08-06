@@ -50,7 +50,7 @@ export default function AdminLogin() {
             <ShieldCheck className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Admin Login</h1>
-          <p className="text-sm text-slate-500 mt-1">SchoolLens administration</p>
+          <p className="text-sm text-slate-500 mt-1">ReportAL 360 administration</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">

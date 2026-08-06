@@ -67,7 +67,7 @@ export default function SchoolAccess() {
           <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-4">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">SchoolLens</h1>
+          <h1 className="text-2xl font-bold text-slate-900">ReportAL 360</h1>
           <p className="text-sm text-slate-500 mt-1">Step 2 of 2 — Enter your access code</p>
         </div>
 
@@ -100,7 +100,7 @@ export default function SchoolAccess() {
                 className="pl-9"
               />
             </div>
-            <p className="text-xs text-slate-400 mt-1">Provided by your SchoolLens subscription</p>
+            <p className="text-xs text-slate-400 mt-1">Provided by your ReportAL 360 subscription</p>
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">

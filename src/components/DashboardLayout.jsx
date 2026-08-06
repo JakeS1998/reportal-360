@@ -31,7 +31,7 @@ function Shell() {
           </div>
           {!collapsed && (
             <div>
-              <p className="font-bold text-slate-900 leading-tight">SchoolLens</p>
+              <p className="font-bold text-slate-900 leading-tight">ReportAL 360</p>
               <p className="text-[10px] text-slate-400 uppercase tracking-wide">Executive Analytics</p>
             </div>
           )}

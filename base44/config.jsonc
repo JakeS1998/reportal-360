@@ -1,5 +1,5 @@
 {
-  "name": "SchoolLens",
+  "name": "ReportAL 360",
   "site": {
     "installCommand": "npm install",
     "buildCommand": "npm run build",
