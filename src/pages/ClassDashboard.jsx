@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import SectionCard from "@/components/SectionCard";
-import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, BookOpen } from "lucide-react";
+import ClassAttendanceManager from "@/components/class/ClassAttendanceManager";
+import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
+import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, BookOpen, ClipboardCheck } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 
@@ -11,29 +13,32 @@ export default function ClassDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const cls = await base44.entities.Class.get(classId);
-        const [teachers, students, attendance, attainment] = await Promise.all([
-          base44.entities.TeacherClass.filter({ class_id: classId }),
-          base44.entities.StudentClass.filter({ class_id: classId, status: "active" }, "student_name"),
-          base44.entities.AttendanceRecord.filter({ class_id: classId }, "-date", 500),
-          base44.entities.AttainmentRecord.filter({ class_id: classId }, "-date", 500),
-        ]);
-        const present = attendance.filter((a) => a.status === "present").length;
-        const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
-        const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
-        setData({ cls, teachers, students, attendance, attainment, attendanceRate, avgScore });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const cls = await base44.entities.Class.get(classId);
+      const [teachers, students, attendance, attainment] = await Promise.all([
+        base44.entities.TeacherClass.filter({ class_id: classId }),
+        base44.entities.StudentClass.filter({ class_id: classId, status: "active" }, "student_name"),
+        base44.entities.AttendanceRecord.filter({ class_id: classId }, "-date", 500),
+        base44.entities.AttainmentRecord.filter({ class_id: classId }, "-date", 500),
+      ]);
+      const present = attendance.filter((a) => a.status === "present").length;
+      const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
+      const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
+      setData({ cls, teachers, students, attendance, attainment, attendanceRate, avgScore });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, [classId]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const reload = () => setReloadKey((k) => k + 1);
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Class not found.</p>;
@@ -99,6 +104,14 @@ export default function ClassDashboard() {
             ))}
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard title="Take Attendance" subtitle="Mark each student for a date and save" icon={ClipboardCheck}>
+        <ClassAttendanceManager key={`att-${reloadKey}`} classId={classId} students={students} onSaved={() => { reload(); loadData(); }} />
+      </SectionCard>
+
+      <SectionCard title="Record Assessment" subtitle="Enter scores for a new assessment" icon={GraduationCap}>
+        <ClassAssessmentManager key={`asm-${reloadKey}`} classId={classId} students={students} onSaved={() => { reload(); loadData(); }} />
       </SectionCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
