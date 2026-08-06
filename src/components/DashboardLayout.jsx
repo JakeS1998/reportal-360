@@ -23,7 +23,7 @@ function Shell() {
   ];
 
   if (canManageStaff) {
-    nav.push({ to: "/staff", label: "Staff Management", icon: UserCog });
+    nav.push({ to: "/staff", label: "Admin Panel", icon: UserCog });
   }
 
   const roleBadge = user?.role

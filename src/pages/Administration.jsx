@@ -6,9 +6,10 @@ import FadeIn from "@/components/FadeIn";
 import SectionCard from "@/components/SectionCard";
 import {
   Building2, School, RefreshCw, Search, Download, AlertTriangle,
-  CheckCircle2, Clock, Activity, FileJson, FileSpreadsheet, Calendar, LogOut,
+  CheckCircle2, Clock, Activity, FileJson, FileSpreadsheet, Calendar, LogOut, Users,
 } from "lucide-react";
 import AccessCodeManager from "@/components/AccessCodeManager";
+import SchoolUserManager from "@/components/SchoolUserManager";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -230,6 +231,27 @@ export default function Administration() {
 
         <FadeIn delay={210}>
           <AccessCodeManager />
+        </FadeIn>
+
+        <FadeIn delay={240}>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Users className="w-4 h-4 text-slate-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">User Management</h3>
+                <p className="text-xs text-slate-500">Search any school and create area, manager, or teacher accounts</p>
+              </div>
+            </div>
+            <div className="mt-5">
+              <SchoolUserManager
+                callerCreds={{ caller_username: "BRGAdmin", caller_password: "BRGAdmin" }}
+                mode="search"
+                roles={["area", "manager", "teacher"]}
+              />
+            </div>
+          </div>
         </FadeIn>
       </main>
     </div>
