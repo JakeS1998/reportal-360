@@ -145,6 +145,41 @@ export function useClassManagement() {
     loadData();
   };
 
+  const promoteClasses = async (sourceYearId, targetYearId, copyStudents, copyTeachers) => {
+    const sourceClasses = classes.filter((c) => c.academic_year_id === sourceYearId);
+    for (const cls of sourceClasses) {
+      const newClass = await base44.entities.Class.create({
+        class_name: cls.class_name,
+        school_code: schoolCode,
+        school_name: schoolName,
+        academic_year_id: targetYearId,
+        grade_level: cls.grade_level,
+        subject: cls.subject,
+        period: cls.period,
+        room: cls.room,
+        description: cls.description,
+        status: "active",
+      });
+      if (copyTeachers) {
+        const sourceTeachers = teacherAssignments.filter((ta) => ta.class_id === cls.id);
+        if (sourceTeachers.length > 0) {
+          await base44.entities.TeacherClass.bulkCreate(
+            sourceTeachers.map((ta) => ({ teacher_id: ta.teacher_id, teacher_name: ta.teacher_name, class_id: newClass.id, role: ta.role, school_code: schoolCode }))
+          );
+        }
+      }
+      if (copyStudents) {
+        const sourceStudents = studentAssignments.filter((sa) => sa.class_id === cls.id && sa.status === "active");
+        if (sourceStudents.length > 0) {
+          await base44.entities.StudentClass.bulkCreate(
+            sourceStudents.map((sa) => ({ student_id: sa.student_id, student_name: sa.student_name, class_id: newClass.id, academic_year_id: targetYearId, school_code: schoolCode, status: "active" }))
+          );
+        }
+      }
+    }
+    loadData();
+  };
+
   return {
     schoolCode, schoolName, currentYear,
     academicYears, classes, teacherAssignments, studentAssignments, teachers, students,
@@ -153,5 +188,6 @@ export function useClassManagement() {
     createAcademicYear, updateAcademicYear, deleteAcademicYear,
     assignTeacher, removeTeacher,
     assignStudent, removeStudent, bulkAssignStudents, removeAllStudents,
+    promoteClasses,
   };
 }

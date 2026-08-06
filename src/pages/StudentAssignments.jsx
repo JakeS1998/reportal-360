@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Users } from "lucide-react";
+import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Users, Upload } from "lucide-react";
+import StudentImportDialog from "@/components/StudentImportDialog";
 
 export default function StudentAssignments() {
   const cm = useClassManagement();
@@ -10,6 +11,7 @@ export default function StudentAssignments() {
   const [search, setSearch] = useState("");
   const [fGrade, setFGrade] = useState("");
   const [fHomeroom, setFHomeroom] = useState("");
+  const [showImport, setShowImport] = useState(false);
 
   const activeClasses = useMemo(() => cm.classes.filter((c) => c.status !== "archived"), [cm.classes]);
   const selectedClass = cm.classes.find((c) => c.id === selectedClassId);
@@ -71,9 +73,14 @@ export default function StudentAssignments() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">Student Assignments</h2>
-        <p className="text-sm text-slate-500">Assign students to classes — teachers access students through class membership</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Student Assignments</h2>
+          <p className="text-sm text-slate-500">Assign students to classes — teachers access students through class membership</p>
+        </div>
+        <Button onClick={() => setShowImport(true)} variant="outline">
+          <Upload className="w-4 h-4 mr-1" /> Import Students
+        </Button>
       </div>
 
       <div>
@@ -172,6 +179,8 @@ export default function StudentAssignments() {
           <p className="text-sm text-slate-400">Select a class to manage student assignments.</p>
         </div>
       )}
+
+      <StudentImportDialog open={showImport} onOpenChange={setShowImport} schoolCode={cm.schoolCode} onImported={cm.loadData} />
     </div>
   );
 }
