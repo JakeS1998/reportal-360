@@ -33,10 +33,6 @@ export default function LandingPlatform() {
               className="w-full h-[440px] object-cover"
             />
           </div>
-          <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-xl px-5 py-3 ring-1 ring-slate-100">
-            <p className="text-xs text-slate-400">Schools synced</p>
-            <p className="text-2xl font-bold text-slate-900">1,500+</p>
-          </div>
         </div>
 
         <div className="order-1 lg:order-2">
