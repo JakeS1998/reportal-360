@@ -62,7 +62,8 @@ export default function SelectSchool() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZoneName: "short" });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" });
+  const tzStr = (Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(now).find((p) => p.type === "timeZoneName") || {}).value || "";
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const handleSubmit = async (e) => {
@@ -194,6 +195,7 @@ export default function SelectSchool() {
 
       <div className="absolute top-6 right-6 z-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg text-right">
         <p className="text-2xl font-bold leading-none tabular-nums">{timeStr}</p>
+        <p className="text-xs text-white/70 mt-1">{tzStr}</p>
         <p className="text-sm text-white/85 mt-1.5">{dateStr}</p>
       </div>
 
