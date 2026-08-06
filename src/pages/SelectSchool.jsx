@@ -200,7 +200,7 @@ export default function SelectSchool() {
       <div className="relative z-10 w-full max-w-sm">
         <div className="absolute -inset-6 sm:-inset-8 bg-white/5 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/10 shadow-2xl" aria-hidden="true" />
         <div className="relative mb-6 flex flex-col items-center">
-          <LogoTransparent className="w-56" />
+          <LogoTransparent className="w-72" />
           <p className="mt-4 text-center text-sm font-medium text-white/90">Alabama's School Performance Intelligence Platform</p>
           <div className="mt-2 text-center">
             <p className="text-lg font-semibold text-white">{greeting}</p>
