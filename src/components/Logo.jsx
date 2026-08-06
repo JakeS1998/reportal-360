@@ -24,9 +24,7 @@ export default function Logo({ variant = "horizontal", className }) {
       src={LOGO_URL}
       alt="ReportAL 360"
       className={className}
-      fittingType="fill"
-      focalPointX={0.5}
-      focalPointY={0.5}
+      fittingType="fit"
       originWidth={1024}
       originHeight={1024}
     />
