@@ -12,10 +12,14 @@ export default function StudentAssignments() {
   const [fGrade, setFGrade] = useState("");
   const [fHomeroom, setFHomeroom] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [selAvail, setSelAvail] = useState(() => new Set());
+  const [selAssigned, setSelAssigned] = useState(() => new Set());
 
   useEffect(() => {
     if (selectedClass?.grade_level) setFGrade(selectedClass.grade_level);
     else setFGrade("");
+    setSelAvail(new Set());
+    setSelAssigned(new Set());
   }, [selectedClassId]);
 
   const activeClasses = useMemo(() => cm.classes.filter((c) => c.status !== "archived"), [cm.classes]);
@@ -74,6 +78,26 @@ export default function StudentAssignments() {
     await cm.removeAllStudents(selectedClassId);
   };
 
+  const toggle = (setter, id) => setter((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const handleAssignSelected = async () => {
+    const ids = availableStudents.filter((s) => selAvail.has(s.id)).map((s) => s.id);
+    if (ids.length === 0) return;
+    await cm.bulkAssignStudents(ids, selectedClassId, selectedClass?.academic_year_id);
+    setSelAvail(new Set());
+  };
+
+  const handleRemoveSelected = async () => {
+    const targets = cm.studentAssignments.filter((a) => a.class_id === selectedClassId && a.status === "active" && selAssigned.has(a.student_id));
+    if (targets.length === 0) return;
+    await Promise.all(targets.map((a) => cm.removeStudent(a.id)));
+    setSelAssigned(new Set());
+  };
+
   if (cm.loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
 
   return (
@@ -127,23 +151,29 @@ export default function StudentAssignments() {
                 {availableStudents.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-8">No available students</p>
                 ) : (
-                  availableStudents.map((s) => (
-                    <div key={s.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{s.student_name}</p>
-                        <p className="text-xs text-slate-400">Gr {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""}</p>
+                  availableStudents.map((s) => {
+                    const checked = selAvail.has(s.id);
+                    return (
+                      <div key={s.id} className={`flex items-center gap-2 px-4 py-2.5 ${checked ? "bg-blue-50/60" : "hover:bg-slate-50"}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggle(setSelAvail, s.id)} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{s.student_name}</p>
+                          <p className="text-xs text-slate-400">Gr {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""}</p>
+                        </div>
+                        <button onClick={() => handleAssign(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600" title="Assign"><ChevronRight className="w-4 h-4" /></button>
                       </div>
-                      <button onClick={() => handleAssign(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600" title="Assign"><ChevronRight className="w-4 h-4" /></button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
 
             {/* Center controls */}
             <div className="hidden lg:flex flex-col items-center justify-center gap-2">
-              <button onClick={handleAssignAll} disabled={availableStudents.length === 0} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30" title="Assign all"><ChevronsRight className="w-5 h-5" /></button>
-              <button onClick={handleRemoveAll} disabled={assignedStudents.length === 0} className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-30" title="Remove all"><ChevronsLeft className="w-5 h-5" /></button>
+              <button onClick={handleAssignSelected} disabled={selAvail.size === 0} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30" title={`Assign selected (${selAvail.size})`}><ChevronRight className="w-5 h-5" /></button>
+              <button onClick={handleAssignAll} disabled={availableStudents.length === 0} className="p-2 rounded-lg text-slate-300 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-30" title="Assign all"><ChevronsRight className="w-5 h-5" /></button>
+              <button onClick={handleRemoveAll} disabled={assignedStudents.length === 0} className="p-2 rounded-lg text-slate-300 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-30" title="Remove all"><ChevronsLeft className="w-5 h-5" /></button>
+              <button onClick={handleRemoveSelected} disabled={selAssigned.size === 0} className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-30" title={`Remove selected (${selAssigned.size})`}><ChevronLeft className="w-5 h-5" /></button>
             </div>
 
             {/* Assigned Students */}
@@ -159,15 +189,19 @@ export default function StudentAssignments() {
                 {assignedStudents.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-8">No students assigned</p>
                 ) : (
-                  assignedStudents.map((s) => (
-                    <div key={s.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-slate-50">
-                      <button onClick={() => handleRemove(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Remove"><ChevronLeft className="w-4 h-4" /></button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{s.student_name}</p>
-                        <p className="text-xs text-slate-400">Gr {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""}</p>
+                  assignedStudents.map((s) => {
+                    const checked = selAssigned.has(s.id);
+                    return (
+                      <div key={s.id} className={`flex items-center gap-2 px-4 py-2.5 ${checked ? "bg-rose-50/60" : "hover:bg-slate-50"}`}>
+                        <button onClick={() => handleRemove(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Remove"><ChevronLeft className="w-4 h-4" /></button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{s.student_name}</p>
+                          <p className="text-xs text-slate-400">Gr {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""}</p>
+                        </div>
+                        <input type="checkbox" checked={checked} onChange={() => toggle(setSelAssigned, s.id)} className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
