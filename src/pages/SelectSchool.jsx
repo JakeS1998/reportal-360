@@ -4,8 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, ArrowRight, KeyRound, MapPin } from "lucide-react";
+import { GraduationCap, ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
+import AlabamaOutline from "@/components/AlabamaOutline";
 
 const ALABAMA_SCENES = [
   { url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
@@ -78,24 +79,26 @@ export default function SelectSchool() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
 
-      <div className="absolute bottom-5 left-5 z-10 max-w-xs bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-4 py-3 text-white shadow-lg">
+      <div className="absolute top-6 left-6 z-10 max-w-sm bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg">
+        <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">Today's Alabama Landmark</p>
         <div className="flex items-center gap-2">
-          <MapPin className="w-3.5 h-3.5 text-white/80 shrink-0" />
+          <MapPin className="w-4 h-4 text-amber-300 shrink-0" />
           <div>
-            <p className="text-sm font-semibold leading-tight">{scene.title}</p>
-            <p className="text-xs text-slate-200 leading-tight">{scene.location}</p>
+            <p className="text-base font-bold leading-tight">{scene.title}</p>
+            <p className="text-sm text-white/90 leading-tight">{scene.location}</p>
           </div>
         </div>
-        <p className="text-xs text-slate-200/90 leading-snug mt-2 pt-2 border-t border-white/15">{scene.fact}</p>
+        <p className="text-sm text-white/85 leading-snug mt-2.5 pt-2.5 border-t border-white/15">{scene.fact}</p>
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mx-auto mb-4 ring-1 ring-white/20">
-            <GraduationCap className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mx-auto mb-4 ring-1 ring-white/20 relative overflow-hidden">
+            <AlabamaOutline className="absolute inset-0 w-full h-full text-white/10 p-1.5" />
+            <GraduationCap className="w-10 h-10 text-white relative z-10" />
           </div>
-          <h1 className="text-2xl font-bold text-white">ReportAL 360</h1>
-          <p className="text-sm text-slate-200 mt-1">Sign in to your dashboard</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">ReportAL 360</h1>
+          <p className="text-sm text-white/90 mt-1.5 font-medium">Supporting Alabama Educators with Better Data</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 space-y-4 shadow-2xl">
@@ -113,7 +116,7 @@ export default function SelectSchool() {
                 autoCorrect="off"
               />
             </div>
-            <p className="text-xs text-slate-400 mt-1">Format: schoolcode.name</p>
+            <p className="text-xs text-slate-500 mt-1">Format: schoolcode.name</p>
           </div>
           <div>
             <Label className="text-sm font-medium text-slate-700">Password</Label>
@@ -131,6 +134,18 @@ export default function SelectSchool() {
             {loading ? "Signing in..." : "Sign In"}
             {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-4 border-t border-slate-100">
+            <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-500" /> Secure Login
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+              <FileCheck className="w-3.5 h-3.5 text-slate-500" /> FERPA Compliant
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+              <Lock className="w-3.5 h-3.5 text-slate-500" /> Encrypted
+            </span>
+          </div>
           </form>
 
           <div className="text-center mt-4">
@@ -138,6 +153,7 @@ export default function SelectSchool() {
               Admin login
             </Link>
           </div>
+          <p className="text-center text-xs text-slate-400 mt-3">Alabama Schools Reporting Platform</p>
         </div>
     </div>
   );
