@@ -4,8 +4,31 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, ArrowRight, KeyRound } from "lucide-react";
+import { GraduationCap, ArrowRight, KeyRound, MapPin } from "lucide-react";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
+
+const ALABAMA_SCENES = [
+  {
+    url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80",
+    title: "Birmingham Skyline",
+    location: "Birmingham, Alabama",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1711048090288-1ccf17fc57a4?auto=format&fit=crop&w=1920&q=80",
+    title: "Alabama Theatre",
+    location: "Birmingham, Alabama",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1627063652902-a94b7d8df450?auto=format&fit=crop&w=1920&q=80",
+    title: "Appalachian Foothills",
+    location: "Northern Alabama",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1589747948711-64c21bee4019?auto=format&fit=crop&w=1920&q=80",
+    title: "Lake Martin",
+    location: "Central Alabama",
+  },
+];
 
 export default function SelectSchool() {
   const [username, setUsername] = useState("");
@@ -13,6 +36,7 @@ export default function SelectSchool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [scene] = useState(() => ALABAMA_SCENES[Math.floor(Math.random() * ALABAMA_SCENES.length)]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,11 +77,21 @@ export default function SelectSchool() {
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-10">
       <img
-        src="https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80"
-        alt="Birmingham, Alabama cityscape by the water"
+        src={scene.url}
+        alt={scene.title}
         className="absolute inset-0 w-full h-full object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
+
+      <div className="absolute bottom-5 left-5 z-10 max-w-xs bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-4 py-3 text-white shadow-lg">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-3.5 h-3.5 text-white/80 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold leading-tight">{scene.title}</p>
+            <p className="text-xs text-slate-200 leading-tight">{scene.location}</p>
+          </div>
+        </div>
+      </div>
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
