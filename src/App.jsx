@@ -18,6 +18,7 @@ import MyClasses from './pages/MyClasses';
 import ClassDashboard from './pages/ClassDashboard';
 import StudentProfile from './pages/StudentProfile';
 import Administration from './pages/Administration';
+import FerpaCompliance from './pages/FerpaCompliance';
 import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExecutiveOverview from './pages/ExecutiveOverview';
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ForceResetPassword />} />
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />
+      <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />
         <Route path="/academics" element={<AcademicPerformance />} />

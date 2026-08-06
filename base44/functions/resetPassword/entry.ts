@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { validatePasswordComplexity, logAudit } from '../../shared/security.ts';
 
 export default async function(req) {
   try {
@@ -12,9 +13,11 @@ export default async function(req) {
       );
     }
 
-    if (new_password.length < 8) {
+    // Enforce password complexity (FERPA requirement)
+    const complexityError = validatePasswordComplexity(new_password);
+    if (complexityError) {
       return Response.json(
-        { success: false, error: "New password must be at least 8 characters" },
+        { success: false, error: complexityError },
         { status: 400 }
       );
     }
@@ -38,7 +41,11 @@ export default async function(req) {
     await base44.asServiceRole.entities.Teacher.update(user.id, {
       password: new_password,
       password_reset_required: false,
+      failed_login_attempts: 0,
+      locked_until: null,
     });
+
+    await logAudit(base44, "password_reset", username, user.role, "User reset their own password", user.school_code);
 
     return Response.json({ success: true });
   } catch (error) {

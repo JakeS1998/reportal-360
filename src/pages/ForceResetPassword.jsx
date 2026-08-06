@@ -4,8 +4,20 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, ArrowRight, ShieldCheck } from "lucide-react";
+import { GraduationCap, ArrowRight, ShieldCheck, CheckCircle2, Circle } from "lucide-react";
 import { getTempSession, clearTempSession } from "@/lib/authFlow";
+
+const PASSWORD_REQUIREMENTS = [
+  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
+  { label: "One uppercase letter (A-Z)", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "One lowercase letter (a-z)", test: (pw) => /[a-z]/.test(pw) },
+  { label: "One number (0-9)", test: (pw) => /[0-9]/.test(pw) },
+  { label: "One special character (!@#$%^&*)", test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(pw) },
+];
+
+function validatePassword(password) {
+  return PASSWORD_REQUIREMENTS.filter((r) => !r.test(password)).map((r) => r.label);
+}
 
 export default function ForceResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -30,8 +42,9 @@ export default function ForceResetPassword() {
       setError("Passwords do not match");
       return;
     }
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters");
+    const pwErrors = validatePassword(newPassword);
+    if (pwErrors.length > 0) {
+      setError("Password requirements not met: " + pwErrors.join(", "));
       return;
     }
     setLoading(true);
@@ -100,9 +113,20 @@ export default function ForceResetPassword() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="Enter new password"
               className="mt-1"
             />
+            <div className="mt-2.5 space-y-1">
+              {PASSWORD_REQUIREMENTS.map((req) => {
+                const met = req.test(newPassword);
+                return (
+                  <div key={req.label} className="flex items-center gap-1.5 text-xs">
+                    {met ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> : <Circle className="w-3 h-3 text-slate-300 shrink-0" />}
+                    <span className={met ? "text-emerald-600" : "text-slate-400"}>{req.label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div>
             <Label className="text-sm font-medium text-slate-700">Confirm Password</Label>
