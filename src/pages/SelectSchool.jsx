@@ -9,23 +9,43 @@ import MfaInput from "@/components/MfaInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
 import Logo from "@/components/Logo";
 
-const ALABAMA_SCENES = [
-  { url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
-  { url: "https://images.unsplash.com/photo-1711048090288-1ccf17fc57a4?auto=format&fit=crop&w=1920&q=80", title: "Alabama Theatre", location: "Birmingham, Alabama", fact: "Opened in 1927 and dubbed the 'Showplace of the South,' it still hosts films and concerts." },
-  { url: "https://images.unsplash.com/photo-1627063652902-a94b7d8df450?auto=format&fit=crop&w=1920&q=80", title: "Appalachian Foothills", location: "North Alabama", fact: "North Alabama marks the southern tip of the Appalachians — the oldest mountain range in North America." },
-  { url: "https://images.unsplash.com/photo-1589747948711-64c21bee4019?auto=format&fit=crop&w=1920&q=80", title: "Lake Martin", location: "Central Alabama", fact: "With over 750 miles of shoreline, Lake Martin is one of the largest man-made lakes in the US." },
-  { url: "https://images.unsplash.com/photo-1711048090328-1892e90ae260?auto=format&fit=crop&w=1920&q=80", title: "Archives & History Museum", location: "Montgomery, Alabama", fact: "Founded in 1901, it's the oldest state-funded archives agency in the United States." },
-  { url: "https://images.unsplash.com/photo-1728001528593-58c93982917b?auto=format&fit=crop&w=1920&q=80", title: "Downtown Montgomery", location: "Montgomery, Alabama", fact: "Montgomery has been Alabama's capital since 1846 and hosted the historic 1955 bus boycott." },
-  { url: "https://images.unsplash.com/photo-1574723507385-265b5635e6c4?auto=format&fit=crop&w=1920&q=80", title: "Gulf Shores Harbor", location: "Gulf Shores, Alabama", fact: "Gulf Shores hosts the National Shrimp Festival each October, drawing over 200,000 visitors." },
-  { url: "https://images.unsplash.com/photo-1644578843995-b2cc1acbdf33?auto=format&fit=crop&w=1920&q=80", title: "Gulf Coast Sunset", location: "Gulf Shores, Alabama", fact: "Alabama's Gulf Coast boasts 32 miles of sugar-white sand beaches along the Gulf of Mexico." },
-  { url: "https://images.unsplash.com/photo-1659354264754-564df7e375da?auto=format&fit=crop&w=1920&q=80", title: "Coastal Boardwalk", location: "Gulf Shores, Alabama", fact: "Gulf State Park features over 28 miles of paved trails winding through nine distinct ecosystems." },
-  { url: "https://images.unsplash.com/photo-1551292788-2031aee091a6?auto=format&fit=crop&w=1920&q=80", title: "Gulf Coast Waves", location: "Gulf Shores, Alabama", fact: "The warm Gulf waters make Alabama's coast a year-round destination for fishing and water sports." },
-  { url: "https://images.unsplash.com/photo-1670872623631-cd88b0803d58?auto=format&fit=crop&w=1920&q=80", title: "Big Spring Park", location: "Huntsville, Alabama", fact: "Built around a natural spring that has flowed for over 10,000 years — the reason Huntsville was founded." },
-  { url: "https://images.unsplash.com/photo-1622409408503-f3ff61cc631b?auto=format&fit=crop&w=1920&q=80", title: "Huntsville Skyline", location: "Huntsville, Alabama", fact: "Huntsville is nicknamed 'The Rocket City' for its pivotal role in developing the Saturn V moon rocket." },
-  { url: "https://images.unsplash.com/photo-1711048090525-807f98902860?auto=format&fit=crop&w=1920&q=80", title: "Rocket Park", location: "Huntsville, Alabama", fact: "Established in 1960 at Redstone Arsenal, it displays rockets from the early days of the US space program." },
-  { url: "https://images.unsplash.com/photo-1605813640975-0ef0ad36826a?auto=format&fit=crop&w=1920&q=80", title: "Saturn V Rocket", location: "Huntsville, Alabama", fact: "The Saturn V at the Space & Rocket Center is one of only three remaining and stands 363 feet tall." },
-  { url: "https://images.unsplash.com/photo-1600388704262-530cb4af35d3?auto=format&fit=crop&w=1920&q=80", title: "Historic Huntsville", location: "Huntsville, Alabama", fact: "Huntsville was the first permanent settlement in Alabama, founded in 1805 and originally named Twickenham." },
+const SCENES = [
+  { time: "morning", url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
+  { time: "morning", url: "https://images.unsplash.com/photo-1627063652902-a94b7d8df450?auto=format&fit=crop&w=1920&q=80", title: "Appalachian Foothills", location: "North Alabama", fact: "North Alabama marks the southern tip of the Appalachians — the oldest mountain range in North America." },
+  { time: "morning", url: "https://images.unsplash.com/photo-1589747948711-64c21bee4019?auto=format&fit=crop&w=1920&q=80", title: "Lake Martin", location: "Central Alabama", fact: "With over 750 miles of shoreline, Lake Martin is one of the largest man-made lakes in the US." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1711048090288-1ccf17fc57a4?auto=format&fit=crop&w=1920&q=80", title: "Alabama Theatre", location: "Birmingham, Alabama", fact: "Opened in 1927 and dubbed the 'Showplace of the South,' it still hosts films and concerts." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1711048090328-1892e90ae260?auto=format&fit=crop&w=1920&q=80", title: "Archives & History Museum", location: "Montgomery, Alabama", fact: "Founded in 1901, it's the oldest state-funded archives agency in the United States." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1574723507385-265b5635e6c4?auto=format&fit=crop&w=1920&q=80", title: "Gulf Shores Harbor", location: "Gulf Shores, Alabama", fact: "Gulf Shores hosts the National Shrimp Festival each October, drawing over 200,000 visitors." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1659354264754-564df7e375da?auto=format&fit=crop&w=1920&q=80", title: "Coastal Boardwalk", location: "Gulf Shores, Alabama", fact: "Gulf State Park features over 28 miles of paved trails winding through nine distinct ecosystems." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1551292788-2031aee091a6?auto=format&fit=crop&w=1920&q=80", title: "Gulf Coast Waves", location: "Gulf Shores, Alabama", fact: "The warm Gulf waters make Alabama's coast a year-round destination for fishing and water sports." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1670872623631-cd88b0803d58?auto=format&fit=crop&w=1920&q=80", title: "Big Spring Park", location: "Huntsville, Alabama", fact: "Built around a natural spring that has flowed for over 10,000 years — the reason Huntsville was founded." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1711048090525-807f98902860?auto=format&fit=crop&w=1920&q=80", title: "Rocket Park", location: "Huntsville, Alabama", fact: "Established in 1960 at Redstone Arsenal, it displays rockets from the early days of the US space program." },
+  { time: "afternoon", url: "https://images.unsplash.com/photo-1600388704262-530cb4af35d3?auto=format&fit=crop&w=1920&q=80", title: "Historic Huntsville", location: "Huntsville, Alabama", fact: "Huntsville was the first permanent settlement in Alabama, founded in 1805 and originally named Twickenham." },
+  { time: "evening", url: "https://images.unsplash.com/photo-1728001528593-58c93982917b?auto=format&fit=crop&w=1920&q=80", title: "Downtown Montgomery", location: "Montgomery, Alabama", fact: "Montgomery has been Alabama's capital since 1846 and hosted the historic 1955 bus boycott." },
+  { time: "evening", url: "https://images.unsplash.com/photo-1644578843995-b2cc1acbdf33?auto=format&fit=crop&w=1920&q=80", title: "Gulf Coast Sunset", location: "Gulf Shores, Alabama", fact: "Alabama's Gulf Coast boasts 32 miles of sugar-white sand beaches along the Gulf of Mexico." },
+  { time: "evening", url: "https://images.unsplash.com/photo-1622409408503-f3ff61cc631b?auto=format&fit=crop&w=1920&q=80", title: "Huntsville Skyline", location: "Huntsville, Alabama", fact: "Huntsville is nicknamed 'The Rocket City' for its pivotal role in developing the Saturn V moon rocket." },
+  { time: "evening", url: "https://images.unsplash.com/photo-1605813640975-0ef0ad36826a?auto=format&fit=crop&w=1920&q=80", title: "Saturn V Rocket", location: "Huntsville, Alabama", fact: "The Saturn V at the Space & Rocket Center is one of only three remaining and stands 363 feet tall." },
 ];
+
+function timeOfDay(h) {
+  if (h >= 5 && h < 12) return "morning";
+  if (h >= 12 && h < 18) return "afternoon";
+  return "evening";
+}
+
+function pickScene() {
+  const tod = timeOfDay(new Date().getHours());
+  const pool = SCENES.filter((s) => s.time === tod);
+  const arr = pool.length ? pool : SCENES;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getGreeting() {
+  const tod = timeOfDay(new Date().getHours());
+  if (tod === "morning") return { greeting: "Good Morning", greetingSub: "Ready to explore Alabama school performance?", periodLabel: "Morning" };
+  if (tod === "afternoon") return { greeting: "Good Afternoon", greetingSub: "Welcome back.", periodLabel: "Afternoon" };
+  return { greeting: "Good Evening", greetingSub: "Ready to explore Alabama school performance?", periodLabel: "Evening" };
+}
 
 export default function SelectSchool() {
   const [username, setUsername] = useState("");
@@ -35,7 +55,8 @@ export default function SelectSchool() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [emailHint, setEmailHint] = useState("");
   const navigate = useNavigate();
-  const [scene] = useState(() => ALABAMA_SCENES[Math.floor(Math.random() * ALABAMA_SCENES.length)]);
+  const [scene] = useState(() => pickScene());
+  const { greeting, greetingSub, periodLabel } = getGreeting();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -153,7 +174,7 @@ export default function SelectSchool() {
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
 
       <div className="absolute top-6 left-6 z-10 max-w-sm bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg">
-        <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">Today's Alabama Landmark</p>
+        <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">This {periodLabel}'s Alabama Landmark</p>
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-amber-300 shrink-0" />
           <div>
@@ -165,13 +186,19 @@ export default function SelectSchool() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
-        <div className="mb-6">
-          <div className="bg-white rounded-2xl px-6 py-1.5 shadow-lg w-full">
+        <div className="absolute -inset-6 sm:-inset-8 bg-white/5 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/10 shadow-2xl" aria-hidden="true" />
+        <div className="relative mb-6 flex flex-col items-center">
+          <div className="w-56 drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
             <Logo className="w-full" />
+          </div>
+          <p className="mt-4 text-center text-sm font-medium text-white/90">Alabama's School Performance Intelligence Platform</p>
+          <div className="mt-2 text-center">
+            <p className="text-lg font-semibold text-white">{greeting}</p>
+            <p className="text-sm text-white/70">{greetingSub}</p>
           </div>
         </div>
 
-        <div className="bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 shadow-2xl">
+        <div className="relative bg-white/95 backdrop-blur p-6 rounded-2xl border border-white/20 shadow-2xl">
           {mfaRequired ? (
             <MfaInput
               emailHint={emailHint}
@@ -183,14 +210,14 @@ export default function SelectSchool() {
             />
           ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-          <Button type="button" onClick={handleMicrosoftSSO} disabled={loading} className="w-full bg-slate-900 hover:bg-slate-800">
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
-            Sign in with Microsoft
+          <Button type="button" onClick={handleMicrosoftSSO} disabled={loading} className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-base">
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
+            Continue with Microsoft
           </Button>
 
-          <div className="relative py-1">
+          <div className="relative py-4">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-white px-2 text-slate-400">or</span></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-white px-3 text-slate-400">or</span></div>
           </div>
 
           <div>
@@ -241,7 +268,7 @@ export default function SelectSchool() {
           )}
         </div>
 
-          <div className="text-center mt-4 space-y-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-3">
+          <div className="relative text-center mt-4 space-y-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-3">
             <div>
               <a href="https://blueridge-group.co.uk" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-white hover:underline">
                 ReportAL 360 by Blueridge Group
