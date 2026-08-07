@@ -8,6 +8,7 @@ import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { buildTeachingSlots } from "@/lib/teachingSlots";
+import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
 const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
@@ -35,8 +36,10 @@ export default function ClassManagement() {
   const [dupYear, setDupYear] = useState("");
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
+  const [autoProgress, setAutoProgress] = useState({ current: 0, total: 0, label: "" });
   const [assignRunning, setAssignRunning] = useState(false);
   const [assignResult, setAssignResult] = useState(null);
+  const [assignProgress, setAssignProgress] = useState({ current: 0, total: 0, label: "" });
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
 
@@ -100,6 +103,7 @@ export default function ClassManagement() {
   const runAutoSchedule = async () => {
     setAutoRunning(true);
     setAutoResult(null);
+    setAutoProgress({ current: 0, total: 0, label: "Preparing…" });
     try {
       const [existing, ttRes] = await Promise.all([
         base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500),
@@ -191,7 +195,10 @@ export default function ClassManagement() {
         .filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom")
         .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
 
-      for (const cls of queue) {
+      setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
+      for (let qi = 0; qi < queue.length; qi++) {
+        const cls = queue[qi];
+        setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
         const target = Math.max(1, Math.min(5, parseInt(cls.sessions_per_week, 10) || 1));
         let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
         // Auto-assign a teacher by subject if none assigned
@@ -278,6 +285,7 @@ export default function ClassManagement() {
           failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)` });
         }
       }
+      setAutoProgress({ current: queue.length, total: queue.length, label: "Done" });
       setAutoResult({ scheduled: scheduled.length, failed, assigned, suggestions });
       cm.loadData();
     } catch (err) {
@@ -296,6 +304,7 @@ export default function ClassManagement() {
     if (!confirm("Auto-assign students to classes by grade and subject? Each student is enrolled into one section per subject for their grade, balancing class sizes. Existing enrollments are kept.")) return;
     setAssignRunning(true);
     setAssignResult(null);
+    setAssignProgress({ current: 0, total: cm.students.length, label: "Starting…" });
     try {
       const activeClasses = cm.classes.filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom" && c.grade_level);
       // group by grade|subject
@@ -312,7 +321,10 @@ export default function ClassManagement() {
 
       const toCreate = [];
       const perStudent = {};
+      let si = 0;
       for (const s of cm.students) {
+        si++;
+        if (si % 10 === 0) setAssignProgress({ current: si, total: cm.students.length, label: s.student_name || "" });
         if (s.status && s.status !== "active") continue;
         const grade = s.grade_level || "";
         if (!grade) continue;
@@ -330,6 +342,7 @@ export default function ClassManagement() {
       }
       if (toCreate.length > 0) await base44.entities.StudentClass.bulkCreate(toCreate);
       const studentsAssigned = Object.keys(perStudent).length;
+      setAssignProgress({ current: cm.students.length, total: cm.students.length, label: "Done" });
       setAssignResult({ created: toCreate.length, studentsAssigned, totalStudents: cm.students.length });
       cm.loadData();
     } catch (err) {
@@ -386,6 +399,17 @@ export default function ClassManagement() {
           </Button>
         </div>
       </div>
+
+      {(autoRunning || assignRunning) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {autoRunning && (
+            <AutoScheduleProgress icon={Wand2} title="Auto-Scheduling classes" current={autoProgress.current} total={autoProgress.total} label={autoProgress.label} />
+          )}
+          {assignRunning && (
+            <AutoScheduleProgress icon={Users} title="Auto-Assigning students" current={assignProgress.current} total={assignProgress.total} label={assignProgress.label} />
+          )}
+        </div>
+      )}
 
       {/* Stat Widgets */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
