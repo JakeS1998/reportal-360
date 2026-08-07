@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { buildTeachingSlots } from "@/lib/teachingSlots";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
@@ -40,6 +41,8 @@ export default function ClassManagement() {
   const [assignRunning, setAssignRunning] = useState(false);
   const [assignResult, setAssignResult] = useState(null);
   const [assignProgress, setAssignProgress] = useState({ current: 0, total: 0, label: "" });
+  const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
+  const [accepting, setAccepting] = useState(false);
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
 
@@ -104,6 +107,7 @@ export default function ClassManagement() {
     setAutoRunning(true);
     setAutoResult(null);
     setAutoProgress({ current: 0, total: 0, label: "Preparing…" });
+    setSelectedSuggestions(new Set());
     try {
       const [existing, ttRes] = await Promise.all([
         base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500),
@@ -186,7 +190,7 @@ export default function ClassManagement() {
         });
         scored.sort((a, b) => (a.clashes - b.clashes) || (b.count - a.count));
         const pick = scored[0];
-        return { name: pick.alt.class_name, meets: pick.meets, clashes: pick.clashes };
+        return { name: pick.alt.class_name, meets: pick.meets, clashes: pick.clashes, id: pick.alt.id };
       };
 
       // Schedule the most-constrained classes first (most enrolled students), so
@@ -273,7 +277,9 @@ export default function ClassManagement() {
               const alt = suggestAlternative(cls, sid);
               suggestions.push({
                 student: studentName(sid),
+                student_id: sid,
                 fromClass: cls.class_name,
+                from_class_id: cls.id,
                 day: placed.day,
                 time: fmtTime(mmToHHMM(placed.start)),
                 alt: alt,
@@ -367,6 +373,45 @@ export default function ClassManagement() {
     await cm.duplicateClass(dupClass, dupYear);
     setDupClass(null);
     setDupYear("");
+  };
+
+  // Move a conflicted student from the class that clashes into the suggested
+  // alternative section of the same subject: withdraw the old enrollment and
+  // create an active one in the alternative class.
+  const acceptSuggestion = async (sug) => {
+    if (!sug.alt?.id) return;
+    const existing = cm.studentAssignments.filter(
+      (sa) => sa.student_id === sug.student_id && sa.class_id === sug.from_class_id && sa.status === "active"
+    );
+    for (const sa of existing) await base44.entities.StudentClass.update(sa.id, { status: "withdrawn" });
+    const already = cm.studentAssignments.find(
+      (sa) => sa.student_id === sug.student_id && sa.class_id === sug.alt.id && sa.status === "active"
+    );
+    if (!already) {
+      await base44.entities.StudentClass.create({
+        student_id: sug.student_id, student_name: sug.student, class_id: sug.alt.id,
+        academic_year_id: cm.currentYear?.id || "", school_code: cm.schoolCode, status: "active",
+      });
+    }
+  };
+
+  const acceptSuggestions = async (indices) => {
+    const list = autoResult?.suggestions || [];
+    const targets = indices.map((i) => list[i]).filter((s) => s && s.alt?.id);
+    if (targets.length === 0) return;
+    setAccepting(true);
+    try {
+      for (const sug of targets) await acceptSuggestion(sug);
+      const done = new Set(indices);
+      const remaining = list.filter((_, i) => !done.has(i));
+      setAutoResult({ ...autoResult, suggestions: remaining });
+      setSelectedSuggestions(new Set());
+      cm.loadData();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAccepting(false);
+    }
   };
 
   if (cm.loading) {
@@ -681,21 +726,47 @@ export default function ClassManagement() {
               )}
               {autoResult?.suggestions?.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Student conflicts — alternative class suggestions:</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Student conflicts — alternative class suggestions:</p>
+                    <div className="flex items-center gap-1.5">
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-slate-200" disabled={accepting} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, i) => i))}>
+                        Accept All
+                      </Button>
+                      <Button size="sm" className="h-7 text-xs bg-slate-900 hover:bg-slate-800" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>
+                        {accepting ? "Moving…" : `Accept Selected (${selectedSuggestions.size})`}
+                      </Button>
+                    </div>
+                  </div>
                   <div className="max-h-52 overflow-y-auto space-y-1.5">
-                    {autoResult.suggestions.map((s, i) => (
-                      <div key={i} className="text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-slate-700">{s.student}</span>
-                          <span className="text-amber-600">{s.fromClass} · {s.day} {s.time}</span>
+                    {autoResult.suggestions.map((s, i) => {
+                      const canAccept = !!s.alt?.id;
+                      const checked = selectedSuggestions.has(i);
+                      return (
+                        <div key={i} className="text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-start gap-2">
+                          <Checkbox
+                            checked={checked}
+                            disabled={!canAccept || accepting}
+                            onCheckedChange={(v) => {
+                              const next = new Set(selectedSuggestions);
+                              if (v) next.add(i); else next.delete(i);
+                              setSelectedSuggestions(next);
+                            }}
+                            className="mt-0.5 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-slate-700">{s.student}</span>
+                              <span className="text-amber-600">{s.fromClass} · {s.day} {s.time}</span>
+                            </div>
+                            {s.alt ? (
+                              <p className="text-slate-500 mt-1">→ Suggested alternative: <span className="font-medium text-slate-700">{s.alt.name}</span>{s.alt.meets ? ` (${s.alt.meets}${s.alt.clashes ? ", has clashes" : ""})` : ""}</p>
+                            ) : (
+                              <p className="text-slate-500 mt-1">→ No alternative class of the same subject available.</p>
+                            )}
+                          </div>
                         </div>
-                        {s.alt ? (
-                          <p className="text-slate-500 mt-1">→ Suggested alternative: <span className="font-medium text-slate-700">{s.alt.name}</span>{s.alt.meets ? ` (${s.alt.meets}${s.alt.clashes ? ", has clashes" : ""})` : ""}</p>
-                        ) : (
-                          <p className="text-slate-500 mt-1">→ No alternative class of the same subject available.</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
