@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { useSchool } from "@/lib/SchoolContext";
@@ -6,10 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Clock, Trash2, Edit2, CalendarDays, MapPin, User, BookOpen } from "lucide-react";
+import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle } from "lucide-react";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
+
+const DAY_START_MIN = 7 * 60; // 7:00 AM
+const DAY_END_MIN = 16 * 60; // 4:00 PM
+const PX_PER_MIN = 1.4;
+const PX_PER_HOUR = PX_PER_MIN * 60;
+const GRID_HEIGHT = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
 
 const fmtTime = (t) => {
   if (!t) return "";
@@ -20,6 +26,41 @@ const fmtTime = (t) => {
   return `${h12}:${m} ${ampm}`;
 };
 
+const toMin = (t) => {
+  if (!t) return 0;
+  const [h, m] = t.split(":");
+  return parseInt(h, 10) * 60 + parseInt(m, 10);
+};
+
+const pad = (n) => String(n).padStart(2, "0");
+const mmToHHMM = (min) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
+
+const HOURS = [];
+for (let m = DAY_START_MIN; m < DAY_END_MIN; m += 60) HOURS.push(m);
+
+function layoutBlocks(blocks) {
+  const sorted = [...blocks].sort((a, b) => a._startMin - b._startMin);
+  const clusters = [];
+  let cluster = [];
+  let clusterEnd = -1;
+  for (const b of sorted) {
+    if (cluster.length === 0 || b._startMin < clusterEnd) {
+      cluster.push(b);
+      clusterEnd = Math.max(clusterEnd, b._endMin);
+    } else {
+      clusters.push(cluster);
+      cluster = [b];
+      clusterEnd = b._endMin;
+    }
+  }
+  if (cluster.length) clusters.push(cluster);
+  const layout = {};
+  for (const cl of clusters) {
+    cl.forEach((b, i) => { layout[b.id] = { col: i, count: cl.length }; });
+  }
+  return layout;
+}
+
 export default function Schedule() {
   const cm = useClassManagement();
   const { canManageStaff } = useSchool();
@@ -28,7 +69,9 @@ export default function Schedule() {
   const [teacherFilter, setTeacherFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "" });
+  const gridRefs = useRef({});
 
   const load = useCallback(async () => {
     if (!cm.schoolCode) return;
@@ -48,21 +91,49 @@ export default function Schedule() {
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
   const activeClasses = cm.classes.filter((c) => c.status === "active");
 
-  const openCreate = (day) => {
+  const openCreate = (overrides = {}) => {
     setEditing(null);
-    setForm({ class_id: activeClasses[0]?.id || "", teacher_id: "", day_of_week: day || "Monday", start_time: "08:00", end_time: "09:00", room: "" });
+    setFormError("");
+    setForm({
+      class_id: activeClasses[0]?.id || "",
+      teacher_id: teacherFilter || "",
+      day_of_week: "Monday",
+      start_time: "08:00",
+      end_time: "09:00",
+      room: "",
+      ...overrides,
+    });
     setShowForm(true);
   };
 
   const openEdit = (s) => {
     setEditing(s);
+    setFormError("");
     setForm({ class_id: s.class_id, teacher_id: s.teacher_id, day_of_week: s.day_of_week, start_time: s.start_time || "08:00", end_time: s.end_time || "09:00", room: s.room || "" });
     setShowForm(true);
   };
 
+  const hasConflict = (teacherId, day, start, end, excludeId) => {
+    const sMin = toMin(start);
+    const eMin = toMin(end);
+    return schedules.some((s) =>
+      s.teacher_id === teacherId &&
+      s.day_of_week === day &&
+      s.id !== excludeId &&
+      sMin < toMin(s.end_time) &&
+      eMin > toMin(s.start_time)
+    );
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.class_id || !form.teacher_id) return;
+    setFormError("");
+    if (!form.class_id || !form.teacher_id) { setFormError("Select a class and a teacher."); return; }
+    if (toMin(form.end_time) <= toMin(form.start_time)) { setFormError("End time must be after start time."); return; }
+    if (hasConflict(form.teacher_id, form.day_of_week, form.start_time, form.end_time, editing?.id)) {
+      setFormError("That teacher already has a class overlapping this time on " + form.day_of_week + ".");
+      return;
+    }
     const cls = cm.classes.find((c) => c.id === form.class_id);
     const teacher = cm.teachers.find((t) => t.id === form.teacher_id);
     const payload = {
@@ -100,8 +171,22 @@ export default function Schedule() {
     load();
   };
 
+  const handleGridClick = (day, e) => {
+    const el = gridRefs.current[day];
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    let min = DAY_START_MIN + Math.round(offsetY / PX_PER_MIN);
+    min = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - 30, min));
+    min = Math.round(min / 15) * 15; // snap to 15 min
+    openCreate({ day_of_week: day, start_time: mmToHHMM(min), end_time: mmToHHMM(Math.min(DAY_END_MIN, min + 60)) });
+  };
+
   const filtered = useMemo(() => schedules.filter((s) => !teacherFilter || s.teacher_id === teacherFilter), [schedules, teacherFilter]);
-  const byDay = (day) => filtered.filter((s) => s.day_of_week === day).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+  const byDay = (day) => filtered
+    .filter((s) => s.day_of_week === day)
+    .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
+    .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
 
   if (!canManageStaff) {
     return (
@@ -117,14 +202,14 @@ export default function Schedule() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Weekly Schedule</h2>
-          <p className="text-sm text-slate-500">Schedule classes to teachers by day and time — assignments happen here, not at class creation.</p>
+          <p className="text-sm text-slate-500">Click any time slot to schedule a class. Assignments happen here, not at class creation.</p>
         </div>
         <div className="flex items-center gap-2">
           <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2">
             <option value="">All teachers</option>
             {activeTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
           </select>
-          <Button onClick={() => openCreate("Monday")} className="bg-slate-900 hover:bg-slate-800">
+          <Button onClick={() => openCreate()} className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-1" /> Schedule Class
           </Button>
         </div>
@@ -138,35 +223,66 @@ export default function Schedule() {
           <p className="text-sm text-slate-400">Create a class first, then schedule it here.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {DAYS.map((day) => (
-            <div key={day} className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col min-h-[200px]">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <h3 className="text-sm font-bold text-slate-900">{day}</h3>
-                <button onClick={() => openCreate(day)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" title={`Add to ${day}`}><Plus className="w-4 h-4" /></button>
-              </div>
-              <div className="space-y-2 flex-1">
-                {byDay(day).length === 0 ? (
-                  <p className="text-xs text-slate-300 text-center py-8">No classes</p>
-                ) : byDay(day).map((s) => (
-                  <div key={s.id} className="group rounded-xl border border-slate-100 bg-slate-50/60 p-3 hover:border-slate-200 hover:shadow-sm transition-all">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">{s.class_name}</p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3" />{fmtTime(s.start_time)} – {fmtTime(s.end_time)}</p>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5"><User className="w-3 h-3" />{s.teacher_name || "—"}</p>
-                        {s.room && <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />Room {s.room}</p>}
-                      </div>
-                      <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(s)} className="p-1 rounded text-slate-400 hover:bg-white hover:text-slate-600" title="Edit"><Edit2 className="w-3 h-3" /></button>
-                        <button onClick={() => handleDelete(s)} className="p-1 rounded text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Remove"><Trash2 className="w-3 h-3" /></button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto">
+          <div className="flex min-w-[760px]">
+            {/* Time gutter */}
+            <div className="w-12 shrink-0 relative" style={{ height: GRID_HEIGHT }}>
+              {HOURS.map((m) => (
+                <div key={m} className="absolute left-0 right-0 text-[10px] text-slate-400 -translate-y-1/2 text-right pr-1" style={{ top: (m - DAY_START_MIN) * PX_PER_MIN }}>
+                  {fmtTime(mmToHHMM(m))}
+                </div>
+              ))}
             </div>
-          ))}
+            {/* Day columns */}
+            {DAYS.map((day) => {
+              const blocks = byDay(day);
+              const layout = layoutBlocks(blocks);
+              return (
+                <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
+                  <div className="text-center text-xs font-semibold text-slate-700 py-2 border-b border-slate-100">{day}</div>
+                  <div
+                    ref={(el) => (gridRefs.current[day] = el)}
+                    onClick={(e) => handleGridClick(day, e)}
+                    className="relative cursor-cell"
+                    style={{
+                      height: GRID_HEIGHT,
+                      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)`,
+                    }}
+                  >
+                    {blocks.map((s) => {
+                      const lay = layout[s.id] || { col: 0, count: 1 };
+                      const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
+                      const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
+                      const widthPct = 100 / lay.count;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={(e) => { e.stopPropagation(); openEdit(s); }}
+                          className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden hover:ring-2 hover:ring-white transition-shadow"
+                          style={{
+                            top,
+                            height,
+                            left: `calc(${lay.col * widthPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
+                            backgroundColor: CRIMSON,
+                          }}
+                          title={`${s.class_name} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${s.teacher_name ? ` · ${s.teacher_name}` : ""}`}
+                        >
+                          <p className="font-semibold truncate">{s.class_name}</p>
+                          <p className="opacity-90 truncate">{fmtTime(s.start_time)}–{fmtTime(s.end_time)}</p>
+                          {!teacherFilter && <p className="opacity-80 truncate">{s.teacher_name}</p>}
+                          {s.room && height > 56 && <p className="opacity-75 truncate flex items-center gap-0.5"><MapPin className="w-2 h-2" />{s.room}</p>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {schedules.length > 0 && byDay("Monday").length === 0 && byDay("Tuesday").length === 0 && byDay("Wednesday").length === 0 && byDay("Thursday").length === 0 && byDay("Friday").length === 0 && (
+            <p className="text-xs text-slate-400 text-center mt-4">No classes fall within 7 AM–4 PM. Use “Schedule Class” to add one.</p>
+          )}
         </div>
       )}
 
@@ -210,8 +326,16 @@ export default function Schedule() {
               <Label className="text-sm font-medium text-slate-700">Room (optional)</Label>
               <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g. 204" className="mt-1" />
             </div>
+            {formError && (
+              <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{formError}</p>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              {editing && (
+                <Button type="button" variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => { handleDelete(editing); setShowForm(false); }}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Remove
+                </Button>
+              )}
               <Button type="submit" className="bg-slate-900 hover:bg-slate-800">{editing ? "Save Changes" : "Schedule"}</Button>
             </DialogFooter>
           </form>
