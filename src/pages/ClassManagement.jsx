@@ -32,6 +32,7 @@ export default function ClassManagement() {
   const [dupYear, setDupYear] = useState("");
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
+  const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
 
@@ -80,8 +81,8 @@ export default function ClassManagement() {
     setAutoResult(null);
     try {
       const existing = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500);
-      const scheduledClassIds = new Set(existing.map((s) => s.class_id));
-      const unscheduled = cm.classes.filter((c) => c.status === "active" && !scheduledClassIds.has(c.id));
+      const byClass = {};
+      existing.forEach((s) => { (byClass[s.class_id] ||= []).push(s); });
       const busy = {};
       existing.forEach((s) => {
         if (!s.teacher_id) return;
@@ -90,31 +91,47 @@ export default function ClassManagement() {
       });
       const slots = [];
       for (let h = 8; h < 15; h++) slots.push({ start: h * 60, end: (h + 1) * 60 });
+      const target = Math.max(1, Math.min(5, parseInt(sessionsPerWeek, 10) || 1));
       const scheduled = [];
       const failed = [];
-      for (const cls of unscheduled) {
+      const placedCount = {};
+      for (const cls of cm.classes.filter((c) => c.status === "active")) {
         const tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
         if (!tAssign) { failed.push({ name: cls.class_name, reason: "No teacher assigned" }); continue; }
-        let placed = null;
-        for (const day of SCHED_DAYS) {
-          const dayBusy = (busy[tAssign.teacher_id] || {})[day] || [];
-          for (const slot of slots) {
-            if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) { placed = { day, ...slot }; break; }
+        const have = (byClass[cls.id] || []).length;
+        const need = Math.max(0, target - have);
+        if (need === 0) continue;
+        const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_of_week));
+        let placedThis = 0;
+        for (let i = 0; i < need; i++) {
+          let placed = null;
+          const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
+          for (const day of dayOrder) {
+            const dayBusy = (busy[tAssign.teacher_id] || {})[day] || [];
+            for (const slot of slots) {
+              if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) { placed = { day, ...slot }; break; }
+            }
+            if (placed) break;
           }
-          if (placed) break;
+          if (!placed) break;
+          await base44.entities.ClassSchedule.create({
+            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
+            teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: cls.room || "",
+            day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
+            recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
+          });
+          (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
+          busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
+          usedDays.add(placed.day);
+          placedThis++;
+          scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
         }
-        if (!placed) { failed.push({ name: cls.class_name, reason: "No free slot this week (8 AM–3 PM)" }); continue; }
-        await base44.entities.ClassSchedule.create({
-          class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
-          teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: cls.room || "",
-          day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
-          recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
-        });
-        (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
-        busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
-        scheduled.push({ name: cls.class_name, day: placed.day, time: `${fmtTime(mmToHHMM(placed.start))}` });
+        placedCount[cls.id] = placedThis;
+        if (placedThis < need) {
+          failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (8 AM–3 PM)` });
+        }
       }
-      setAutoResult({ scheduled: scheduled.length, failed, skipped: cm.classes.filter((c) => c.status === "active").length - unscheduled.length });
+      setAutoResult({ scheduled: scheduled.length, failed, target });
       cm.loadData();
     } catch (err) {
       console.error(err);
@@ -159,6 +176,10 @@ export default function ClassManagement() {
           <p className="text-sm text-slate-500">{filtered.length} class{filtered.length === 1 ? "" : "es"} at {cm.schoolName}</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 bg-white">
+            <span className="text-xs text-slate-500">Sessions/week</span>
+            <input type="number" min={1} max={5} value={sessionsPerWeek} onChange={(e) => setSessionsPerWeek(e.target.value)} className="w-12 text-sm text-center bg-transparent outline-none" />
+          </div>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
             <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
           </Button>
@@ -390,8 +411,8 @@ export default function ClassManagement() {
                   <p className="text-xs text-slate-500">Flagged</p>
                 </div>
                 <div className="rounded-lg bg-slate-100 p-3">
-                  <p className="text-2xl font-bold text-slate-600">{autoResult?.skipped || 0}</p>
-                  <p className="text-xs text-slate-500">Already scheduled</p>
+                  <p className="text-2xl font-bold text-slate-600">{autoResult?.target || 1}</p>
+                  <p className="text-xs text-slate-500">Target / class</p>
                 </div>
               </div>
               {autoResult?.failed?.length > 0 && (
