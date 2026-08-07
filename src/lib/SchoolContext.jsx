@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { isSessionExpired } from "@/lib/authFlow";
 
 const SchoolContext = createContext(null);
 
@@ -38,6 +39,11 @@ export function SchoolProvider({ children }) {
       navigate("/login");
       return;
     }
+    if (isSessionExpired(session)) {
+      localStorage.removeItem("userSession");
+      navigate("/login");
+      return;
+    }
     setUser(session.user);
     setSystemSchools(session.systemSchools || []);
     const initial = session.school;
@@ -55,6 +61,37 @@ export function SchoolProvider({ children }) {
         .catch(() => {});
     }
   }, [navigate]);
+
+  // Enforce session expiry + idle timeout while the dashboard is open
+  useEffect(() => {
+    if (!user) return;
+    const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    let lastTouch = Date.now();
+    const onActivity = () => {
+      const now = Date.now();
+      if (now - lastTouch < 10000) return; // throttle writes
+      lastTouch = now;
+      const s = JSON.parse(localStorage.getItem("userSession") || "null");
+      if (s) {
+        s.last_activity = now;
+        localStorage.setItem("userSession", JSON.stringify(s));
+      }
+    };
+    ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    const interval = setInterval(() => {
+      const s = JSON.parse(localStorage.getItem("userSession") || "null");
+      if (!s) return;
+      if (isSessionExpired(s)) {
+        localStorage.removeItem("userSession");
+        clearInterval(interval);
+        window.location.href = "/login";
+      }
+    }, 30000);
+    return () => {
+      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, onActivity));
+      clearInterval(interval);
+    };
+  }, [user]);
 
   const switchSchool = () => {
     localStorage.removeItem("userSession");

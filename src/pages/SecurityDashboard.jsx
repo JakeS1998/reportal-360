@@ -7,7 +7,7 @@ import SectionCard from "@/components/SectionCard";
 import SecurityMetricCard from "@/components/SecurityMetricCard";
 import {
   Shield, ShieldAlert, LogIn, Lock, Eye, Download, Activity,
-  AlertTriangle, CheckCircle2, RefreshCw, Search, FileDown, LogOut, Users
+  AlertTriangle, CheckCircle2, RefreshCw, Search, FileDown, LogOut, Users, Radar
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -43,6 +43,8 @@ export default function SecurityDashboard() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ event_type: "", search: "" });
+  const [scan, setScan] = useState(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     const s = JSON.parse(localStorage.getItem("userSession") || "null");
@@ -70,6 +72,23 @@ export default function SecurityDashboard() {
       // ignore
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runScan = async () => {
+    setScanning(true);
+    try {
+      const res = await base44.functions.invoke("runSecurityScan", {
+        caller_username: "BRGAdmin",
+        caller_password: "BRGAdmin",
+      });
+      if (res.data?.success) {
+        setScan({ findings: res.data.findings, summary: res.data.summary, scanned_at: res.data.scanned_at });
+      }
+    } catch {
+      // ignore
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -346,6 +365,61 @@ export default function SecurityDashboard() {
                 </SectionCard>
               </FadeIn>
             </div>
+
+            {/* Automated Security Scan (Penetration Testing) */}
+            <FadeIn delay={270}>
+              <SectionCard
+                title="Automated Security Scan"
+                subtitle="Pentest-style checks against live accounts & session controls"
+                icon={Radar}
+                action={
+                  <Button onClick={runScan} disabled={scanning} size="sm">
+                    <RefreshCw className={`w-4 h-4 mr-1 ${scanning ? "animate-spin" : ""}`} />
+                    {scanning ? "Scanning..." : "Run Scan"}
+                  </Button>
+                }
+              >
+                {!scan ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+                    <Radar className="w-8 h-8 text-slate-300" />
+                    <p className="text-sm text-slate-400">No scan run yet. Click "Run Scan" to check accounts and session controls.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold">{scan.summary.passed} passed</span>
+                      <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-semibold">{scan.summary.failed} findings</span>
+                      {scan.summary.high > 0 && <span className="px-2.5 py-1 rounded-full bg-red-50 text-red-700 font-semibold">{scan.summary.high} high</span>}
+                      {scan.summary.medium > 0 && <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-semibold">{scan.summary.medium} medium</span>}
+                      {scan.summary.low > 0 && <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold">{scan.summary.low} low</span>}
+                    </div>
+                    {scan.findings.map((f) => {
+                      const sev = f.severity;
+                      const color = sev === "high" ? "#EF4444" : sev === "medium" ? "#F59E0B" : sev === "low" ? "#64748B" : sev === "info" ? "#3B82F6" : "#10B981";
+                      const Icon = f.status === "pass" ? CheckCircle2 : AlertTriangle;
+                      return (
+                        <div key={f.id} className="flex items-start gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: color + "20" }}>
+                            <Icon className="w-4 h-4" style={{ color }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-slate-800">{f.title}</p>
+                              <span className="text-[10px] font-semibold uppercase" style={{ color }}>{sev === "pass" ? "Pass" : sev}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">{f.description}</p>
+                            {f.recommendation && <p className="text-xs text-slate-400 mt-1">→ {f.recommendation}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {scan.scanned_at && (
+                      <p className="text-[11px] text-slate-400 text-right">Last scanned {new Date(scan.scanned_at).toLocaleString()}</p>
+                    )}
+                  </div>
+                )}
+              </SectionCard>
+            </FadeIn>
 
             {/* Audit History */}
             <FadeIn delay={300}>

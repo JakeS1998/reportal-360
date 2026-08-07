@@ -1,5 +1,21 @@
 import { base44 } from "@/api/base44Client";
 
+export const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours absolute session lifetime
+export const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity
+
+export function stampSession(session) {
+  const now = Date.now();
+  return { ...session, session_expires_at: now + SESSION_TTL_MS, last_activity: now };
+}
+
+export function isSessionExpired(session) {
+  if (!session) return true;
+  const now = Date.now();
+  if (session.session_expires_at && now > session.session_expires_at) return true;
+  if (session.last_activity && now - session.last_activity > IDLE_TIMEOUT_MS) return true;
+  return false;
+}
+
 // Shared post-login helper: fetches school data + system schools list,
 // stores the full session in localStorage, and returns it.
 export async function completeLogin(user) {
@@ -31,7 +47,7 @@ export async function completeLogin(user) {
     systemSchools = schoolsRes.data?.schools || [];
   }
 
-  const session = { user, school: schoolData, systemSchools };
+  const session = stampSession({ user, school: schoolData, systemSchools });
   localStorage.setItem("userSession", JSON.stringify(session));
   return session;
 }
