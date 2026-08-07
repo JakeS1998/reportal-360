@@ -1,27 +1,55 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
-import { BookOpen, Clock, MapPin, AlertCircle, CalendarDays } from "lucide-react";
+import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const DAY_START_MIN = 7 * 60;
+const DAY_END_MIN = 16 * 60;
+const PX_PER_MIN = 1.4;
+const PX_PER_HOUR = PX_PER_MIN * 60;
+const GRID_HEIGHT = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
+
+const HOURS = [];
+for (let m = DAY_START_MIN; m < DAY_END_MIN; m += 60) HOURS.push(m);
+
+const toMin = (t) => { if (!t) return 0; const [h, m] = t.split(":"); return parseInt(h, 10) * 60 + parseInt(m, 10); };
+const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
 const todayName = () => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
-const fmtTime = (t) => {
-  if (!t) return "";
-  const [h, m] = t.split(":");
-  const hh = parseInt(h, 10);
-  const ampm = hh >= 12 ? "PM" : "AM";
-  const h12 = hh % 12 || 12;
-  return `${h12}:${m} ${ampm}`;
-};
+function layoutBlocks(blocks) {
+  const sorted = [...blocks].sort((a, b) => a._startMin - b._startMin);
+  const clusters = [];
+  let cluster = [];
+  let clusterEnd = -1;
+  for (const b of sorted) {
+    if (cluster.length === 0 || b._startMin < clusterEnd) {
+      cluster.push(b);
+      clusterEnd = Math.max(clusterEnd, b._endMin);
+    } else {
+      clusters.push(cluster);
+      cluster = [b];
+      clusterEnd = b._endMin;
+    }
+  }
+  if (cluster.length) clusters.push(cluster);
+  const layout = {};
+  for (const cl of clusters) {
+    cl.forEach((b, i) => { layout[b.id] = { col: i, count: cl.length }; });
+  }
+  return layout;
+}
 
 export default function MyClasses() {
   const { user } = useSchool();
   const [schedules, setSchedules] = useState([]);
+  const [classes, setClasses] = useState({});
   const [attendanceMap, setAttendanceMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
 
   useEffect(() => {
     const load = async () => {
@@ -29,15 +57,11 @@ export default function MyClasses() {
       try {
         const res = await base44.entities.ClassSchedule.filter({ teacher_id: user.id }, "day_of_week", 500);
         setSchedules(res);
-        const todays = res.filter((s) => s.day_of_week === todayName());
-        if (todays.length > 0) {
-          const checks = await Promise.all(
-            todays.map((s) => base44.entities.AttendanceRecord.filter({ class_id: s.class_id, date: todayStr() }, undefined, 1))
-          );
-          const map = {};
-          todays.forEach((s, i) => { map[s.class_id] = checks[i].length > 0; });
-          setAttendanceMap(map);
-        }
+        const ids = [...new Set(res.map((s) => s.class_id))];
+        const classRes = await Promise.all(ids.map((id) => base44.entities.Class.get(id).catch(() => null)));
+        const map = {};
+        classRes.forEach((c) => { if (c) map[c.id] = c; });
+        setClasses(map);
       } catch (err) {
         console.error(err);
       } finally {
@@ -47,80 +71,140 @@ export default function MyClasses() {
     load();
   }, [user?.id]);
 
+  const isCurrentWeek = useMemo(() => weeksBetween(weekStart, getWeekStart(new Date())) === 0, [weekStart]);
+
+  useEffect(() => {
+    if (!isCurrentWeek) { setAttendanceMap({}); return; }
+    const todays = schedules.filter((s) => s.day_of_week === todayName() && isScheduleActiveInWeek(s, weekStart));
+    if (todays.length === 0) { setAttendanceMap({}); return; }
+    Promise.all(
+      todays.map((s) => base44.entities.AttendanceRecord.filter({ class_id: s.class_id, date: todayStr() }, undefined, 1).catch(() => []))
+    ).then((checks) => {
+      const map = {};
+      todays.forEach((s, i) => { map[s.class_id] = checks[i].length > 0; });
+      setAttendanceMap(map);
+    });
+  }, [schedules, isCurrentWeek, weekStart]);
+
+  const weekSchedules = useMemo(
+    () => schedules.filter((s) => isScheduleActiveInWeek(s, weekStart)),
+    [schedules, weekStart]
+  );
+
+  const byDay = (day) => weekSchedules
+    .filter((s) => s.day_of_week === day)
+    .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
+    .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
 
-  const todays = schedules.filter((s) => s.day_of_week === todayName()).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-  const otherDays = DAYS.filter((d) => d !== todayName());
-  const countFor = (day) => schedules.filter((s) => s.day_of_week === day).length;
-
-  const ClassCard = ({ s, showReminder }) => {
-    const taken = attendanceMap[s.class_id];
-    return (
-      <Link to={`/classes/${s.class_id}`} state={{ fromClassId: s.class_id }} className="block bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-900 truncate">{s.class_name}</h3>
-            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1"><Clock className="w-3 h-3" />{fmtTime(s.start_time)} – {fmtTime(s.end_time)}</p>
-            {s.room && <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />Room {s.room}</p>}
-          </div>
-          {showReminder && taken === false && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-50 text-amber-600 shrink-0">
-              <AlertCircle className="w-3 h-3" /> Attendance not taken
-            </span>
-          )}
-          {showReminder && taken === true && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-50 text-emerald-600 shrink-0">
-              Attendance taken
-            </span>
-          )}
-        </div>
-      </Link>
-    );
-  };
+  const todays = byDay(todayName());
+  const hasPending = isCurrentWeek && todays.some((s) => attendanceMap[s.class_id] === false);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">My Classes</h2>
-        <p className="text-sm text-slate-500">{schedules.length} scheduled class{schedules.length === 1 ? "" : "es"} this week</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">My Classes</h2>
+          <p className="text-sm text-slate-500">{weekSchedules.length} scheduled class{weekSchedules.length === 1 ? "" : "es"} this week</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setWeekStart(addWeeks(weekStart, -1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50">
+            <ChevronLeft className="w-4 h-4 text-slate-600" />
+          </button>
+          <button onClick={() => setWeekStart(getWeekStart(new Date()))} className="text-sm px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium">Today</button>
+          <button onClick={() => setWeekStart(addWeeks(weekStart, 1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50">
+            <ChevronRight className="w-4 h-4 text-slate-600" />
+          </button>
+          <span className="text-sm font-semibold text-slate-700 ml-1">{formatWeekRange(weekStart)}</span>
+        </div>
       </div>
 
-      {schedules.length === 0 ? (
+      {hasPending && (
+        <div className="flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertCircle className="w-4 h-4" /> Attendance still needed for one or more of today's classes.
+        </div>
+      )}
+
+      {weekSchedules.length === 0 ? (
         <div className="text-center py-16">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-400">No classes scheduled for you yet. A manager can schedule classes from the Weekly Schedule page.</p>
+          <p className="text-sm text-slate-400">No classes scheduled for you this week. Try a different week, or ask a manager to schedule classes.</p>
         </div>
       ) : (
-        <>
-          {/* Today */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="w-4 h-4 text-slate-700" />
-              <h3 className="text-sm font-bold text-slate-900">Today · {todayName()}</h3>
-              {todays.some((s) => attendanceMap[s.class_id] === false) && (
-                <span className="text-xs text-amber-600 font-medium">Attendance reminders below</span>
-              )}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto">
+          <div className="flex min-w-[760px]">
+            <div className="w-12 shrink-0 relative" style={{ height: GRID_HEIGHT }}>
+              {HOURS.map((m) => (
+                <div key={m} className="absolute left-0 right-0 text-[10px] text-slate-400 -translate-y-1/2 text-right pr-1" style={{ top: (m - DAY_START_MIN) * PX_PER_MIN }}>
+                  {fmtTime(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`)}
+                </div>
+              ))}
             </div>
-            {todays.length === 0 ? (
-              <p className="text-sm text-slate-400">No classes scheduled today.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {todays.map((s) => <ClassCard key={s.id} s={s} showReminder />)}
-              </div>
-            )}
+            {DAYS.map((day, idx) => {
+              const blocks = byDay(day);
+              const layout = layoutBlocks(blocks);
+              const dayDate = new Date(weekStart);
+              dayDate.setDate(dayDate.getDate() + idx);
+              const isToday = isCurrentWeek && day === todayName();
+              return (
+                <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
+                  <div className={`text-center text-xs font-semibold py-2 border-b ${isToday ? "text-[#9E1B32] border-[#9E1B32]/30 bg-[#9E1B32]/5" : "text-slate-700 border-slate-100"}`}>
+                    <div>{day}</div>
+                    <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+                  </div>
+                  <div className="relative" style={{ height: GRID_HEIGHT, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)` }}>
+                    {blocks.map((s) => {
+                      const lay = layout[s.id] || { col: 0, count: 1 };
+                      const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
+                      const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
+                      const widthPct = 100 / lay.count;
+                      const cls = classes[s.class_id];
+                      const bg = gradeColor(cls?.grade_level);
+                      const taken = attendanceMap[s.class_id];
+                      const showBadge = isToday && taken === false;
+                      return (
+                        <Link
+                          key={s.id}
+                          to={`/classes/${s.class_id}`}
+                          state={{ fromClassId: s.class_id }}
+                          className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden hover:ring-2 hover:ring-white transition-shadow block"
+                          style={{
+                            top,
+                            height,
+                            left: `calc(${lay.col * widthPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
+                            backgroundColor: bg,
+                          }}
+                          title={`${s.class_name} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${cls?.grade_level ? ` · Grade ${cls.grade_level}` : ""}`}
+                        >
+                          <p className="font-semibold truncate">{s.class_name}</p>
+                          <p className="opacity-90 truncate">{fmtTime(s.start_time)}–{fmtTime(s.end_time)}</p>
+                          {s.room && height > 56 && <p className="opacity-75 truncate flex items-center gap-0.5"><MapPin className="w-2 h-2" />{s.room}</p>}
+                          {showBadge && (
+                            <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-semibold px-1 py-0.5 rounded bg-white/25">
+                              <AlertCircle className="w-2.5 h-2.5" /> Attendance
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Other days */}
-          {otherDays.filter((d) => countFor(d) > 0).map((day) => (
-            <div key={day}>
-              <h3 className="text-sm font-bold text-slate-900 mb-3">{day}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {schedules.filter((s) => s.day_of_week === day).sort((a, b) => (a.start_time || "").localeCompare(b.start_time || "")).map((s) => <ClassCard key={s.id} s={s} />)}
-              </div>
-            </div>
-          ))}
-        </>
+        </div>
       )}
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
+        <span className="font-medium text-slate-600">Grade colours:</span>
+        {[...new Set(weekSchedules.map((s) => classes[s.class_id]?.grade_level).filter(Boolean))].sort().map((g) => (
+          <span key={g} className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded" style={{ backgroundColor: gradeColor(g) }} /> Grade {g}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock } from "lucide-react";
+import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import SchoolHoursDialog from "@/components/schedule/SchoolHoursDialog";
 import TeacherWorkload from "@/components/schedule/TeacherWorkload";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
@@ -72,7 +73,8 @@ export default function Schedule() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "" });
+  const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "", recurrence_type: "weekly" });
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
   const [showHours, setShowHours] = useState(false);
   const gridRefs = useRef({});
@@ -121,6 +123,7 @@ export default function Schedule() {
       start_time: "08:00",
       end_time: "09:00",
       room: "",
+      recurrence_type: "weekly",
       ...overrides,
     });
     setShowForm(true);
@@ -129,7 +132,7 @@ export default function Schedule() {
   const openEdit = (s) => {
     setEditing(s);
     setFormError("");
-    setForm({ class_id: s.class_id, teacher_id: s.teacher_id, day_of_week: s.day_of_week, start_time: s.start_time || "08:00", end_time: s.end_time || "09:00", room: s.room || "" });
+    setForm({ class_id: s.class_id, teacher_id: s.teacher_id, day_of_week: s.day_of_week, start_time: s.start_time || "08:00", end_time: s.end_time || "09:00", room: s.room || "", recurrence_type: s.recurrence_type || "weekly" });
     setShowForm(true);
   };
 
@@ -166,9 +169,9 @@ export default function Schedule() {
       day_of_week: form.day_of_week,
       start_time: form.start_time,
       end_time: form.end_time,
-      recurrence_type: "weekly",
-      recurrence_weeks: 1,
-      start_date: new Date().toISOString().slice(0, 10),
+      recurrence_type: form.recurrence_type || "weekly",
+      recurrence_weeks: form.recurrence_type === "biweekly" ? 2 : 1,
+      start_date: weekStart.toISOString().slice(0, 10),
     };
     if (editing) {
       await base44.entities.ClassSchedule.update(editing.id, payload);
@@ -204,7 +207,7 @@ export default function Schedule() {
 
   const filtered = useMemo(() => schedules.filter((s) => !teacherFilter || s.teacher_id === teacherFilter), [schedules, teacherFilter]);
   const byDay = (day) => filtered
-    .filter((s) => s.day_of_week === day)
+    .filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart))
     .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
     .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
 
@@ -238,6 +241,16 @@ export default function Schedule() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, -1))}><ChevronLeft className="w-4 h-4" /></Button>
+          <Button variant="outline" size="sm" onClick={() => setWeekStart(getWeekStart(new Date()))}>Today</Button>
+          <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="w-4 h-4" /></Button>
+          <span className="text-sm font-semibold text-slate-700 ml-1">{formatWeekRange(weekStart)}</span>
+        </div>
+        <span className="text-xs text-slate-400">New classes anchor to the week shown above.</span>
+      </div>
+
       {loading ? (
         <div className="animate-pulse rounded-xl bg-slate-100 h-64" />
       ) : activeClasses.length === 0 ? (
@@ -257,12 +270,18 @@ export default function Schedule() {
               ))}
             </div>
             {/* Day columns */}
-            {DAYS.map((day) => {
+            {DAYS.map((day, idx) => {
               const blocks = byDay(day);
               const layout = layoutBlocks(blocks);
+              const dayDate = new Date(weekStart);
+              dayDate.setDate(dayDate.getDate() + idx);
+              const isToday = weeksBetween(getWeekStart(new Date()), weekStart) === 0 && day === ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
               return (
                 <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
-                  <div className="text-center text-xs font-semibold text-slate-700 py-2 border-b border-slate-100">{day}</div>
+                  <div className={`text-center text-xs font-semibold py-2 border-b ${isToday ? "text-[#9E1B32] border-[#9E1B32]/30 bg-[#9E1B32]/5" : "text-slate-700 border-slate-100"}`}>
+                    <div>{day}</div>
+                    <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+                  </div>
                   <div
                     ref={(el) => (gridRefs.current[day] = el)}
                     onClick={(e) => handleGridClick(day, e)}
@@ -297,6 +316,8 @@ export default function Schedule() {
                       const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
                       const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                       const widthPct = 100 / lay.count;
+                      const cls = cm.classes.find((c) => c.id === s.class_id);
+                      const bg = gradeColor(cls?.grade_level);
                       return (
                         <button
                           key={s.id}
@@ -307,7 +328,7 @@ export default function Schedule() {
                             height,
                             left: `calc(${lay.col * widthPct}% + 2px)`,
                             width: `calc(${widthPct}% - 4px)`,
-                            backgroundColor: CRIMSON,
+                            backgroundColor: bg,
                           }}
                           title={`${s.class_name} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${s.teacher_name ? ` · ${s.teacher_name}` : ""}`}
                         >
@@ -368,6 +389,15 @@ export default function Schedule() {
             <div>
               <Label className="text-sm font-medium text-slate-700">Room (optional)</Label>
               <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g. 204" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Repeat</Label>
+              <select value={form.recurrence_type} onChange={(e) => setForm({ ...form, recurrence_type: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                <option value="weekly">Every week</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="none">This week only</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">The schedule starts in the week of {weekStart.toLocaleDateString()} and repeats from there.</p>
             </div>
             {formError && (
               <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{formError}</p>
