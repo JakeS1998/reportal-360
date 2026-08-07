@@ -81,6 +81,20 @@ export default function ClassManagement() {
   const getStudentCount = (classId) => cm.studentAssignments.filter((sa) => sa.class_id === classId && sa.status === "active").length;
   const getYearName = (yearId) => cm.academicYears.find((y) => y.id === yearId)?.name || "—";
 
+  const teacherInitials = (teacherId) => {
+    const t = activeTeachers.find((t) => t.id === teacherId);
+    if (!t || !t.full_name) return "";
+    const parts = t.full_name.trim().split(/\s+/);
+    if (parts.length < 2) return (parts[0] || "").slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  // Auto-generated class name: code (current name) + subject + teacher initials (e.g. "4A English JS")
+  const generatedName = [form.class_name, form.subject, teacherInitials(form.teacher_id)]
+    .map((s) => (s || "").trim())
+    .filter(Boolean)
+    .join(" ");
+
   const openCreate = () => {
     setForm({ ...EMPTY_FORM, academic_year_id: cm.currentYear?.id || "" });
     setEditing(null);
@@ -95,6 +109,14 @@ export default function ClassManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { teacher_id, schedule_day, schedule_start, schedule_end, ...classData } = form;
+    if (!editing) {
+      // Default class name to code + subject + teacher initials (e.g. "4A English JS")
+      const code = (classData.class_name || "").trim();
+      const subj = (classData.subject || "").trim();
+      const initials = teacherInitials(teacher_id);
+      const generated = [code, subj, initials].filter(Boolean).join(" ");
+      if (generated) classData.class_name = generated;
+    }
     if (editing) {
       await cm.updateClass(editing.id, classData);
     } else {
@@ -566,8 +588,11 @@ export default function ClassManagement() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label className="text-sm font-medium text-slate-700">Class Name</Label>
-              <Input required value={form.class_name} onChange={(e) => setForm({ ...form, class_name: e.target.value })} placeholder="e.g. Grade 4 Reading" className="mt-1" />
+              <Label className="text-sm font-medium text-slate-700">{editing ? "Class Name" : "Class Code"}</Label>
+              <Input required value={form.class_name} onChange={(e) => setForm({ ...form, class_name: e.target.value })} placeholder={editing ? "e.g. 4A English JS" : "e.g. 4A"} className="mt-1" />
+              {!editing && (form.subject || form.teacher_id) && (
+                <p className="text-xs text-slate-500 mt-1">Will be named: <span className="font-medium text-slate-700">{generatedName || form.class_name}</span></p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
