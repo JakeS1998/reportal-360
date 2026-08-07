@@ -55,6 +55,11 @@
     "year": {
       "type": "string",
       "title": "Academic Year Label"
+    },
+    "sessions_per_week": {
+      "type": "number",
+      "title": "Sessions Per Week",
+      "default": 1
     }
   },
   "required": [

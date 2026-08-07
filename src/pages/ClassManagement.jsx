@@ -17,7 +17,7 @@ const pad = (n) => String(n).padStart(2, "0");
 const mmToHHMM = (min) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
 const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
 
-const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active", teacher_id: "", schedule_day: "", schedule_start: "08:00", schedule_end: "09:00" };
+const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active", sessions_per_week: 1, teacher_id: "", schedule_day: "", schedule_start: "08:00", schedule_end: "09:00" };
 
 export default function ClassManagement() {
   const cm = useClassManagement();
@@ -32,7 +32,6 @@ export default function ClassManagement() {
   const [dupYear, setDupYear] = useState("");
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
 
@@ -59,7 +58,7 @@ export default function ClassManagement() {
     setShowForm(true);
   };
   const openEdit = (cls) => {
-    setForm({ class_name: cls.class_name || "", subject: cls.subject || "", grade_level: cls.grade_level || "", period: cls.period || "", room: cls.room || "", description: cls.description || "", academic_year_id: cls.academic_year_id || "", status: cls.status || "active" });
+    setForm({ class_name: cls.class_name || "", subject: cls.subject || "", grade_level: cls.grade_level || "", period: cls.period || "", room: cls.room || "", description: cls.description || "", academic_year_id: cls.academic_year_id || "", status: cls.status || "active", sessions_per_week: cls.sessions_per_week || 1 });
     setEditing(cls);
     setShowForm(true);
   };
@@ -91,13 +90,32 @@ export default function ClassManagement() {
       });
       const slots = [];
       for (let h = 8; h < 15; h++) slots.push({ start: h * 60, end: (h + 1) * 60 });
-      const target = Math.max(1, Math.min(5, parseInt(sessionsPerWeek, 10) || 1));
+      const countFree = (tid) => {
+        let n = 0;
+        for (const day of SCHED_DAYS) {
+          const dayBusy = (busy[tid] || {})[day] || [];
+          for (const slot of slots) if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) n++;
+        }
+        return n;
+      };
       const scheduled = [];
       const failed = [];
-      const placedCount = {};
+      const assigned = [];
       for (const cls of cm.classes.filter((c) => c.status === "active")) {
-        const tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
-        if (!tAssign) { failed.push({ name: cls.class_name, reason: "No teacher assigned" }); continue; }
+        const target = Math.max(1, Math.min(5, parseInt(cls.sessions_per_week, 10) || 1));
+        let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
+        // Auto-assign a teacher by subject if none assigned
+        if (!tAssign) {
+          const subj = (cls.subject || "").trim().toLowerCase();
+          if (!subj) { failed.push({ name: cls.class_name, reason: "No teacher and no subject to match" }); continue; }
+          const candidates = activeTeachers.filter((t) => (t.subject || "").toLowerCase().includes(subj) && t.active !== false);
+          if (candidates.length === 0) { failed.push({ name: cls.class_name, reason: `No teacher found for ${cls.subject}` }); continue; }
+          candidates.sort((a, b) => countFree(b.id) - countFree(a.id));
+          const pick = candidates[0];
+          await base44.entities.TeacherClass.create({ teacher_id: pick.id, teacher_name: pick.full_name || "", class_id: cls.id, role: "Primary Teacher", school_code: cm.schoolCode });
+          tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
+          assigned.push({ class: cls.class_name, teacher: pick.full_name || pick.username });
+        }
         const have = (byClass[cls.id] || []).length;
         const need = Math.max(0, target - have);
         if (need === 0) continue;
@@ -126,12 +144,11 @@ export default function ClassManagement() {
           placedThis++;
           scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
         }
-        placedCount[cls.id] = placedThis;
         if (placedThis < need) {
           failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (8 AM–3 PM)` });
         }
       }
-      setAutoResult({ scheduled: scheduled.length, failed, target });
+      setAutoResult({ scheduled: scheduled.length, failed, assigned });
       cm.loadData();
     } catch (err) {
       console.error(err);
@@ -176,10 +193,6 @@ export default function ClassManagement() {
           <p className="text-sm text-slate-500">{filtered.length} class{filtered.length === 1 ? "" : "es"} at {cm.schoolName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 bg-white">
-            <span className="text-xs text-slate-500">Sessions/week</span>
-            <input type="number" min={1} max={5} value={sessionsPerWeek} onChange={(e) => setSessionsPerWeek(e.target.value)} className="w-12 text-sm text-center bg-transparent outline-none" />
-          </div>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
             <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
           </Button>
@@ -255,6 +268,7 @@ export default function ClassManagement() {
                     <span>{studentCount} student{studentCount === 1 ? "" : "s"}</span>
                     {cls.room && <><span className="text-slate-300">·</span><span>Room {cls.room}</span></>}
                     <span className="text-slate-300">·</span><span>{getYearName(cls.academic_year_id)}</span>
+                    <span className="text-slate-300">·</span><span>{cls.sessions_per_week || 1}×/wk</span>
                   </div>
                   {teachers.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
@@ -309,6 +323,10 @@ export default function ClassManagement() {
               <div>
                 <Label className="text-sm font-medium text-slate-700">Room</Label>
                 <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g. 204" className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">Sessions / week</Label>
+                <Input type="number" min={1} max={5} value={form.sessions_per_week} onChange={(e) => setForm({ ...form, sessions_per_week: parseInt(e.target.value, 10) || 1 })} className="mt-1" />
               </div>
             </div>
             <div>
@@ -404,17 +422,28 @@ export default function ClassManagement() {
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-lg bg-emerald-50 p-3">
                   <p className="text-2xl font-bold text-emerald-600">{autoResult?.scheduled || 0}</p>
-                  <p className="text-xs text-slate-500">Scheduled</p>
+                  <p className="text-xs text-slate-500">Sessions placed</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 p-3">
+                  <p className="text-2xl font-bold text-blue-600">{autoResult?.assigned?.length || 0}</p>
+                  <p className="text-xs text-slate-500">Teachers auto-assigned</p>
                 </div>
                 <div className="rounded-lg bg-amber-50 p-3">
                   <p className="text-2xl font-bold text-amber-600">{autoResult?.failed?.length || 0}</p>
                   <p className="text-xs text-slate-500">Flagged</p>
                 </div>
-                <div className="rounded-lg bg-slate-100 p-3">
-                  <p className="text-2xl font-bold text-slate-600">{autoResult?.target || 1}</p>
-                  <p className="text-xs text-slate-500">Target / class</p>
-                </div>
               </div>
+              {autoResult?.assigned?.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-slate-600">Auto-assigned teachers</p>
+                  {autoResult.assigned.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                      <span className="font-medium text-slate-700">{a.class}</span>
+                      <span className="text-blue-600">→ {a.teacher}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {autoResult?.failed?.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Could not schedule:</p>
