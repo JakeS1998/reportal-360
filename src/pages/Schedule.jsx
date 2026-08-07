@@ -203,6 +203,23 @@ export default function Schedule() {
     load();
   };
 
+  const [clearing, setClearing] = useState(false);
+  const handleClearSchedule = async () => {
+    if (schedules.length === 0) return;
+    if (!confirm(`Clear all ${schedules.length} scheduled class slot${schedules.length === 1 ? "" : "s"} for ${cm.schoolName || "this school"}? Classes and assignments are kept — only the weekly timetable is removed.`)) return;
+    setClearing(true);
+    try {
+      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode });
+      load();
+      cm.loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to clear the schedule. Please try again.");
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const handleGridClick = (day, e) => {
     const el = gridRefs.current[day];
     if (!el) return;
@@ -241,6 +258,9 @@ export default function Schedule() {
             <option value="">All teachers</option>
             {activeTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
           </select>
+          <Button variant="outline" onClick={handleClearSchedule} disabled={clearing || schedules.length === 0} className="border-rose-200 text-rose-600 hover:bg-rose-50">
+            <Trash2 className="w-4 h-4 mr-1" /> {clearing ? "Clearing…" : "Clear Schedule"}
+          </Button>
           <Button variant="outline" onClick={() => setShowHours(true)}>
             <Clock className="w-4 h-4 mr-1" /> School Hours
           </Button>
