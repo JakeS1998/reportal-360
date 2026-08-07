@@ -7,7 +7,7 @@ const GENDER_OPTIONS = ["All Gender", "Male", "Female"];
 const GROUP_OPTIONS = ["All Students", "Economically Disadvantaged", "Students with Disabilities", "English Learners"];
 const SUBJECT_OPTIONS = ["All Subjects", "Math", "Reading", "Science"];
 
-export default function StudentToolbar({ search, onSearch }) {
+export default function StudentToolbar({ search, onSearch, homeroomOptions }) {
   const { filters, setFilter } = useSchool();
 
   return (
@@ -31,6 +31,7 @@ export default function StudentToolbar({ search, onSearch }) {
       <FilterSelect label="Gender" value={filters.gender} options={GENDER_OPTIONS} onChange={(v) => setFilter("gender", v)} />
       <FilterSelect label="Group" value={filters.studentGroup} options={GROUP_OPTIONS} onChange={(v) => setFilter("studentGroup", v)} />
       <FilterSelect label="Subject" value={filters.subject} options={SUBJECT_OPTIONS} onChange={(v) => setFilter("subject", v)} />
+      {homeroomOptions && <FilterSelect label="Homeroom" value={filters.homeroom} options={homeroomOptions} onChange={(v) => setFilter("homeroom", v)} />}
     </div>
   );
 }

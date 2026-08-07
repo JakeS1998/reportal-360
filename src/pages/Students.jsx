@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import StudentRosterTable from "@/components/StudentRosterTable";
@@ -12,20 +13,68 @@ import { generateStudentRoster } from "@/lib/sampleStudentData";
 import { Users } from "lucide-react";
 
 export default function Students() {
-  const { activeSchool, loading, filters, isTeacher } = useSchool();
+  const { activeSchool, loading, filters, isTeacher, user } = useSchool();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
+  const [homerooms, setHomerooms] = useState([]);
+  const [homeroomByStudentNumber, setHomeroomByStudentNumber] = useState({});
 
   const rows = useMemo(() => activeSchool ? generateStudentRoster(activeSchool) : [], [activeSchool]);
 
+  // Merge real homeroom assignments (stored on the Homeroom entity's student_ids)
+  // into the roster rows by matching the real Student record's student_number.
+  useEffect(() => {
+    if (!activeSchool?.school_code) return;
+    let active = true;
+    (async () => {
+      try {
+        const [hrRes, studentsRes] = await Promise.all([
+          base44.entities.Homeroom.filter({ school_code: activeSchool.school_code }, "homeroom_name", 200),
+          base44.functions.invoke("manageStudents", {
+            action: "list",
+            caller_username: user?.username,
+            caller_password: user?.password || localStorage.getItem("userPassword") || "",
+            school_code: activeSchool.school_code,
+          }),
+        ]);
+        if (!active) return;
+        setHomerooms(hrRes);
+        const idToNumber = {};
+        (studentsRes.data?.students || []).forEach((s) => { if (s.student_number) idToNumber[s.id] = s.student_number; });
+        const map = {};
+        hrRes.forEach((h) => {
+          (h.student_ids || []).forEach((sid) => {
+            const num = idToNumber[sid];
+            if (num) map[num] = h.homeroom_name;
+          });
+        });
+        setHomeroomByStudentNumber(map);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    return () => { active = false; };
+  }, [activeSchool?.school_code, user?.username]);
+
+  const rowsWithHomeroom = useMemo(
+    () => rows.map((r) => ({ ...r, homeroom: homeroomByStudentNumber[r.student_number] || "" })),
+    [rows, homeroomByStudentNumber]
+  );
+
+  const homeroomOptions = useMemo(
+    () => ["All Homerooms", ...homerooms.map((h) => h.homeroom_name).filter(Boolean).sort()],
+    [homerooms]
+  );
+
   if (isTeacher) return <TeacherStudents />;
 
-  const filteredRows = rows.filter((r) => {
+  const filteredRows = rowsWithHomeroom.filter((r) => {
     if (filters.grade !== "All Grades" && r.grade_level !== filters.grade.replace("Grade ", "")) return false;
     if (filters.gender !== "All Gender" && r.gender !== filters.gender) return false;
     if (filters.studentGroup === "Economically Disadvantaged" && !r.economically_disadvantaged) return false;
     if (filters.studentGroup === "Students with Disabilities" && !r.disability) return false;
     if (filters.studentGroup === "English Learners" && !r.english_learner) return false;
+    if (filters.homeroom && filters.homeroom !== "All Homerooms" && r.homeroom !== filters.homeroom) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!r.student_name.toLowerCase().includes(q) && !r.student_number.toLowerCase().includes(q)) return false;
@@ -66,7 +115,7 @@ export default function Students() {
       </FadeIn>
       <FadeIn delay={60}>
         <SectionCard title="Student Roster" subtitle={`${filteredRows.length} students · ${activeSchool?.school_name || ""} · FY ${activeSchool?.year || ""}`} icon={Users}>
-          <StudentToolbar search={search} onSearch={setSearch} />
+          <StudentToolbar search={search} onSearch={setSearch} homeroomOptions={homerooms.length ? homeroomOptions : null} />
           <StudentRosterTable rows={filteredRows} subjectFilter={filters.subject} onSelect={setSelected} />
         </SectionCard>
       </FadeIn>

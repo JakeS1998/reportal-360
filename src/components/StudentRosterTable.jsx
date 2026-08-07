@@ -68,6 +68,7 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
             <th className="px-4 py-3">Student</th>
             <th className="px-3 py-3">ID</th>
             <th className="px-3 py-3">Grade</th>
+            <th className="px-3 py-3">Homeroom</th>
             <th className="px-3 py-3">Gender</th>
             <th className="px-3 py-3">Race/Ethnicity</th>
             <th className="px-3 py-3">Subgroups</th>
@@ -88,6 +89,7 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
               </td>
               <td className="px-3 py-3 text-slate-500 font-mono text-xs">{r.student_number}</td>
               <td className="px-3 py-3 text-slate-600">{r.grade_level}</td>
+              <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{r.homeroom || "—"}</td>
               <td className="px-3 py-3 text-slate-600">{r.gender || "—"}</td>
               <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{r.race_ethnicity || "—"}</td>
               <td className="px-3 py-3">

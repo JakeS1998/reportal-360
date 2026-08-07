@@ -11,6 +11,7 @@ const DEFAULT_FILTERS = {
   subject: "All Subjects",
   studentGroup: "All Students",
   gender: "All Gender",
+  homeroom: "All Homerooms",
 };
 
 export function SchoolProvider({ children }) {
