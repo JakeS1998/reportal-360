@@ -49,21 +49,34 @@ export default function StudentProgressSheet({ student, onClose }) {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const handleViewAsStudent = async () => {
-    if (!student?.student_number) return;
+    if (!student?.student_name) return;
     setPreviewLoading(true);
     try {
       const schoolCode = activeSchool?.school_code;
-      const matches = await base44.entities.Student.filter({ student_number: student.student_number, school_code: schoolCode }, undefined, 1);
+      // Find the real student record — try student_number first, then name
+      let matches = student.student_number
+        ? await base44.entities.Student.filter({ student_number: student.student_number, school_code: schoolCode }, undefined, 1)
+        : [];
+      if (!matches[0]) {
+        matches = await base44.entities.Student.filter({ student_name: student.student_name, school_code: schoolCode }, undefined, 1);
+      }
       const rec = matches[0];
-      if (!rec) { alert("No data found for this student yet."); return; }
+      if (!rec) { alert("No student record found to preview."); return; }
       const res = await base44.functions.invoke("manageStudents", {
         action: "get_profile",
         caller_username: user?.username,
         caller_password: user?.password || localStorage.getItem("userPassword") || "",
         student_id: rec.id,
       });
-      if (!res.data?.success) { alert("No data found for this student yet."); return; }
-      setPreviewPayload({ student: res.data.student, classes: res.data.classes || [], attendance: res.data.attendance || [], attainment: res.data.attainment || [], schoolCode: rec.school_code || schoolCode });
+      // Open the preview with whatever is available — the schedule is fetched
+      // independently, so it shows even when attendance/grades are empty.
+      setPreviewPayload({
+        student: res.data?.student || { student_name: student.student_name, school_code: schoolCode },
+        classes: res.data?.classes || [],
+        attendance: res.data?.attendance || [],
+        attainment: res.data?.attainment || [],
+        schoolCode: rec.school_code || schoolCode,
+      });
       setShowPreview(true);
     } catch (err) {
       console.error(err);
