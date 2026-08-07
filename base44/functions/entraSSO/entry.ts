@@ -97,31 +97,9 @@ export default async function(req) {
       await base44.asServiceRole.entities.Teacher.update(user.id, { last_login_at: new Date().toISOString() });
       await logAudit(base44, "login_success", user.username, user.role, "SSO login successful", user.school_code, { ip_address: ip, user_agent: userAgent });
     } else {
-      // Auto-provision new user
-      const baseUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9.]/g, "");
-      const existingUsername = await base44.asServiceRole.entities.Teacher.filter({ username: baseUsername });
-      const finalUsername = existingUsername.length > 0
-        ? `${baseUsername}.${Date.now().toString(36).slice(-4)}`
-        : baseUsername;
-
-      user = await base44.asServiceRole.entities.Teacher.create({
-        username: finalUsername,
-        password: crypto.randomUUID(),
-        full_name: fullName,
-        email,
-        role: "teacher",
-        school_code: "",
-        system_code: "",
-        school_name: "",
-        system_name: "",
-        active: true,
-        mfa_enabled: false,
-        password_reset_required: false,
-        last_login_at: new Date().toISOString(),
-      });
-
-      await logAudit(base44, "user_created", "SSO", "admin", `SSO auto-provisioned user ${finalUsername} (${email})`);
-      await logAudit(base44, "login_success", finalUsername, "teacher", "SSO login successful (new user)", undefined, { ip_address: ip, user_agent: userAgent });
+      // SSO registration is disabled — accounts must be created by a school admin first
+      await logAudit(base44, "login_failed", email, "unknown", "Microsoft SSO attempt by unregistered user", undefined, { ip_address: ip, user_agent: userAgent });
+      return Response.json({ success: false, error: "Your account has not been set up yet. Please contact your school administrator to be added before signing in with Microsoft." }, { status: 403 });
     }
 
     return Response.json({
