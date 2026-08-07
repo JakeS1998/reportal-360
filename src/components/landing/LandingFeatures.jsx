@@ -36,7 +36,7 @@ const FEATURES = [
   {
     icon: BookOpen,
     title: "Class Management",
-    desc: "Take attendance, record assessments, and log behaviour incidents from a single class dashboard.",
+    desc: "Auto-schedule classes onto consistent weekly slots, auto-assign students by grade and subject with conflict-aware alternative suggestions, and print clean landscape timetables — alongside attendance, assessments, and behaviour logging.",
   },
   {
     icon: Award,
