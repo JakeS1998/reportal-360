@@ -26,7 +26,7 @@ export default function ClassDashboard() {
     setLoading(true);
     try {
       const cls = await base44.entities.Class.get(classId);
-      const [teachers, students, attendance, attainment] = await Promise.all([
+      const [teachers, students, attendance, attainment, behaviour] = await Promise.all([
         base44.entities.TeacherClass.filter({ class_id: classId }),
         base44.entities.StudentClass.filter({ class_id: classId, status: "active" }, "student_name"),
         base44.entities.AttendanceRecord.filter({ class_id: classId }, "-date", 500),
