@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, subjectColor } from "@/lib/scheduleWeeks";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -110,7 +110,7 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl print-schedule">
         <DialogHeader>
           <DialogTitle>Weekly Schedule · {student?.student_name}</DialogTitle>
         </DialogHeader>
@@ -121,6 +121,7 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
             <Button variant="outline" size="sm" onClick={() => setWeekStart(getWeekStart(new Date()))}>This Week</Button>
             <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="w-4 h-4" /></Button>
             <span className="text-sm font-semibold text-slate-700 ml-1">{formatWeekRange(weekStart)}</span>
+            <Button variant="outline" size="sm" className="ml-2" onClick={() => window.print()}><Printer className="w-4 h-4 mr-1" /> Print</Button>
           </div>
           <div className="hidden sm:flex items-center gap-2 flex-wrap">
             {LEGEND.map((i) => (
