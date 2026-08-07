@@ -73,7 +73,6 @@ const AuthenticatedApp = () => {
       <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route path="/sso-callback" element={<SsoCallback />} />
       <Route path="/admin/policies" element={<PolicyManagement />} />
-      <Route path="/admin/subjects" element={<Subjects />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />
         <Route path="/academics" element={<AcademicPerformance />} />
@@ -82,6 +81,7 @@ const AuthenticatedApp = () => {
         <Route path="/students" element={<Students />} />
         <Route path="/insights" element={<PredictiveInsights />} />
         <Route path="/staff" element={<StaffManagement />} />
+        <Route path="/subjects" element={<Subjects />} />
         <Route path="/classes" element={<ClassManagement />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/academic-years" element={<AcademicYears />} />

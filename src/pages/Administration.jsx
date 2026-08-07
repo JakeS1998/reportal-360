@@ -125,7 +125,6 @@ export default function Administration() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => navigate("/admin/security")}>Security Dashboard</Button>
           <Button variant="outline" onClick={() => navigate("/admin/ferpa")}>FERPA Compliance</Button>
-          <Button variant="outline" onClick={() => navigate("/admin/subjects")}>Subjects & Rooms</Button>
           <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
           <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>
             <LogOut className="w-4 h-4 mr-1" /> Sign Out
