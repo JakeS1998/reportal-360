@@ -77,12 +77,12 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
   if (collapsed) {
     return (
       <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
-        {navGroups.flatMap((group) =>
-          group.items.map((n) => (
+        {navGroups.flatMap((group, gi) => [
+          ...group.items.map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
-              title={n.label}
+              title={`${group.heading} · ${n.label}`}
               onClick={handleNavigate}
               className={({ isActive }) =>
                 `relative flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -97,8 +97,11 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
                 </>
               )}
             </NavLink>
-          ))
-        )}
+          )),
+          ...(gi < navGroups.length - 1
+            ? [<div key={`sep-${group.heading}`} className="my-2 mx-3 h-px bg-white/10" title={group.heading} />]
+            : []),
+        ])}
       </nav>
     );
   }
