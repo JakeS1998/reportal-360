@@ -179,8 +179,8 @@ export default function SchoolUserManager({
       });
       if (res.data?.success) loadUsers();
       else alert(res.data?.error || "Failed to delete user");
-    } catch {
-      alert("Failed to delete user");
+    } catch (err) {
+      alert(err?.response?.data?.error || err?.data?.error || err?.message || "Failed to delete user");
     }
   };
 

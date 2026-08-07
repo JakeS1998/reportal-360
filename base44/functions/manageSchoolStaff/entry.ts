@@ -168,8 +168,8 @@ export default async function(req) {
         if (callerRole === "manager" && existing.school_code !== callerSchoolCode) {
           return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
         }
-        if (callerRole === "manager" && existing.role !== "teacher") {
-          return Response.json({ success: false, error: "Managers can only remove teachers" }, { status: 403 });
+        if (callerRole === "manager" && !["teacher", "school_admin"].includes(existing.role)) {
+          return Response.json({ success: false, error: "Managers can only remove teachers at their school" }, { status: 403 });
         }
       }
       await base44.asServiceRole.entities.Teacher.delete(user_id);
