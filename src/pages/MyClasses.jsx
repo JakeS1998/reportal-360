@@ -4,6 +4,7 @@ import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
 import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
+import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
@@ -50,6 +51,7 @@ export default function MyClasses() {
   const [attendanceMap, setAttendanceMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+  const [timetable, setTimetable] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +64,10 @@ export default function MyClasses() {
         const map = {};
         classRes.forEach((c) => { if (c) map[c.id] = c; });
         setClasses(map);
+        if (user.school_code) {
+          const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: user.school_code }, undefined, 5).catch(() => []);
+          setTimetable(ttRes[0] || null);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -90,6 +96,8 @@ export default function MyClasses() {
     () => schedules.filter((s) => isScheduleActiveInWeek(s, weekStart)),
     [schedules, weekStart]
   );
+
+  const teachingSlots = useMemo(() => buildTeachingSlots(timetable).map((s) => ({ start: s.start, end: s.end })), [timetable]);
 
   const byDay = (day) => weekSchedules
     .filter((s) => s.day_of_week === day)
@@ -147,6 +155,7 @@ export default function MyClasses() {
               const dayDate = new Date(weekStart);
               dayDate.setDate(dayDate.getDate() + idx);
               const isToday = isCurrentWeek && day === todayName();
+              const freeSlots = teachingSlots.filter((slot) => !blocks.some((b) => b._startMin < slot.end && b._endMin > slot.start));
               return (
                 <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
                   <div className={`text-center text-xs font-semibold py-2 border-b ${isToday ? "text-[#9E1B32] border-[#9E1B32]/30 bg-[#9E1B32]/5" : "text-slate-700 border-slate-100"}`}>
@@ -154,6 +163,21 @@ export default function MyClasses() {
                     <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
                   </div>
                   <div className="relative" style={{ height: GRID_HEIGHT, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)` }}>
+                    {freeSlots.map((slot) => {
+                      const top = (slot.start - DAY_START_MIN) * PX_PER_MIN;
+                      const height = Math.max(20, (slot.end - slot.start) * PX_PER_MIN - 2);
+                      return (
+                        <div
+                          key={`pat-${day}-${slot.start}`}
+                          className="absolute rounded-lg p-1.5 text-[10px] leading-tight overflow-hidden border border-dashed border-slate-300 bg-slate-50 text-slate-400"
+                          style={{ top, height, left: "2px", width: "calc(100% - 4px)" }}
+                          title={`PAT (Personal & Administration Time) · ${fmtTime(mmToHHMM(slot.start))}–${fmtTime(mmToHHMM(slot.end))}`}
+                        >
+                          <p className="font-semibold truncate">PAT</p>
+                          <p className="opacity-80 truncate">{fmtTime(mmToHHMM(slot.start))}–{fmtTime(mmToHHMM(slot.end))}</p>
+                        </div>
+                      );
+                    })}
                     {blocks.map((s) => {
                       const lay = layout[s.id] || { col: 0, count: 1 };
                       const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
