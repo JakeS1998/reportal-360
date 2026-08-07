@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { logAudit, extractRequestInfo, getAdminCredentials, validatePasswordComplexity } from '../../shared/security.ts';
+import { buildEmailHtml } from '../../shared/alabamaScenes.ts';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -188,12 +189,12 @@ export default async function(req) {
       });
       await logAudit(base44, "login_locked", username, user.role, "Dormant account — unlock code sent", user.school_code, auditExtra);
 
-      const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Account Reactivation Code", `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #1e293b;">Account Reactivation Required</h2>
-        <p style="color: #475569;">Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.</p>
-        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
-        <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
-      </div>`, { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
+      const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Account Reactivation Code", buildEmailHtml({
+        heading: "Account Reactivation Required",
+        message: "Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.",
+        code,
+        footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.",
+      }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
       const emailParts = user.email.split("@");
       const emailHint = emailParts.length === 2
@@ -236,12 +237,12 @@ export default async function(req) {
           mfa_code_expires_at: expiresAt,
         });
 
-        const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Verification Code", `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="color: #1e293b;">Your Verification Code</h2>
-          <p style="color: #475569;">Your ReportAL 360 verification code is:</p>
-          <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
-          <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
-        </div>`, { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
+        const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Verification Code", buildEmailHtml({
+          heading: "Your Verification Code",
+          message: "Your ReportAL 360 verification code is:",
+          code,
+          footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.",
+        }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
         const emailParts = user.email.split("@");
         const emailHint = emailParts.length === 2
