@@ -85,8 +85,22 @@ export function useClassManagement() {
 
   // --- Class CRUD ---
   const createClass = async (data) => {
-    await base44.entities.Class.create({ ...data, school_code: schoolCode, school_name: schoolName });
+    const { teacher_id, schedule_day, schedule_start, schedule_end, ...classData } = data;
+    const cls = await base44.entities.Class.create({ ...classData, school_code: schoolCode, school_name: schoolName });
+    const teacher = teacher_id ? teachers.find((t) => t.id === teacher_id) : null;
+    if (teacher) {
+      await base44.entities.TeacherClass.create({ teacher_id, teacher_name: teacher.full_name || "", class_id: cls.id, role: "Primary Teacher", school_code: schoolCode });
+    }
+    if (schedule_day && schedule_start && schedule_end) {
+      await base44.entities.ClassSchedule.create({
+        class_id: cls.id, class_name: classData.class_name, school_code: schoolCode,
+        teacher_id: teacher_id || "", teacher_name: teacher?.full_name || "", room: classData.room || "",
+        day_of_week: schedule_day, start_time: schedule_start, end_time: schedule_end,
+        recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
+      });
+    }
     loadData();
+    return cls;
   };
   const updateClass = async (id, data) => {
     await base44.entities.Class.update(id, data);

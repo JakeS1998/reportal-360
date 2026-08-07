@@ -1,16 +1,23 @@
 import React, { useState, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users } from "lucide-react";
+import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
 const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
 
-const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active" };
+const SCHED_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const toMin = (t) => { if (!t) return 0; const [h, m] = t.split(":"); return parseInt(h, 10) * 60 + parseInt(m, 10); };
+const pad = (n) => String(n).padStart(2, "0");
+const mmToHHMM = (min) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
+const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
+
+const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active", teacher_id: "", schedule_day: "", schedule_start: "08:00", schedule_end: "09:00" };
 
 export default function ClassManagement() {
   const cm = useClassManagement();
@@ -23,6 +30,10 @@ export default function ClassManagement() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [dupClass, setDupClass] = useState(null);
   const [dupYear, setDupYear] = useState("");
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoResult, setAutoResult] = useState(null);
+
+  const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
   const subjects = useMemo(() => [...new Set(cm.classes.map((c) => c.subject).filter(Boolean))].sort(), [cm.classes]);
@@ -54,10 +65,63 @@ export default function ClassManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editing) await cm.updateClass(editing.id, form);
-    else await cm.createClass(form);
+    const { teacher_id, schedule_day, schedule_start, schedule_end, ...classData } = form;
+    if (editing) {
+      await cm.updateClass(editing.id, classData);
+    } else {
+      await cm.createClass({ ...classData, teacher_id, schedule_day, schedule_start, schedule_end });
+    }
     setShowForm(false);
     setEditing(null);
+  };
+
+  const runAutoSchedule = async () => {
+    setAutoRunning(true);
+    setAutoResult(null);
+    try {
+      const existing = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500);
+      const scheduledClassIds = new Set(existing.map((s) => s.class_id));
+      const unscheduled = cm.classes.filter((c) => c.status === "active" && !scheduledClassIds.has(c.id));
+      const busy = {};
+      existing.forEach((s) => {
+        if (!s.teacher_id) return;
+        (busy[s.teacher_id] ||= {})[s.day_of_week] ||= [];
+        busy[s.teacher_id][s.day_of_week].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
+      });
+      const slots = [];
+      for (let h = 8; h < 15; h++) slots.push({ start: h * 60, end: (h + 1) * 60 });
+      const scheduled = [];
+      const failed = [];
+      for (const cls of unscheduled) {
+        const tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
+        if (!tAssign) { failed.push({ name: cls.class_name, reason: "No teacher assigned" }); continue; }
+        let placed = null;
+        for (const day of SCHED_DAYS) {
+          const dayBusy = (busy[tAssign.teacher_id] || {})[day] || [];
+          for (const slot of slots) {
+            if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) { placed = { day, ...slot }; break; }
+          }
+          if (placed) break;
+        }
+        if (!placed) { failed.push({ name: cls.class_name, reason: "No free slot this week (8 AM–3 PM)" }); continue; }
+        await base44.entities.ClassSchedule.create({
+          class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
+          teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: cls.room || "",
+          day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
+          recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
+        });
+        (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
+        busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
+        scheduled.push({ name: cls.class_name, day: placed.day, time: `${fmtTime(mmToHHMM(placed.start))}` });
+      }
+      setAutoResult({ scheduled: scheduled.length, failed, skipped: cm.classes.filter((c) => c.status === "active").length - unscheduled.length });
+      cm.loadData();
+    } catch (err) {
+      console.error(err);
+      setAutoResult({ error: err.message || "Failed to run auto-schedule" });
+    } finally {
+      setAutoRunning(false);
+    }
   };
 
   const handleDelete = async (cls) => {
@@ -94,9 +158,14 @@ export default function ClassManagement() {
           <h2 className="text-lg font-bold text-slate-900">Classes</h2>
           <p className="text-sm text-slate-500">{filtered.length} class{filtered.length === 1 ? "" : "es"} at {cm.schoolName}</p>
         </div>
-        <Button onClick={openCreate} className="bg-slate-900 hover:bg-slate-800">
-          <Plus className="w-4 h-4 mr-1" /> Create Class
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
+            <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
+          </Button>
+          <Button onClick={openCreate} className="bg-slate-900 hover:bg-slate-800">
+            <Plus className="w-4 h-4 mr-1" /> Create Class
+          </Button>
+        </div>
       </div>
 
       {/* Stat Widgets */}
@@ -240,6 +309,39 @@ export default function ClassManagement() {
               <Label className="text-sm font-medium text-slate-700">Description (optional)</Label>
               <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description" className="mt-1" />
             </div>
+
+            {!editing && (
+              <>
+                <div className="pt-3 border-t border-slate-100">
+                  <Label className="text-sm font-medium text-slate-700">Teacher (optional)</Label>
+                  <select value={form.teacher_id} onChange={(e) => setForm({ ...form, teacher_id: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <option value="">No teacher yet</option>
+                    {activeTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}{t.subject ? ` · ${t.subject}` : ""}</option>)}
+                  </select>
+                </div>
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-3">
+                  <p className="text-xs font-semibold text-slate-600">Weekly schedule (optional)</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">Day</Label>
+                      <select value={form.schedule_day} onChange={(e) => setForm({ ...form, schedule_day: e.target.value })} className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                        <option value="">—</option>
+                        {SCHED_DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Start</Label>
+                      <Input type="time" value={form.schedule_start} onChange={(e) => setForm({ ...form, schedule_start: e.target.value })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">End</Label>
+                      <Input type="time" value={form.schedule_end} onChange={(e) => setForm({ ...form, schedule_end: e.target.value })} className="mt-1" />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Leave the day blank to skip scheduling — you can auto-schedule later.</p>
+                </div>
+              </>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               <Button type="submit" className="bg-slate-900 hover:bg-slate-800">{editing ? "Save Changes" : "Create Class"}</Button>
@@ -265,6 +367,54 @@ export default function ClassManagement() {
               <Button onClick={handleDuplicate} disabled={!dupYear} className="bg-slate-900 hover:bg-slate-800">Duplicate</Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Schedule Result */}
+      <Dialog open={!!autoResult} onOpenChange={(v) => !v && setAutoResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Auto-Schedule Result</DialogTitle>
+          </DialogHeader>
+          {autoResult?.error ? (
+            <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{autoResult.error}</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-lg bg-emerald-50 p-3">
+                  <p className="text-2xl font-bold text-emerald-600">{autoResult?.scheduled || 0}</p>
+                  <p className="text-xs text-slate-500">Scheduled</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <p className="text-2xl font-bold text-amber-600">{autoResult?.failed?.length || 0}</p>
+                  <p className="text-xs text-slate-500">Flagged</p>
+                </div>
+                <div className="rounded-lg bg-slate-100 p-3">
+                  <p className="text-2xl font-bold text-slate-600">{autoResult?.skipped || 0}</p>
+                  <p className="text-xs text-slate-500">Already scheduled</p>
+                </div>
+              </div>
+              {autoResult?.failed?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Could not schedule:</p>
+                  <div className="max-h-52 overflow-y-auto space-y-1.5">
+                    {autoResult.failed.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                        <span className="font-medium text-slate-700">{f.name}</span>
+                        <span className="text-amber-600">{f.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {autoResult?.scheduled > 0 && autoResult?.failed?.length === 0 && (
+                <p className="text-sm text-emerald-600 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> All unscheduled classes were placed.</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setAutoResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
