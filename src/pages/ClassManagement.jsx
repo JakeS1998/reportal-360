@@ -231,11 +231,13 @@ export default function ClassManagement() {
         for (let i = 0; i < need; i++) {
           let placed = null;
           let conflictStudents = [];
+          // Spread sessions across unused days first so a class meets on
+          // different days of the week rather than clustering on one day.
           const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
-          // Keep the slot order identical across sessions so a class settles on
-          // the same period each day (a consistent timetable) rather than
-          // drifting to a different time on every day.
-          const slotOrder = slots;
+          // Shuffle the slot order per session so a class lands on varied
+          // time slots across the week (e.g. English Mon 10am, Tue 2pm, Wed
+          // 10am, off Thu, Fri 9am) — variety without a predictable pattern.
+          const slotOrder = [...slots].sort(() => Math.random() - 0.5);
           // Pass 1: teacher free AND all enrolled students free (no conflict).
           for (const day of dayOrder) {
             for (const slot of slotOrder) {
