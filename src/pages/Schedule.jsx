@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock } from "lucide-react";
+import SchoolHoursDialog from "@/components/schedule/SchoolHoursDialog";
+import TeacherWorkload from "@/components/schedule/TeacherWorkload";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
@@ -71,6 +73,8 @@ export default function Schedule() {
   const [editing, setEditing] = useState(null);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "" });
+  const [timetable, setTimetable] = useState(null);
+  const [showHours, setShowHours] = useState(false);
   const gridRefs = useRef({});
 
   const load = useCallback(async () => {
@@ -86,7 +90,23 @@ export default function Schedule() {
     }
   }, [cm.schoolCode]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadTimetable = useCallback(async () => {
+    if (!cm.schoolCode) return;
+    try {
+      const rows = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode });
+      setTimetable(rows[0] || null);
+    } catch {}
+  }, [cm.schoolCode]);
+
+  useEffect(() => { load(); loadTimetable(); }, [load, loadTimetable]);
+
+  const breakBand = timetable?.break_start && timetable?.break_end
+    ? { start: toMin(timetable.break_start), end: toMin(timetable.break_end), label: "Break" }
+    : null;
+  const lunchBand = timetable?.lunch_start && timetable?.lunch_end
+    ? { start: toMin(timetable.lunch_start), end: toMin(timetable.lunch_end), label: "Lunch" }
+    : null;
+  const bands = [breakBand, lunchBand].filter(Boolean);
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
   const activeClasses = cm.classes.filter((c) => c.status === "active");
@@ -209,6 +229,9 @@ export default function Schedule() {
             <option value="">All teachers</option>
             {activeTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
           </select>
+          <Button variant="outline" onClick={() => setShowHours(true)}>
+            <Clock className="w-4 h-4 mr-1" /> School Hours
+          </Button>
           <Button onClick={() => openCreate()} className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-1" /> Schedule Class
           </Button>
@@ -249,6 +272,26 @@ export default function Schedule() {
                       backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)`,
                     }}
                   >
+                    {bands.map((b, i) => {
+                      const top = (b.start - DAY_START_MIN) * PX_PER_MIN;
+                      const height = (b.end - b.start) * PX_PER_MIN;
+                      const isLunch = b.label === "Lunch";
+                      return (
+                        <div
+                          key={`band-${i}`}
+                          className="absolute left-0 right-0 z-0 pointer-events-none flex items-center justify-center"
+                          style={{
+                            top,
+                            height,
+                            backgroundColor: isLunch ? "rgba(16,185,129,0.10)" : "rgba(245,158,11,0.10)",
+                            borderTop: `1px dashed ${isLunch ? "rgba(16,185,129,0.35)" : "rgba(245,158,11,0.35)"}`,
+                            borderBottom: `1px dashed ${isLunch ? "rgba(16,185,129,0.35)" : "rgba(245,158,11,0.35)"}`,
+                          }}
+                        >
+                          <span className={`text-[10px] font-semibold ${isLunch ? "text-emerald-600/70" : "text-amber-600/70"}`}>{b.label}</span>
+                        </div>
+                      );
+                    })}
                     {blocks.map((s) => {
                       const lay = layout[s.id] || { col: 0, count: 1 };
                       const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
@@ -341,6 +384,15 @@ export default function Schedule() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <TeacherWorkload teachers={activeTeachers} schedules={schedules} timetable={timetable} />
+
+      <SchoolHoursDialog
+        open={showHours}
+        onOpenChange={setShowHours}
+        schoolCode={cm.schoolCode}
+        onSaved={(payload) => setTimetable({ ...timetable, ...payload, school_code: cm.schoolCode })}
+      />
     </div>
   );
 }

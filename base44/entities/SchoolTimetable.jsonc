@@ -1,0 +1,29 @@
+{
+  "name": "SchoolTimetable",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "break_start": {
+      "type": "string",
+      "title": "Break Start (HH:MM)"
+    },
+    "break_end": {
+      "type": "string",
+      "title": "Break End (HH:MM)"
+    },
+    "lunch_start": {
+      "type": "string",
+      "title": "Lunch Start (HH:MM)"
+    },
+    "lunch_end": {
+      "type": "string",
+      "title": "Lunch End (HH:MM)"
+    }
+  },
+  "required": [
+    "school_code"
+  ]
+}
