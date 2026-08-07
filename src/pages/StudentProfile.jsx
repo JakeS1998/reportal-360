@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen } from "lucide-react";
@@ -11,6 +11,7 @@ const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "b
 export default function StudentProfile() {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,7 @@ export default function StudentProfile() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+      <button onClick={() => (location.state?.fromClassId ? navigate(`/classes/${location.state.fromClassId}`) : navigate(-1))} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 

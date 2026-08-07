@@ -103,7 +103,7 @@ export default function ClassDashboard() {
         ) : (
           <div className="divide-y divide-slate-50">
             {students.map((sa) => (
-              <Link key={sa.id} to={`/students/${sa.student_id}`} className="flex items-center gap-3 py-2.5 hover:bg-slate-50 -mx-2 px-2 rounded-lg">
+              <Link key={sa.id} to={`/students/${sa.student_id}`} state={{ fromClassId: classId }} className="flex items-center gap-3 py-2.5 hover:bg-slate-50 -mx-2 px-2 rounded-lg">
                 <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                   <span className="text-xs font-bold text-slate-500">{(sa.student_name || "?").charAt(0).toUpperCase()}</span>
                 </div>
