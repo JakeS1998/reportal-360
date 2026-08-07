@@ -6,6 +6,29 @@ const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const MFA_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const DORMANT_THRESHOLD_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
+async function sendVerificationEmail(base44, user, subject, htmlBody, auditInfo) {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: fromEmail, to: user.email, subject, html: htmlBody }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      await logAudit(base44, "login_failed", auditInfo.username, auditInfo.role, `Email delivery failed (${res.status}): ${errText.slice(0, 200)}`, auditInfo.schoolCode, auditInfo.extra);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    await logAudit(base44, "login_failed", auditInfo.username, auditInfo.role, `Email delivery error: ${e.message}`, auditInfo.schoolCode, auditInfo.extra);
+    return false;
+  }
+}
+
 export default async function(req) {
   try {
     const body = await req.json();
@@ -165,29 +188,12 @@ export default async function(req) {
       });
       await logAudit(base44, "login_locked", username, user.role, "Dormant account — unlock code sent", user.school_code, auditExtra);
 
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
-      try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: user.email,
-            subject: "Your ReportAL 360 Account Reactivation Code",
-            html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-              <h2 style="color: #1e293b;">Account Reactivation Required</h2>
-              <p style="color: #475569;">Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.</p>
-              <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
-              <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
-            </div>`,
-          }),
-        });
-      } catch (e) {
-        // Email send failed — still return dormant_unlock_required so user can retry
-      }
+      const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Account Reactivation Code", `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1e293b;">Account Reactivation Required</h2>
+        <p style="color: #475569;">Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.</p>
+        <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
+        <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
+      </div>`, { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
       const emailParts = user.email.split("@");
       const emailHint = emailParts.length === 2
@@ -198,6 +204,7 @@ export default async function(req) {
         success: false,
         dormant_unlock_required: true,
         email_hint: emailHint,
+        email_failed: !delivered,
       });
     }
 
@@ -229,30 +236,12 @@ export default async function(req) {
           mfa_code_expires_at: expiresAt,
         });
 
-        // Send via Resend using env-var configured from address
-        const fromEmail = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
-        try {
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: fromEmail,
-              to: user.email,
-              subject: "Your ReportAL 360 Verification Code",
-              html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-                <h2 style="color: #1e293b;">Your Verification Code</h2>
-                <p style="color: #475569;">Your ReportAL 360 verification code is:</p>
-                <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
-                <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
-              </div>`,
-            }),
-          });
-        } catch (e) {
-          // Email send failed — still return mfa_required so user can retry
-        }
+        const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Verification Code", `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #1e293b;">Your Verification Code</h2>
+          <p style="color: #475569;">Your ReportAL 360 verification code is:</p>
+          <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
+          <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
+        </div>`, { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
         const emailParts = user.email.split("@");
         const emailHint = emailParts.length === 2
@@ -263,6 +252,7 @@ export default async function(req) {
           success: false,
           mfa_required: true,
           email_hint: emailHint,
+          email_failed: !delivered,
         });
       }
     }

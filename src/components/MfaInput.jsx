@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, ArrowRight, RotateCcw, ChevronLeft } from "lucide-react";
 
-export default function MfaInput({ emailHint, onVerify, onResend, onCancel, loading, error }) {
+export default function MfaInput({ emailHint, deliveryWarning, onVerify, onResend, onCancel, loading, error }) {
   const [code, setCode] = useState("");
 
   const handleSubmit = (e) => {
@@ -22,6 +22,11 @@ export default function MfaInput({ emailHint, onVerify, onResend, onCancel, load
         <p className="text-sm text-slate-500 mt-1">
           We sent a 6-digit code to <span className="font-medium text-slate-700">{emailHint}</span>
         </p>
+        {deliveryWarning && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mt-3 text-left">
+            We couldn't deliver the code by email. Please contact your administrator — the email sender domain may not be verified.
+          </p>
+        )}
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

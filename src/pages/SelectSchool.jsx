@@ -57,6 +57,7 @@ export default function SelectSchool() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [dormantUnlockRequired, setDormantUnlockRequired] = useState(false);
   const [emailHint, setEmailHint] = useState("");
+  const [emailFailed, setEmailFailed] = useState(false);
   const navigate = useNavigate();
   const [scene] = useState(() => pickScene());
   const { greeting, greetingSub, periodLabel } = getGreeting();
@@ -78,6 +79,7 @@ export default function SelectSchool() {
       if (res.data?.mfa_required) {
         setMfaRequired(true);
         setEmailHint(res.data.email_hint || "your email");
+        setEmailFailed(!!res.data.email_failed);
         return;
       }
       if (res.data?.dormant_unlock_required) {
@@ -150,6 +152,7 @@ export default function SelectSchool() {
       const res = await base44.functions.invoke("loginUser", { username, password });
       if (res.data?.mfa_required) {
         setEmailHint(res.data.email_hint || "your email");
+        setEmailFailed(!!res.data.email_failed);
       }
     } catch {
       setError("Unable to resend code");
@@ -162,6 +165,7 @@ export default function SelectSchool() {
     setMfaRequired(false);
     setEmailHint("");
     setError("");
+    setEmailFailed(false);
   };
 
   const handleDormantUnlock = async (otp, newPassword) => {
@@ -287,6 +291,7 @@ export default function SelectSchool() {
           {mfaRequired ? (
             <MfaInput
               emailHint={emailHint}
+              deliveryWarning={emailFailed}
               onVerify={handleMfaVerify}
               onResend={handleMfaResend}
               onCancel={handleMfaCancel}
