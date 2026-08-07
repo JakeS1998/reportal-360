@@ -332,7 +332,7 @@ export default function SelectSchool() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. 0101.jsavage"
+                placeholder="schoolcode.name"
                 className="pl-9"
                 autoCapitalize="none"
                 autoCorrect="off"
