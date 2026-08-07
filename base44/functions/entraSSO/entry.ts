@@ -59,7 +59,15 @@ export default async function(req) {
     });
 
     if (!tokenResponse.ok) {
-      return Response.json({ success: false, error: "Microsoft authentication failed. Please try again." }, { status: 401 });
+      const errText = await tokenResponse.text().catch(() => "");
+      let detail = "Microsoft authentication failed. Please try again.";
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed?.error) detail = `Microsoft authentication failed: ${parsed.error}${parsed.error_description ? ` — ${parsed.error_description}` : ""}`;
+      } catch {
+        if (errText) detail = `Microsoft authentication failed: ${errText.slice(0, 300)}`;
+      }
+      return Response.json({ success: false, error: detail }, { status: 401 });
     }
 
     const tokens = await tokenResponse.json();
