@@ -158,6 +158,30 @@ export default function ClassManagement() {
       const scheduled = [];
       const failed = [];
       const assigned = [];
+      const suggestions = [];
+
+      const studentName = (sid) => cm.students.find((s) => s.id === sid)?.student_name || sid;
+      // Suggest another active class of the same subject the student isn't enrolled in,
+      // preferring one whose existing schedule doesn't clash with the student's other classes.
+      const suggestAlternative = (cls, sid) => {
+        const subj = (cls.subject || "").trim().toLowerCase();
+        if (!subj) return null;
+        const alts = cm.classes.filter(
+          (c) => c.id !== cls.id && c.status === "active" && (c.subject || "").toLowerCase() === subj
+            && !(classStudents[c.id] || new Set()).has(sid)
+        );
+        if (alts.length === 0) return null;
+        const studentSlots = studentBusy[sid] || {};
+        const scored = alts.map((alt) => {
+          const altSched = byClass[alt.id] || [];
+          const meets = altSched.map((s) => `${s.day_of_week} ${fmtTime(s.start_time)}`).join(", ") || "unscheduled";
+          const clashes = altSched.some((s) => overlaps((studentSlots[s.day_of_week] || []), { start: toMin(s.start_time), end: toMin(s.end_time) }));
+          return { alt, meets, clashes, count: altSched.length };
+        });
+        scored.sort((a, b) => (a.clashes - b.clashes) || (b.count - a.count));
+        const pick = scored[0];
+        return { name: pick.alt.class_name, meets: pick.meets, clashes: pick.clashes };
+      };
 
       // Schedule the most-constrained classes first (most enrolled students), so
       // shared students get a consistent timetable before less-shared classes fill slots.
@@ -191,17 +215,33 @@ export default function ClassManagement() {
         if (need === 0) continue;
         const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_of_week));
         let placedThis = 0;
-        let studentBlocked = 0;
         for (let i = 0; i < need; i++) {
           let placed = null;
+          let conflictStudents = [];
           const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
+          // Pass 1: teacher free AND all enrolled students free (no conflict).
           for (const day of dayOrder) {
             for (const slot of slots) {
               if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
-              if (!studentsFree(cls.id, day, slot)) { studentBlocked++; continue; }
-              placed = { day, ...slot }; break;
+              if (studentsFree(cls.id, day, slot)) { placed = { day, ...slot }; break; }
             }
             if (placed) break;
+          }
+          // Pass 2: teacher free only — schedule anyway and flag conflicting students
+          // with a suggested alternative class of the same subject.
+          if (!placed) {
+            for (const day of dayOrder) {
+              for (const slot of slots) {
+                if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
+                const studs = classStudents[cls.id];
+                const conflicts = [];
+                if (studs) studs.forEach((sid) => { if (overlaps((studentBusy[sid] || {})[day] || [], slot)) conflicts.push(sid); });
+                placed = { day, ...slot };
+                conflictStudents = conflicts;
+                break;
+              }
+              if (placed) break;
+            }
           }
           if (!placed) break;
           await base44.entities.ClassSchedule.create({
@@ -216,15 +256,24 @@ export default function ClassManagement() {
           usedDays.add(placed.day);
           placedThis++;
           scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
+          if (conflictStudents.length) {
+            for (const sid of conflictStudents) {
+              const alt = suggestAlternative(cls, sid);
+              suggestions.push({
+                student: studentName(sid),
+                fromClass: cls.class_name,
+                day: placed.day,
+                time: fmtTime(mmToHHMM(placed.start)),
+                alt: alt,
+              });
+            }
+          }
         }
         if (placedThis < need) {
-          const reason = studentBlocked > 0
-            ? `Only ${have + placedThis}/${target} sessions fit (${studentBlocked} slot${studentBlocked === 1 ? "" : "s"} blocked by student conflicts)`
-            : `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)`;
-          failed.push({ name: cls.class_name, reason });
+          failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)` });
         }
       }
-      setAutoResult({ scheduled: scheduled.length, failed, assigned });
+      setAutoResult({ scheduled: scheduled.length, failed, assigned, suggestions });
       cm.loadData();
     } catch (err) {
       console.error(err);
@@ -534,6 +583,26 @@ export default function ClassManagement() {
                       <div key={i} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                         <span className="font-medium text-slate-700">{f.name}</span>
                         <span className="text-amber-600">{f.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {autoResult?.suggestions?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Student conflicts — alternative class suggestions:</p>
+                  <div className="max-h-52 overflow-y-auto space-y-1.5">
+                    {autoResult.suggestions.map((s, i) => (
+                      <div key={i} className="text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-slate-700">{s.student}</span>
+                          <span className="text-amber-600">{s.fromClass} · {s.day} {s.time}</span>
+                        </div>
+                        {s.alt ? (
+                          <p className="text-slate-500 mt-1">→ Suggested alternative: <span className="font-medium text-slate-700">{s.alt.name}</span>{s.alt.meets ? ` (${s.alt.meets}${s.alt.clashes ? ", has clashes" : ""})` : ""}</p>
+                        ) : (
+                          <p className="text-slate-500 mt-1">→ No alternative class of the same subject available.</p>
+                        )}
                       </div>
                     ))}
                   </div>
