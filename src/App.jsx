@@ -39,6 +39,7 @@ import AccessReview from './pages/AccessReview';
 import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
 import StudentDashboard from './pages/StudentDashboard';
+import ClassCover from './pages/ClassCover';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
         <Route path="/access-review" element={<AccessReview />} />
         <Route path="/homerooms" element={<Homeroom />} />
         <Route path="/reports" element={<ReportBuilder />} />
+        <Route path="/class-cover" element={<ClassCover />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

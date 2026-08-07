@@ -55,6 +55,7 @@ export default function MyClasses() {
   const [schedules, setSchedules] = useState([]);
   const [classes, setClasses] = useState({});
   const [attendanceMap, setAttendanceMap] = useState({});
+  const [covers, setCovers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
@@ -74,6 +75,15 @@ export default function MyClasses() {
           const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: user.school_code }, undefined, 5).catch(() => []);
           setTimetable(ttRes[0] || null);
         }
+        try {
+          const coversRes = await base44.functions.invoke("manageClassCovers", {
+            action: "list",
+            caller_username: user.username,
+            caller_password: user.password || localStorage.getItem("userPassword") || "",
+            cover_teacher_id: user.id,
+          });
+          setCovers(coversRes.data?.covers || []);
+        } catch (e) { setCovers([]); }
       } catch (err) {
         console.error(err);
       } finally {
@@ -87,7 +97,17 @@ export default function MyClasses() {
 
   useEffect(() => {
     if (!isCurrentWeek) { setAttendanceMap({}); return; }
-    const todays = schedules.filter((s) => s.day_of_week === todayName() && isScheduleActiveInWeek(s, weekStart));
+    const wkStart = weekStart.getTime();
+    const wkEnd = wkStart + 5 * 24 * 60 * 60 * 1000;
+    const todayCovers = covers.filter((c) => {
+      if (c.status !== "active" || c.day_of_week !== todayName() || !c.cover_date) return false;
+      const t = new Date(c.cover_date + "T00:00:00").getTime();
+      return t >= wkStart && t < wkEnd;
+    });
+    const todays = [
+      ...schedules.filter((s) => s.day_of_week === todayName() && isScheduleActiveInWeek(s, weekStart)),
+      ...todayCovers,
+    ];
     if (todays.length === 0) { setAttendanceMap({}); return; }
     Promise.all(
       todays.map((s) => base44.entities.AttendanceRecord.filter({ class_id: s.class_id, date: todayStr() }, undefined, 1).catch(() => []))
@@ -96,12 +116,23 @@ export default function MyClasses() {
       todays.forEach((s, i) => { map[s.class_id] = checks[i].length > 0; });
       setAttendanceMap(map);
     });
-  }, [schedules, isCurrentWeek, weekStart]);
+  }, [schedules, isCurrentWeek, weekStart, covers]);
 
   const weekSchedules = useMemo(
     () => schedules.filter((s) => isScheduleActiveInWeek(s, weekStart)),
     [schedules, weekStart]
   );
+
+  const weekCovers = useMemo(() => {
+    if (!covers.length) return [];
+    const wkStart = weekStart.getTime();
+    const wkEnd = wkStart + 5 * 24 * 60 * 60 * 1000;
+    return covers.filter((c) => {
+      if (c.status !== "active" || !c.cover_date) return false;
+      const t = new Date(c.cover_date + "T00:00:00").getTime();
+      return t >= wkStart && t < wkEnd;
+    });
+  }, [covers, weekStart]);
 
   const teachingSlots = useMemo(() => buildTeachingSlots(timetable).map((s) => ({ start: s.start, end: s.end })), [timetable]);
 
@@ -114,8 +145,14 @@ export default function MyClasses() {
     return out.filter((b) => b.start >= DAY_START_MIN && b.end <= DAY_END_MIN);
   }, [timetable]);
 
-  const byDay = (day) => weekSchedules
-    .filter((s) => s.day_of_week === day)
+  const byDay = (day) => [
+    ...weekSchedules.filter((s) => s.day_of_week === day),
+    ...weekCovers.filter((c) => c.day_of_week === day).map((c) => ({
+      id: `cover-${c.id}`, class_id: c.class_id, class_name: c.class_name,
+      start_time: c.start_time, end_time: c.end_time, room: c.room,
+      _isCover: true, _coverTeacher: c.original_teacher_name,
+    })),
+  ]
     .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
     .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
 
@@ -230,11 +267,16 @@ export default function MyClasses() {
                             width: `calc(${widthPct}% - 4px)`,
                             backgroundColor: bg,
                           }}
-                          title={`${s.class_name} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${cls?.grade_level ? ` · Grade ${cls.grade_level}` : ""}`}
+                          title={`${s.class_name} · ${fmtTime(s.start_time)}–${fmtTime(s.end_time)}${s._isCover ? ` · Cover for ${s._coverTeacher || ""}` : ""}${cls?.grade_level ? ` · Grade ${cls.grade_level}` : ""}`}
                         >
                           <p className="font-semibold truncate">{s.class_name}</p>
                           <p className="opacity-90 truncate">{fmtTime(s.start_time)}–{fmtTime(s.end_time)}</p>
                           {s.room && height > 56 && <p className="opacity-75 truncate flex items-center gap-0.5"><MapPin className="w-2 h-2" />{s.room}</p>}
+                          {s._isCover && (
+                            <span className="mt-1 inline-flex text-[9px] font-semibold px-1 py-0.5 rounded bg-white/30">
+                              Cover{s._coverTeacher ? ` · ${s._coverTeacher}` : ""}
+                            </span>
+                          )}
                           {showBadge && (
                             <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-semibold px-1 py-0.5 rounded bg-white/25">
                               <AlertCircle className="w-2.5 h-2.5" /> Attendance

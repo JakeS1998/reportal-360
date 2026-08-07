@@ -23,11 +23,44 @@ export default function ClassDashboard() {
   const [attOpen, setAttOpen] = useState(false);
   const [asmOpen, setAsmOpen] = useState(false);
   const [behOpen, setBehOpen] = useState(false);
+  const [denied, setDenied] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    if (!user) return;
     try {
-      const cls = await base44.entities.Class.get(classId);
+      // The Class record may be missing for legacy/seeded homerooms — fall back to the homeroom.
+      let cls = null;
+      try { cls = await base44.entities.Class.get(classId); } catch (e) { /* class may be missing */ }
+      if (!cls) {
+        const hrs = await base44.entities.Homeroom.filter({ class_id: classId }, undefined, 1).catch(() => []);
+        if (hrs.length) {
+          const h = hrs[0];
+          cls = { id: classId, class_name: h.homeroom_name, school_code: h.school_code, subject: "Homeroom", grade_level: h.grade_level || "", room: h.room || "", teacher_name: h.teacher_name || "", status: "active" };
+        }
+      }
+      if (!cls) { setData(null); setDenied(false); return; }
+      // Access guard: assigned teacher, active cover, or admin/manager/area.
+      const role = user?.role;
+      let allowed = role === "admin" || role === "manager" || role === "area";
+      if (!allowed && role === "teacher") {
+        const myTc = await base44.entities.TeacherClass.filter({ class_id: classId, teacher_id: user.id }, undefined, 1).catch(() => []);
+        if (myTc.length) allowed = true;
+        if (!allowed) {
+          try {
+            const res = await base44.functions.invoke("manageClassCovers", {
+              action: "check_access",
+              caller_username: user.username,
+              caller_password: user.password || localStorage.getItem("userPassword") || "",
+              class_id: classId,
+              teacher_id: user.id,
+            });
+            if (res.data?.allowed) allowed = true;
+          } catch (e) { /* ignore */ }
+        }
+      }
+      if (!allowed) { setDenied(true); setData(null); return; }
+      setDenied(false);
       const [teachers, studentClasses, attendance, attainment, behaviour, homerooms] = await Promise.all([
         base44.entities.TeacherClass.filter({ class_id: classId }),
         base44.entities.StudentClass.filter({ class_id: classId, status: "active" }, "student_name"),
@@ -41,14 +74,20 @@ export default function ClassDashboard() {
       // assignment so it always reflects the admin auto-assignment.
       if (homerooms.length && homerooms[0].student_ids?.length) {
         const hr = homerooms[0];
-        const res = await base44.functions.invoke("manageStudents", {
-          action: "list",
-          caller_username: user?.username,
-          caller_password: user?.password || localStorage.getItem("userPassword") || "",
-          school_code: cls.school_code,
-        });
-        const allStudents = res.data?.students || [];
         const idSet = new Set(hr.student_ids);
+        let allStudents = [];
+        try {
+          const res = await base44.functions.invoke("manageStudents", {
+            action: "list",
+            caller_username: user?.username,
+            caller_password: user?.password || localStorage.getItem("userPassword") || "",
+            school_code: cls.school_code,
+          });
+          allStudents = res.data?.students || [];
+        } catch (e) { /* fall back to direct read below */ }
+        if (allStudents.length === 0) {
+          allStudents = await base44.entities.Student.filter({ school_code: cls.school_code }, "student_name", 500).catch(() => []);
+        }
         students = allStudents
           .filter((s) => idSet.has(s.id))
           .map((s) => ({ id: s.id, student_id: s.id, student_name: s.student_name, class_id: classId, status: "active" }));
@@ -69,6 +108,7 @@ export default function ClassDashboard() {
   const reload = () => setReloadKey((k) => k + 1);
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
+  if (denied) return <p className="text-sm text-slate-400 text-center py-16">You don't have access to this class.</p>;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Class not found.</p>;
 
   const { cls, teachers, students, attendance, attainment, behaviour, attendanceRate, avgScore } = data;

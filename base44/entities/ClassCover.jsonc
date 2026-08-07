@@ -1,0 +1,115 @@
+{
+  "name": "ClassCover",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "original_teacher_id": {
+      "type": "string",
+      "title": "Original Teacher ID"
+    },
+    "original_teacher_name": {
+      "type": "string",
+      "title": "Original Teacher Name"
+    },
+    "cover_teacher_id": {
+      "type": "string",
+      "title": "Cover Teacher ID"
+    },
+    "cover_teacher_name": {
+      "type": "string",
+      "title": "Cover Teacher Name"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Class Name"
+    },
+    "subject": {
+      "type": "string",
+      "title": "Subject"
+    },
+    "room": {
+      "type": "string",
+      "title": "Room"
+    },
+    "day_of_week": {
+      "type": "string",
+      "title": "Day of Week",
+      "enum": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ]
+    },
+    "start_time": {
+      "type": "string",
+      "title": "Start Time"
+    },
+    "end_time": {
+      "type": "string",
+      "title": "End Time"
+    },
+    "cover_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Cover Date"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "cancelled"
+      ],
+      "default": "active"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "created_by": {
+      "type": "string",
+      "title": "Created By (username)"
+    }
+  },
+  "required": [
+    "school_code",
+    "original_teacher_id",
+    "cover_teacher_id",
+    "class_id",
+    "cover_date",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
