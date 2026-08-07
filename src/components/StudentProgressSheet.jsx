@@ -1,8 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useSchool } from "@/lib/SchoolContext";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
 import { generateStudentProgress, scoreToGrade } from "@/lib/sampleStudentData";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarDays } from "lucide-react";
+import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
 
 const SUBJECT_COLORS = { Math: "#1D4ED8", Reading: "#7C3AED", Science: "#10B981" };
 
@@ -34,7 +38,36 @@ function Badge({ children, color }) {
 }
 
 export default function StudentProgressSheet({ student, onClose }) {
+  const { user, activeSchool } = useSchool();
   const progress = useMemo(() => student ? generateStudentProgress(student) : null, [student]);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [schedulePayload, setSchedulePayload] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+
+  const handleViewSchedule = async () => {
+    if (!student?.student_number) return;
+    setScheduleLoading(true);
+    try {
+      const schoolCode = activeSchool?.school_code;
+      const matches = await base44.entities.Student.filter({ student_number: student.student_number, school_code: schoolCode }, undefined, 1);
+      const rec = matches[0];
+      if (!rec) { alert("No schedule data found for this student yet."); return; }
+      const res = await base44.functions.invoke("manageStudents", {
+        action: "get_profile",
+        caller_username: user?.username,
+        caller_password: user?.password || localStorage.getItem("userPassword") || "",
+        student_id: rec.id,
+      });
+      if (!res.data?.success) { alert("No schedule data found for this student yet."); return; }
+      setSchedulePayload({ classes: res.data.classes || [], attendance: res.data.attendance || [], schoolCode: rec.school_code || schoolCode });
+      setShowSchedule(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load the schedule. Please try again.");
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
 
   const chartData = useMemo(() => {
     if (!progress) return [];
@@ -56,6 +89,11 @@ export default function StudentProgressSheet({ student, onClose }) {
         </SheetHeader>
 
         <div className="mt-4 space-y-5">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleViewSchedule} disabled={scheduleLoading}>
+              <CalendarDays className="w-4 h-4 mr-1" /> {scheduleLoading ? "Loading…" : "View Schedule"}
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Badge color="slate">ID: {student.student_number}</Badge>
             <Badge color="slate">Grade {student.grade_level}</Badge>
@@ -117,6 +155,15 @@ export default function StudentProgressSheet({ student, onClose }) {
             </ResponsiveContainer>
           </div>
         </div>
+
+        <StudentScheduleDialog
+          open={showSchedule}
+          onOpenChange={setShowSchedule}
+          student={student}
+          classes={schedulePayload?.classes || []}
+          attendance={schedulePayload?.attendance || []}
+          schoolCode={schedulePayload?.schoolCode}
+        />
       </SheetContent>
     </Sheet>
   );
