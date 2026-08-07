@@ -12,7 +12,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
-      return saved ? JSON.parse(saved) : null;
+      return saved ? JSON.parse(saved) : {};
     } catch {
       return null;
     }
