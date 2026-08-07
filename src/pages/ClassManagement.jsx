@@ -222,7 +222,7 @@ export default function ClassManagement() {
       // Schedule the most-constrained classes first (most enrolled students), so
       // shared students get a consistent timetable before less-shared classes fill slots.
       const queue = cm.classes
-        .filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom")
+        .filter((c) => c.status === "active")
         .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
 
       setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
@@ -230,6 +230,14 @@ export default function ClassManagement() {
         const cls = queue[qi];
         setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
         const target = Math.max(1, Math.min(5, parseInt(cls.sessions_per_week, 10) || 1));
+        // Homeroom classes are scheduled into the fixed homeroom time block from
+        // the school timetable (not the teaching slots, which exclude homeroom).
+        const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
+        const homeroomSlot = timetable?.homeroom_start && timetable?.homeroom_end
+          ? { start: toMin(timetable.homeroom_start), end: toMin(timetable.homeroom_end) }
+          : null;
+        if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
+        const classSlots = isHomeroom ? [homeroomSlot] : slots;
         let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
         // Auto-assign a teacher by subject if none assigned
         if (!tAssign) {
@@ -263,7 +271,7 @@ export default function ClassManagement() {
           // Shuffle the slot order per session so a class lands on varied
           // time slots across the week (e.g. English Mon 10am, Tue 2pm, Wed
           // 10am, off Thu, Fri 9am) — variety without a predictable pattern.
-          const slotOrder = [...slots].sort(() => Math.random() - 0.5);
+          const slotOrder = [...classSlots].sort(() => Math.random() - 0.5);
           // Pass 1: teacher free AND all enrolled students free (no conflict).
           for (const day of dayOrder) {
             for (const slot of slotOrder) {

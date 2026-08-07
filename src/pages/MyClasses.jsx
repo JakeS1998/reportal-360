@@ -13,6 +13,12 @@ const PX_PER_MIN = 1.4;
 const PX_PER_HOUR = PX_PER_MIN * 60;
 const GRID_HEIGHT = (DAY_END_MIN - DAY_START_MIN) * PX_PER_MIN;
 
+const SPECIAL_STYLE = {
+  Homeroom: "border-blue-200 bg-blue-50 text-blue-600",
+  Break: "border-amber-200 bg-amber-50 text-amber-600",
+  Lunch: "border-emerald-200 bg-emerald-50 text-emerald-600",
+};
+
 const HOURS = [];
 for (let m = DAY_START_MIN; m < DAY_END_MIN; m += 60) HOURS.push(m);
 
@@ -99,6 +105,15 @@ export default function MyClasses() {
 
   const teachingSlots = useMemo(() => buildTeachingSlots(timetable).map((s) => ({ start: s.start, end: s.end })), [timetable]);
 
+  const specialBlocks = useMemo(() => {
+    if (!timetable) return [];
+    const out = [];
+    if (timetable.homeroom_start && timetable.homeroom_end) out.push({ start: toMin(timetable.homeroom_start), end: toMin(timetable.homeroom_end), label: "Homeroom" });
+    if (timetable.break_start && timetable.break_end) out.push({ start: toMin(timetable.break_start), end: toMin(timetable.break_end), label: "Break" });
+    if (timetable.lunch_start && timetable.lunch_end) out.push({ start: toMin(timetable.lunch_start), end: toMin(timetable.lunch_end), label: "Lunch" });
+    return out.filter((b) => b.start >= DAY_START_MIN && b.end <= DAY_END_MIN);
+  }, [timetable]);
+
   const byDay = (day) => weekSchedules
     .filter((s) => s.day_of_week === day)
     .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
@@ -163,6 +178,21 @@ export default function MyClasses() {
                     <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
                   </div>
                   <div className="relative" style={{ height: GRID_HEIGHT, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)` }}>
+                    {specialBlocks.map((sb) => {
+                      const top = (sb.start - DAY_START_MIN) * PX_PER_MIN;
+                      const height = Math.max(20, (sb.end - sb.start) * PX_PER_MIN - 2);
+                      return (
+                        <div
+                          key={`sp-${day}-${sb.label}`}
+                          className={`absolute rounded-lg p-1.5 text-[10px] leading-tight overflow-hidden border ${SPECIAL_STYLE[sb.label] || "border-slate-200 bg-slate-50 text-slate-500"}`}
+                          style={{ top, height, left: "2px", width: "calc(100% - 4px)" }}
+                          title={`${sb.label} · ${fmtTime(mmToHHMM(sb.start))}–${fmtTime(mmToHHMM(sb.end))}`}
+                        >
+                          <p className="font-semibold truncate">{sb.label}</p>
+                          <p className="opacity-80 truncate">{fmtTime(mmToHHMM(sb.start))}–{fmtTime(mmToHHMM(sb.end))}</p>
+                        </div>
+                      );
+                    })}
                     {freeSlots.map((slot) => {
                       const top = (slot.start - DAY_START_MIN) * PX_PER_MIN;
                       const height = Math.max(20, (slot.end - slot.start) * PX_PER_MIN - 2);
