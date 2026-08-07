@@ -269,37 +269,47 @@ export default function Schedule() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto">
-          <div className="flex min-w-[760px]">
-            {/* Time gutter */}
-            <div className="w-12 shrink-0 relative" style={{ height: GRID_HEIGHT }}>
-              {HOURS.map((m) => (
-                <div key={m} className="absolute left-0 right-0 text-[10px] text-slate-400 -translate-y-1/2 text-right pr-1" style={{ top: (m - DAY_START_MIN) * PX_PER_MIN }}>
-                  {fmtTime(mmToHHMM(m))}
-                </div>
-              ))}
-            </div>
-            {/* Day columns */}
-            {DAYS.map((day, idx) => {
-              const blocks = byDay(day);
-              const layout = layoutBlocks(blocks);
-              const dayDate = new Date(weekStart);
-              dayDate.setDate(dayDate.getDate() + idx);
-              const isToday = weeksBetween(getWeekStart(new Date()), weekStart) === 0 && day === ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
-              return (
-                <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
-                  <div className={`text-center text-xs font-semibold py-2 border-b ${isToday ? "text-[#9E1B32] border-[#9E1B32]/30 bg-[#9E1B32]/5" : "text-slate-700 border-slate-100"}`}>
+          <div className="min-w-[760px]">
+            {/* Day headers (separate row so the time gutter aligns with the grid body) */}
+            <div className="flex">
+              <div className="w-12 shrink-0" />
+              {DAYS.map((day, idx) => {
+                const dayDate = new Date(weekStart);
+                dayDate.setDate(dayDate.getDate() + idx);
+                const isToday = weeksBetween(getWeekStart(new Date()), weekStart) === 0 && day === ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+                return (
+                  <div key={`h-${day}`} className={`flex-1 min-w-[140px] text-center text-xs font-semibold py-2 border-b border-l border-slate-100 ${isToday ? "text-[#9E1B32] border-[#9E1B32]/30 bg-[#9E1B32]/5" : "text-slate-700 border-slate-100"}`}>
                     <div>{day}</div>
                     <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
                   </div>
-                  <div
-                    ref={(el) => (gridRefs.current[day] = el)}
-                    onClick={(e) => handleGridClick(day, e)}
-                    className="relative cursor-cell"
-                    style={{
-                      height: GRID_HEIGHT,
-                      backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)`,
-                    }}
-                  >
+                );
+              })}
+            </div>
+            {/* Grid body: time gutter + day columns share the same top origin */}
+            <div className="flex">
+              {/* Time gutter */}
+              <div className="w-12 shrink-0 relative" style={{ height: GRID_HEIGHT }}>
+                {HOURS.map((m) => (
+                  <div key={m} className="absolute left-0 right-0 text-[10px] text-slate-400 -translate-y-1/2 text-right pr-1" style={{ top: (m - DAY_START_MIN) * PX_PER_MIN }}>
+                    {fmtTime(mmToHHMM(m))}
+                  </div>
+                ))}
+              </div>
+              {/* Day columns */}
+              {DAYS.map((day, idx) => {
+                const blocks = byDay(day);
+                const layout = layoutBlocks(blocks);
+                return (
+                  <div key={day} className="flex-1 min-w-[140px] border-l border-slate-100">
+                    <div
+                      ref={(el) => (gridRefs.current[day] = el)}
+                      onClick={(e) => handleGridClick(day, e)}
+                      className="relative cursor-cell"
+                      style={{
+                        height: GRID_HEIGHT,
+                        backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)`,
+                      }}
+                    >
                     {schoolStart != null && schoolStart > DAY_START_MIN && (
                       <div className="absolute left-0 right-0 z-0 pointer-events-none bg-slate-100/70" style={{ top: 0, height: (schoolStart - DAY_START_MIN) * PX_PER_MIN }} />
                     )}
@@ -358,10 +368,11 @@ export default function Schedule() {
                         </button>
                       );
                     })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
           {schedules.length > 0 && byDay("Monday").length === 0 && byDay("Tuesday").length === 0 && byDay("Wednesday").length === 0 && byDay("Thursday").length === 0 && byDay("Friday").length === 0 && (
             <p className="text-xs text-slate-400 text-center mt-4">No classes fall within 7 AM–4 PM. Use “Schedule Class” to add one.</p>
