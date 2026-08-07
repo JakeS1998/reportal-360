@@ -9,6 +9,7 @@ import MfaInput from "@/components/MfaInput";
 import DormantUnlockInput from "@/components/DormantUnlockInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
 import LogoTransparent from "@/components/LogoTransparent";
+import GoogleIcon from "@/components/GoogleIcon";
 
 const SCENES = [
   { time: "morning", url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
@@ -214,12 +215,30 @@ export default function SelectSchool() {
       const res = await base44.functions.invoke("entraSSO", { action: "authorize_url", redirect_uri: redirectUri });
       if (res.data?.success) {
         sessionStorage.setItem("ssoState", res.data.state);
+        sessionStorage.setItem("ssoProvider", "microsoft");
         window.location.href = res.data.url;
       } else {
         setError(res.data?.error || "Microsoft SSO is not configured. Contact your administrator.");
       }
     } catch {
       setError("Unable to start Microsoft sign-in.");
+    }
+  };
+
+  const handleGoogleSSO = async () => {
+    setError("");
+    try {
+      const redirectUri = window.location.origin + "/sso-callback";
+      const res = await base44.functions.invoke("googleSSO", { action: "authorize_url", redirect_uri: redirectUri });
+      if (res.data?.success) {
+        sessionStorage.setItem("ssoState", res.data.state);
+        sessionStorage.setItem("ssoProvider", "google");
+        window.location.href = res.data.url;
+      } else {
+        setError(res.data?.error || "Google SSO is not configured. Contact your administrator.");
+      }
+    } catch {
+      setError("Unable to start Google sign-in.");
     }
   };
 
@@ -288,6 +307,11 @@ export default function SelectSchool() {
           <Button type="button" onClick={handleMicrosoftSSO} disabled={loading} className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-base">
             <svg className="w-5 h-5 mr-2" viewBox="0 0 23 23"><path fill="#f25022" d="M0 0h10.5v10.5H0z"/><path fill="#7fba00" d="M12.5 0H23v10.5H12.5z"/><path fill="#00a4ef" d="M0 12.5h10.5V23H0z"/><path fill="#ffb900" d="M12.5 12.5H23V23H12.5z"/></svg>
             Continue with Microsoft
+          </Button>
+
+          <Button type="button" onClick={handleGoogleSSO} disabled={loading} className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-base">
+            <GoogleIcon className="w-5 h-5 mr-2" />
+            Continue with Google
           </Button>
 
           <div className="relative py-4">

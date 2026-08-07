@@ -34,7 +34,7 @@ const SECTIONS = [
       { label: "District administrators restricted to their district", status: "done" },
       { label: "Inactive accounts blocked from login", status: "done" },
       { label: "Multi-Factor Authentication (MFA) via email", status: "done" },
-      { label: "SSO via Microsoft Entra ID (Google Workspace pending)", status: "partial" },
+      { label: "SSO via Microsoft Entra ID & Google Workspace", status: "done" },
       { label: "Permissions reviewed regularly", status: "done" },
     ],
   },

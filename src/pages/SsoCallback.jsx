@@ -15,7 +15,7 @@ export default function SsoCallback() {
     const savedState = sessionStorage.getItem("ssoState");
 
     if (!code) {
-      setError("No authorization code received from Microsoft.");
+      setError("No authorization code received.");
       return;
     }
 
@@ -25,13 +25,17 @@ export default function SsoCallback() {
     }
 
     sessionStorage.removeItem("ssoState");
+    const provider = sessionStorage.getItem("ssoProvider") || "microsoft";
+    sessionStorage.removeItem("ssoProvider");
     const redirectUri = window.location.origin + "/sso-callback";
+    const fnName = provider === "google" ? "googleSSO" : "entraSSO";
+    const providerLabel = provider === "google" ? "Google" : "Microsoft";
 
     base44.functions
-      .invoke("entraSSO", { code, redirect_uri: redirectUri })
+      .invoke(fnName, { code, redirect_uri: redirectUri })
       .then((res) => {
         if (!res.data?.success) {
-          setError(res.data?.error || "Microsoft sign-in failed.");
+          setError(res.data?.error || `${providerLabel} sign-in failed.`);
           return;
         }
         const user = res.data.user;
@@ -52,7 +56,7 @@ export default function SsoCallback() {
         });
       })
       .catch(() => {
-        setError("Unable to complete Microsoft sign-in. Please try again.");
+        setError(`Unable to complete ${providerLabel} sign-in. Please try again.`);
       });
   }, [navigate]);
 
@@ -77,7 +81,7 @@ export default function SsoCallback() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="text-center">
         <Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto mb-3" />
-        <p className="text-sm text-slate-500">Completing Microsoft sign-in...</p>
+        <p className="text-sm text-slate-500">Completing sign-in...</p>
       </div>
     </div>
   );
