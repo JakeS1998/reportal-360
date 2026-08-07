@@ -32,6 +32,8 @@ export default function ClassManagement() {
   const [dupYear, setDupYear] = useState("");
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
+  const [assignRunning, setAssignRunning] = useState(false);
+  const [assignResult, setAssignResult] = useState(null);
   const [subjectDefs, setSubjectDefs] = useState([]);
 
   useEffect(() => {
@@ -283,6 +285,58 @@ export default function ClassManagement() {
     }
   };
 
+  // Auto-assign students to classes: each student is enrolled into one section
+  // per subject for their grade, balancing enrollment across sections. Only
+  // unassigned (student, subject) pairs are created — existing enrollments stay.
+  const autoAssignStudents = async () => {
+    if (cm.students.length === 0) { setAssignResult({ error: "No students to assign." }); return; }
+    if (!confirm("Auto-assign students to classes by grade and subject? Each student is enrolled into one section per subject for their grade, balancing class sizes. Existing enrollments are kept.")) return;
+    setAssignRunning(true);
+    setAssignResult(null);
+    try {
+      const activeClasses = cm.classes.filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom" && c.grade_level);
+      // group by grade|subject
+      const groups = {};
+      activeClasses.forEach((c) => {
+        const key = `${c.grade_level}|${(c.subject || "").trim().toLowerCase()}`;
+        (groups[key] ||= []).push(c);
+      });
+      const counts = {};
+      cm.studentAssignments.filter((sa) => sa.status === "active").forEach((sa) => { counts[sa.class_id] = (counts[sa.class_id] || 0) + 1; });
+      const enrolled = new Set(cm.studentAssignments.filter((sa) => sa.status === "active").map((sa) => `${sa.student_id}|${sa.class_id}`));
+      const subjectOf = {}; // classId -> subject (for reporting)
+      activeClasses.forEach((c) => { subjectOf[c.id] = c.subject; });
+
+      const toCreate = [];
+      const perStudent = {};
+      for (const s of cm.students) {
+        if (s.status && s.status !== "active") continue;
+        const grade = s.grade_level || "";
+        if (!grade) continue;
+        for (const [key, classList] of Object.entries(groups)) {
+          const [g, subj] = key.split("|");
+          if (g !== grade) continue;
+          classList.sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
+          const target = classList[0];
+          if (enrolled.has(`${s.id}|${target.id}`)) continue;
+          toCreate.push({ student_id: s.id, student_name: s.student_name, class_id: target.id, academic_year_id: cm.currentYear?.id || "", school_code: cm.schoolCode, status: "active" });
+          counts[target.id] = (counts[target.id] || 0) + 1;
+          enrolled.add(`${s.id}|${target.id}`);
+          (perStudent[s.id] ||= new Set()).add(subj);
+        }
+      }
+      if (toCreate.length > 0) await base44.entities.StudentClass.bulkCreate(toCreate);
+      const studentsAssigned = Object.keys(perStudent).length;
+      setAssignResult({ created: toCreate.length, studentsAssigned, totalStudents: cm.students.length });
+      cm.loadData();
+    } catch (err) {
+      console.error(err);
+      setAssignResult({ error: err.message || "Failed to auto-assign students" });
+    } finally {
+      setAssignRunning(false);
+    }
+  };
+
   const handleDelete = async (cls) => {
     if (!confirm(`Delete "${cls.class_name}"? This removes all teacher and student assignments.`)) return;
     await cm.deleteClass(cls.id);
@@ -318,6 +372,9 @@ export default function ClassManagement() {
           <p className="text-sm text-slate-500">{filtered.length} class{filtered.length === 1 ? "" : "es"} at {cm.schoolName}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
+            <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Students"}
+          </Button>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
             <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
           </Button>
@@ -615,6 +672,39 @@ export default function ClassManagement() {
           )}
           <DialogFooter>
             <Button onClick={() => setAutoResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Assign Students Result */}
+      <Dialog open={!!assignResult} onOpenChange={(v) => !v && setAssignResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="w-4 h-4" /> Auto-Assign Students Result</DialogTitle>
+          </DialogHeader>
+          {assignResult?.error ? (
+            <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{assignResult.error}</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-lg bg-emerald-50 p-3">
+                  <p className="text-2xl font-bold text-emerald-600">{assignResult?.created || 0}</p>
+                  <p className="text-xs text-slate-500">New enrollments</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 p-3">
+                  <p className="text-2xl font-bold text-blue-600">{assignResult?.studentsAssigned || 0}</p>
+                  <p className="text-xs text-slate-500">Students updated</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                {assignResult?.created > 0
+                  ? `Enrolled ${assignResult.studentsAssigned} of ${assignResult.totalStudents} students into one section per subject for their grade, balancing class sizes.`
+                  : "All students are already enrolled in a section for every subject offered at their grade."}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setAssignResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

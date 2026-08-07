@@ -23,6 +23,8 @@ export default function Homeroom() {
   const [form, setForm] = useState({ homeroom_name: "", teacher_id: "", room: "", grade_level: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [autoResult, setAutoResult] = useState(null);
 
   const load = useCallback(async () => {
     if (!cm.schoolCode) return;
@@ -179,6 +181,50 @@ export default function Homeroom() {
     if (updates.length) { await Promise.all(updates); load(); }
   };
 
+  // Auto-assign unassigned students to homerooms, matching by grade and
+  // balancing counts across homerooms of the same grade.
+  const autoAssignHomerooms = async () => {
+    if (homerooms.length === 0) { setAutoResult({ error: "Create at least one homeroom first." }); return; }
+    if (!confirm("Auto-assign students to homerooms by grade, balancing counts? Already-assigned students stay where they are.")) return;
+    setAutoRunning(true);
+    setAutoResult(null);
+    try {
+      const counts = {};
+      homerooms.forEach((h) => { counts[h.id] = (h.student_ids || []).length; });
+      const byGrade = {};
+      homerooms.forEach((h) => { const g = h.grade_level || ""; (byGrade[g] ||= []).push(h); });
+      const assignedSet = new Set();
+      homerooms.forEach((h) => (h.student_ids || []).forEach((sid) => assignedSet.add(sid)));
+
+      const updates = {}; // homeroomId -> new student_ids array (seeded from existing)
+      homerooms.forEach((h) => { updates[h.id] = null; }); // lazy
+      let placed = 0;
+      let noMatch = 0;
+      for (const s of cm.students) {
+        if (assignedSet.has(s.id)) continue;
+        if (s.status && s.status !== "active") continue;
+        const g = s.grade_level || "";
+        const list = byGrade[g];
+        if (!list || list.length === 0) { noMatch++; continue; }
+        list.sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
+        const target = list[0];
+        if (updates[target.id] === null) updates[target.id] = [...(target.student_ids || [])];
+        updates[target.id].push(s.id);
+        counts[target.id] = (counts[target.id] || 0) + 1;
+        assignedSet.add(s.id);
+        placed++;
+      }
+      const toWrite = Object.entries(updates).filter(([, v]) => v !== null);
+      if (toWrite.length) await Promise.all(toWrite.map(([id, ids]) => base44.entities.Homeroom.update(id, { student_ids: ids })));
+      setAutoResult({ placed, noMatch, total: cm.students.length });
+      load();
+    } catch (err) {
+      setAutoResult({ error: err.message || "Failed to auto-assign homerooms" });
+    } finally {
+      setAutoRunning(false);
+    }
+  };
+
   if (!canManageStaff) {
     return <div className="flex items-center justify-center py-20 text-slate-400">You do not have access to this page.</div>;
   }
@@ -204,7 +250,12 @@ export default function Homeroom() {
             {homeroomTime ? ` · meets daily ${homeroomTime}` : ""}
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-slate-900 hover:bg-slate-800"><Plus className="w-4 h-4 mr-1" /> New Homeroom</Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={autoAssignHomerooms} disabled={autoRunning} variant="outline" className="border-slate-200">
+            <Users className="w-4 h-4 mr-1" /> {autoRunning ? "Assigning…" : "Auto Assign"}
+          </Button>
+          <Button onClick={openCreate} className="bg-slate-900 hover:bg-slate-800"><Plus className="w-4 h-4 mr-1" /> New Homeroom</Button>
+        </div>
       </div>
 
       {!homeroomTime && (
@@ -307,6 +358,40 @@ export default function Homeroom() {
               <Button type="submit" disabled={saving} className="bg-slate-900 hover:bg-slate-800">{saving ? "Saving…" : editing ? "Save Changes" : "Create Homeroom"}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Assign Result */}
+      <Dialog open={!!autoResult} onOpenChange={(v) => !v && setAutoResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Users className="w-4 h-4" /> Auto-Assign Homerooms Result</DialogTitle>
+          </DialogHeader>
+          {autoResult?.error ? (
+            <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{autoResult.error}</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="rounded-lg bg-emerald-50 p-3">
+                  <p className="text-2xl font-bold text-emerald-600">{autoResult?.placed || 0}</p>
+                  <p className="text-xs text-slate-500">Students assigned</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <p className="text-2xl font-bold text-amber-600">{autoResult?.noMatch || 0}</p>
+                  <p className="text-xs text-slate-500">No matching homeroom</p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">
+                {autoResult?.placed > 0
+                  ? `Distributed ${autoResult.placed} unassigned student${autoResult.placed === 1 ? "" : "s"} across homerooms by grade, balancing counts.`
+                  : "Every student is already in a homeroom (or none match an existing homeroom's grade)."}
+                {autoResult?.noMatch > 0 && ` ${autoResult.noMatch} student${autoResult.noMatch === 1 ? "" : "s"} had no homeroom for their grade.`}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setAutoResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
