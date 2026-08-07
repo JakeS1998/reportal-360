@@ -8,11 +8,11 @@ const LANDMARKS = [
   { name: "Big Spring Park · Huntsville", url: "https://images.unsplash.com/photo-1670872623631-cd88b0803d58?auto=format&fit=crop&w=1200&q=80", fact: "Built around a natural spring that has flowed for over 10,000 years — the reason Huntsville was founded." },
   { name: "Gulf Shores Coast", url: "https://images.unsplash.com/photo-1574723507385-265b5635e6c4?auto=format&fit=crop&w=1200&q=80", fact: "Gulf Shores hosts the National Shrimp Festival each October, drawing over 200,000 visitors." },
   { name: "Birmingham Skyline", url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1200&q=80", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
-  { name: "Montgomery Capitol", url: "https://images.unsplash.com/photo-1728001528593-58c93982917b?auto=format&fit=crop&w=1200&q=80", fact: "Montgomery has been Alabama's capital since 1846 and hosted the historic 1955 bus boycott." },
-  { name: "U.S. Space & Rocket Center", url: "https://images.unsplash.com/photo-1605813640975-0ef0ad36826a?auto=format&fit=crop&w=1200&q=80", fact: "The Saturn V at the Space & Rocket Center is one of only three remaining and stands 363 feet tall." },
+  { name: "Montgomery Capitol", url: "https://images.unsplash.com/photo-1711048090568-2bb275d232c1?auto=format&fit=crop&w=1200&q=80", fact: "Montgomery has been Alabama's capital since 1846 and hosted the historic 1955 bus boycott." },
+  { name: "U.S. Space & Rocket Center", url: "https://images.unsplash.com/photo-1711048090525-807f98902860?auto=format&fit=crop&w=1200&q=80", fact: "The Saturn V at the Space & Rocket Center is one of only three remaining and stands 363 feet tall." },
   { name: "Lake Martin", url: "https://images.unsplash.com/photo-1589747948711-64c21bee4019?auto=format&fit=crop&w=1200&q=80", fact: "With over 750 miles of shoreline, Lake Martin is one of the largest man-made lakes in the US." },
   { name: "Mobile Bay", url: "https://images.unsplash.com/photo-1551292788-2031aee091a6?auto=format&fit=crop&w=1200&q=80", fact: "Mobile Bay is famous for the 'jubilee' phenomenon, where fish and crabs swarm the shoreline at dawn." },
-  { name: "Tuscaloosa", url: "https://images.unsplash.com/photo-1600388704262-530cb4af35d3?auto=format&fit=crop&w=1200&q=80", fact: "Tuscaloosa is home to the University of Alabama and the Crimson Tide football dynasty." },
+  { name: "Tuscaloosa", url: "https://images.unsplash.com/photo-1524611410056-a5ee557e68a3?auto=format&fit=crop&w=1200&q=80", fact: "Tuscaloosa is home to the University of Alabama and the Crimson Tide football dynasty." },
 ];
 
 function todayLandmark() {
