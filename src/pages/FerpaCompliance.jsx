@@ -118,7 +118,7 @@ const SECTIONS = [
       { label: "Termination removes access (delete + deactivate)", status: "done" },
       { label: "Least privilege enforced by role", status: "done" },
       { label: "Admin roles limited", status: "done" },
-      { label: "Annual access reviews", status: "policy" },
+      { label: "Annual access reviews", status: "done" },
       { label: "Dormant accounts disabled", status: "roadmap" },
       { label: "Temporary elevated access expires", status: "roadmap" },
     ],
@@ -129,7 +129,7 @@ const SECTIONS = [
     items: [
       { label: "Access logs available for investigations", status: "done" },
       { label: "Incident response plan documented", status: "done" },
-      { label: "Security contact identified", status: "policy" },
+      { label: "Security contact identified (Jake Savage)", status: "done" },
       { label: "Breach notification procedures", status: "done" },
       { label: "Backups tested", status: "platform" },
       { label: "Disaster recovery plan", status: "platform" },
@@ -143,9 +143,9 @@ const SECTIONS = [
       { label: "Privacy policy published", status: "done" },
       { label: "Data retention policy", status: "done" },
       { label: "Acceptable use policy", status: "done" },
-      { label: "Administrator training", status: "policy" },
-      { label: "School staff training", status: "policy" },
-      { label: "Annual refresher training", status: "policy" },
+      { label: "Administrator training", status: "done" },
+      { label: "School staff training", status: "done" },
+      { label: "Annual refresher training", status: "done" },
     ],
   },
   {
@@ -161,7 +161,7 @@ const SECTIONS = [
       { label: "CSP policy enabled", status: "platform" },
       { label: "Secrets stored securely", status: "platform" },
       { label: "No credentials in source code", status: "done" },
-      { label: "Regular penetration testing", status: "policy" },
+      { label: "Regular penetration testing", status: "done" },
     ],
   },
 ];
@@ -403,6 +403,20 @@ export default function FerpaCompliance() {
                 </div>
               </div>
             </div>
+          </div>
+        </FadeIn>
+
+        {/* Security Contact */}
+        <FadeIn delay={60}>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "#EFF6FF" }}>
+              <ShieldCheck className="w-5 h-5" style={{ color: "#3B82F6" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Security Contact</p>
+              <p className="text-xs text-slate-500 mt-0.5">Jake Savage · <a href="mailto:jake.savage@blueridge-group.co.uk" className="text-blue-600 hover:underline">jake.savage@blueridge-group.co.uk</a></p>
+            </div>
+            <span className="text-[10px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap" style={{ color: "#10B981", backgroundColor: "#ECFDF5" }}>Identified</span>
           </div>
         </FadeIn>
 
