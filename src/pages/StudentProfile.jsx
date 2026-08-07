@@ -3,7 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -15,6 +17,7 @@ export default function StudentProfile() {
   const { user } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSchedule, setShowSchedule] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -51,14 +54,19 @@ export default function StudentProfile() {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
-          <span className="text-xl font-bold text-slate-500">{(s.student_name || "?").charAt(0).toUpperCase()}</span>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+            <span className="text-xl font-bold text-slate-500">{(s.student_name || "?").charAt(0).toUpperCase()}</span>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">{s.student_name}</h2>
+            <p className="text-sm text-slate-500">Grade {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""} {s.student_number ? `· #${s.student_number}` : ""}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">{s.student_name}</h2>
-          <p className="text-sm text-slate-500">Grade {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""} {s.student_number ? `· #${s.student_number}` : ""}</p>
-        </div>
+        <Button variant="outline" onClick={() => setShowSchedule(true)}>
+          <CalendarDays className="w-4 h-4 mr-1" /> View Schedule
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -166,6 +174,8 @@ export default function StudentProfile() {
           </div>
         )}
       </SectionCard>
+
+      <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} attendance={attendance} schoolCode={s.school_code} />
     </div>
   );
 }
