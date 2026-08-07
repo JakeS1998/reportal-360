@@ -26,13 +26,25 @@ export default function ClassDashboard() {
     setLoading(true);
     try {
       const cls = await base44.entities.Class.get(classId);
-      const [teachers, students, attendance, attainment, behaviour] = await Promise.all([
+      const [teachers, studentClasses, attendance, attainment, behaviour, homerooms] = await Promise.all([
         base44.entities.TeacherClass.filter({ class_id: classId }),
         base44.entities.StudentClass.filter({ class_id: classId, status: "active" }, "student_name"),
         base44.entities.AttendanceRecord.filter({ class_id: classId }, "-date", 500),
         base44.entities.AttainmentRecord.filter({ class_id: classId }, "-date", 500),
         base44.entities.BehaviourRecord.filter({ class_id: classId }, "-date", 500),
+        base44.entities.Homeroom.filter({ class_id: classId }, undefined, 5),
       ]);
+      let students = studentClasses;
+      // For a linked homeroom class, pull the roster directly from the homeroom
+      // assignment so it always reflects the admin auto-assignment.
+      if (homerooms.length && homerooms[0].student_ids?.length) {
+        const hr = homerooms[0];
+        const allStudents = await base44.entities.Student.filter({ school_code: cls.school_code }, "student_name", 500);
+        const idSet = new Set(hr.student_ids);
+        students = allStudents
+          .filter((s) => idSet.has(s.id))
+          .map((s) => ({ id: s.id, student_id: s.id, student_name: s.student_name, class_id: classId, status: "active" }));
+      }
       const present = attendance.filter((a) => a.status === "present").length;
       const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
       const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
