@@ -193,7 +193,10 @@ export default function ClassManagement() {
       const assigned = [];
       const suggestions = [];
 
-      const studentName = (sid) => cm.students.find((s) => s.id === sid)?.student_name || sid;
+      const studentName = (sid) =>
+        cm.students.find((s) => s.id === sid)?.student_name
+        || cm.studentAssignments.find((sa) => sa.student_id === sid)?.student_name
+        || sid;
       // Suggest another active class of the same subject the student isn't enrolled in,
       // preferring one whose existing schedule doesn't clash with the student's other classes.
       const suggestAlternative = (cls, sid) => {
