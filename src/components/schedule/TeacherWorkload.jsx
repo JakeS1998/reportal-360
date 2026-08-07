@@ -16,11 +16,12 @@ const toMin = (t) => {
 function teachingSlots(timetable) {
   const breakR = timetable?.break_start && timetable?.break_end ? [toMin(timetable.break_start), toMin(timetable.break_end)] : null;
   const lunchR = timetable?.lunch_start && timetable?.lunch_end ? [toMin(timetable.lunch_start), toMin(timetable.lunch_end)] : null;
+  const homeroomR = timetable?.homeroom_start && timetable?.homeroom_end ? [toMin(timetable.homeroom_start), toMin(timetable.homeroom_end)] : null;
   const slots = [];
   for (let s = DAY_START_MIN; s + PERIOD_LENGTH <= DAY_END_MIN; s += PERIOD_LENGTH) {
     const e = s + PERIOD_LENGTH;
     const overlaps = (r) => r && s < r[1] && e > r[0];
-    if (overlaps(breakR) || overlaps(lunchR)) continue;
+    if (overlaps(breakR) || overlaps(lunchR) || overlaps(homeroomR)) continue;
     slots.push([s, e]);
   }
   return slots;

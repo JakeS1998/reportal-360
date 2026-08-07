@@ -1,0 +1,45 @@
+{
+  "name": "Homeroom",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "homeroom_name": {
+      "type": "string",
+      "title": "Homeroom Name"
+    },
+    "teacher_id": {
+      "type": "string",
+      "title": "Teacher ID"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Teacher Name"
+    },
+    "room": {
+      "type": "string",
+      "title": "Room"
+    },
+    "grade_level": {
+      "type": "string",
+      "title": "Grade Level"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Linked Class ID"
+    },
+    "student_ids": {
+      "type": "array",
+      "title": "Student IDs",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "school_code",
+    "homeroom_name"
+  ]
+}

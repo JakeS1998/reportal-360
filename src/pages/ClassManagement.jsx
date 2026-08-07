@@ -98,12 +98,14 @@ export default function ClassManagement() {
       const DAY_END = timetable?.school_end ? toMin(timetable.school_end) : 15 * 60;
       const breakR = timetable?.break_start && timetable?.break_end ? [toMin(timetable.break_start), toMin(timetable.break_end)] : null;
       const lunchR = timetable?.lunch_start && timetable?.lunch_end ? [toMin(timetable.lunch_start), toMin(timetable.lunch_end)] : null;
+      const homeroomR = timetable?.homeroom_start && timetable?.homeroom_end ? [toMin(timetable.homeroom_start), toMin(timetable.homeroom_end)] : null;
       const PERIOD = 60;
       const slots = [];
       for (let s = DAY_START; s + PERIOD <= DAY_END; s += PERIOD) {
         const e = s + PERIOD;
         if (breakR && s < breakR[1] && e > breakR[0]) continue;
         if (lunchR && s < lunchR[1] && e > lunchR[0]) continue;
+        if (homeroomR && s < homeroomR[1] && e > homeroomR[0]) continue;
         slots.push({ start: s, end: e });
       }
 
@@ -160,7 +162,7 @@ export default function ClassManagement() {
       // Schedule the most-constrained classes first (most enrolled students), so
       // shared students get a consistent timetable before less-shared classes fill slots.
       const queue = cm.classes
-        .filter((c) => c.status === "active")
+        .filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom")
         .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
 
       for (const cls of queue) {
