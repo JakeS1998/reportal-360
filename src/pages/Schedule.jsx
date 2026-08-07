@@ -66,7 +66,11 @@ function layoutBlocks(blocks) {
 
 export default function Schedule() {
   const cm = useClassManagement();
-  const { canManageStaff } = useSchool();
+  const { canManageStaff, user } = useSchool();
+  const callerCreds = {
+    caller_username: user?.username,
+    caller_password: user?.password || localStorage.getItem("userPassword") || "",
+  };
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teacherFilter, setTeacherFilter] = useState("");
@@ -430,7 +434,7 @@ export default function Schedule() {
         </DialogContent>
       </Dialog>
 
-      <TeacherWorkload teachers={activeTeachers} schedules={schedules} timetable={timetable} />
+      <TeacherWorkload teachers={activeTeachers} schedules={schedules} timetable={timetable} callerCreds={callerCreds} />
 
       <SchoolHoursDialog
         open={showHours}

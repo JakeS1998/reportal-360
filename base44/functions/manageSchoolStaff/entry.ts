@@ -249,7 +249,7 @@ export default async function(req) {
       if (updates.role !== undefined && updates.role !== existing.role && callerRole !== "admin") {
         return Response.json({ success: false, error: "Only admins can change roles" }, { status: 403 });
       }
-      const allowedFields = ["full_name", "email", "subject", "room", "department", "job_title", "active", "role", "mfa_enabled"];
+      const allowedFields = ["full_name", "email", "subject", "room", "department", "job_title", "active", "role", "mfa_enabled", "target_free_periods"];
       const updateData: any = {};
       for (const field of allowedFields) {
         if (updates[field] !== undefined) updateData[field] = updates[field];

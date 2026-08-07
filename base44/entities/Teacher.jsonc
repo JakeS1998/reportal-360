@@ -60,6 +60,10 @@
       "type": "string",
       "title": "Assigned Room"
     },
+    "target_free_periods": {
+      "type": "number",
+      "title": "Target Free Periods Per Week"
+    },
     "job_title": {
       "type": "string",
       "title": "Job Title"
