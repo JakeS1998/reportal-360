@@ -47,7 +47,7 @@ export function buildEmailHtml(opts: {
       <table cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.25);">
         <tr>
           <td style="background:#0f172a;line-height:0;">
-            <img src="${scene.url}" alt="${scene.title}" width="560" style="width:100%;max-width:560px;display:block;" />
+            <img src="${scene.url}" alt="${scene.title}" width="560" style="width:100%;max-width:560px;max-height:220px;object-fit:cover;display:block;" />
           </td>
         </tr>
         <tr>
