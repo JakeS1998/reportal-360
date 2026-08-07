@@ -12,11 +12,12 @@ import {
   School as SchoolIcon, X,
 } from "lucide-react";
 
-const ROLE_LABELS = { area: "Area", manager: "Manager", teacher: "Teacher" };
+const ROLE_LABELS = { area: "Area", manager: "Manager", teacher: "Teacher", school_admin: "School Admin" };
 const ROLE_BADGE = {
   area: "bg-indigo-50 text-indigo-600",
   manager: "bg-blue-50 text-blue-600",
   teacher: "bg-slate-100 text-slate-600",
+  school_admin: "bg-violet-50 text-violet-600",
 };
 
 export default function SchoolUserManager({
@@ -650,8 +651,8 @@ export default function SchoolUserManager({
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  {Array.from(new Set([...roles, ...(editingUser ? [editingUser.role] : [])])).map((r) => (
+                    <option key={r} value={r}>{ROLE_LABELS[r] || r}</option>
                   ))}
                 </select>
               </div>

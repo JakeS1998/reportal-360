@@ -223,8 +223,8 @@ export default async function(req) {
         if (callerRole === "manager" && existing.school_code !== callerSchoolCode) {
           return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
         }
-        if (callerRole === "manager" && existing.role !== "teacher") {
-          return Response.json({ success: false, error: "Managers can only edit teachers" }, { status: 403 });
+        if (callerRole === "manager" && !["teacher", "school_admin", "manager"].includes(existing.role)) {
+          return Response.json({ success: false, error: "Managers can only edit staff at their school" }, { status: 403 });
         }
       }
       if (updates.role !== undefined && updates.role !== existing.role && callerRole !== "admin") {
