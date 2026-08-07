@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, KeyRound, MapPin, ShieldCheck, Lock, FileCheck } from "lucide-react";
 import MfaInput from "@/components/MfaInput";
+import DormantUnlockInput from "@/components/DormantUnlockInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
 import LogoTransparent from "@/components/LogoTransparent";
 
@@ -53,6 +54,7 @@ export default function SelectSchool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
+  const [dormantUnlockRequired, setDormantUnlockRequired] = useState(false);
   const [emailHint, setEmailHint] = useState("");
   const navigate = useNavigate();
   const [scene] = useState(() => pickScene());
@@ -74,6 +76,11 @@ export default function SelectSchool() {
       const res = await base44.functions.invoke("loginUser", { username, password });
       if (res.data?.mfa_required) {
         setMfaRequired(true);
+        setEmailHint(res.data.email_hint || "your email");
+        return;
+      }
+      if (res.data?.dormant_unlock_required) {
+        setDormantUnlockRequired(true);
         setEmailHint(res.data.email_hint || "your email");
         return;
       }
@@ -156,6 +163,50 @@ export default function SelectSchool() {
     setError("");
   };
 
+  const handleDormantUnlock = async (otp, newPassword) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", { username, password, dormant_otp: otp, new_password: newPassword });
+      if (res.data?.dormant_unlock_required) {
+        setError("Invalid or expired code. Please try again.");
+        return;
+      }
+      if (!res.data?.success) {
+        setError(res.data?.error || "Reactivation failed");
+        return;
+      }
+      const user = res.data.user;
+      await completeLogin(user);
+      navigate("/overview", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Unable to reactivate");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDormantResend = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await base44.functions.invoke("loginUser", { username, password });
+      if (res.data?.dormant_unlock_required) {
+        setEmailHint(res.data.email_hint || "your email");
+      }
+    } catch {
+      setError("Unable to resend code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDormantCancel = () => {
+    setDormantUnlockRequired(false);
+    setEmailHint("");
+    setError("");
+  };
+
   const handleMicrosoftSSO = async () => {
     setError("");
     try {
@@ -220,6 +271,15 @@ export default function SelectSchool() {
               onVerify={handleMfaVerify}
               onResend={handleMfaResend}
               onCancel={handleMfaCancel}
+              loading={loading}
+              error={error}
+            />
+          ) : dormantUnlockRequired ? (
+            <DormantUnlockInput
+              emailHint={emailHint}
+              onVerify={handleDormantUnlock}
+              onResend={handleDormantResend}
+              onCancel={handleDormantCancel}
               loading={loading}
               error={error}
             />

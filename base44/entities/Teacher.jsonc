@@ -93,6 +93,11 @@
       "type": "string",
       "format": "date-time",
       "title": "MFA Code Expires At"
+    },
+    "last_login_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Login At"
     }
   },
   "required": [

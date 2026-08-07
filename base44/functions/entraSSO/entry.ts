@@ -94,6 +94,7 @@ export default async function(req) {
         await logAudit(base44, "login_failed", user.username, user.role, "SSO login attempt on inactive account", user.school_code, { ip_address: ip, user_agent: userAgent });
         return Response.json({ success: false, error: "This account has been deactivated. Please contact your administrator." }, { status: 403 });
       }
+      await base44.asServiceRole.entities.Teacher.update(user.id, { last_login_at: new Date().toISOString() });
       await logAudit(base44, "login_success", user.username, user.role, "SSO login successful", user.school_code, { ip_address: ip, user_agent: userAgent });
     } else {
       // Auto-provision new user
@@ -116,6 +117,7 @@ export default async function(req) {
         active: true,
         mfa_enabled: false,
         password_reset_required: false,
+        last_login_at: new Date().toISOString(),
       });
 
       await logAudit(base44, "user_created", "SSO", "admin", `SSO auto-provisioned user ${finalUsername} (${email})`);

@@ -1,14 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { logAudit, extractRequestInfo, getAdminCredentials } from '../../shared/security.ts';
+import { logAudit, extractRequestInfo, getAdminCredentials, validatePasswordComplexity } from '../../shared/security.ts';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 const MFA_CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+const DORMANT_THRESHOLD_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
 
 export default async function(req) {
   try {
     const body = await req.json();
-    const { username, password, mfa_code } = body;
+    const { username, password, mfa_code, dormant_otp, new_password } = body;
     const { ip, userAgent } = extractRequestInfo(req);
     const auditExtra = { ip_address: ip, user_agent: userAgent };
 
@@ -101,6 +102,105 @@ export default async function(req) {
       });
     }
 
+    // --- Dormant account check (locked after 180 days of inactivity) ---
+    const lastActivity = user.last_login_at
+      ? new Date(user.last_login_at)
+      : (user.created_date ? new Date(user.created_date) : null);
+    const isDormant = lastActivity ? (Date.now() - lastActivity.getTime()) > DORMANT_THRESHOLD_MS : false;
+
+    if (isDormant) {
+      if (dormant_otp && new_password) {
+        // Verify the one-time unlock code
+        if (!user.mfa_code || user.mfa_code !== dormant_otp) {
+          await logAudit(base44, "login_failed", username, user.role, "Invalid dormant unlock code", user.school_code, auditExtra);
+          return Response.json({ success: false, error: "Invalid verification code" });
+        }
+        if (!user.mfa_code_expires_at || new Date(user.mfa_code_expires_at) < new Date()) {
+          await logAudit(base44, "login_failed", username, user.role, "Expired dormant unlock code", user.school_code, auditExtra);
+          return Response.json({ success: false, error: "Verification code has expired. Please request a new one." });
+        }
+        // Enforce password complexity and ensure it actually changes
+        const complexityError = validatePasswordComplexity(new_password);
+        if (complexityError) {
+          return Response.json({ success: false, error: complexityError });
+        }
+        if (new_password === password) {
+          return Response.json({ success: false, error: "New password must be different from your current password." });
+        }
+        // Unlock the account
+        await base44.asServiceRole.entities.Teacher.update(user.id, {
+          password: new_password,
+          mfa_code: null,
+          mfa_code_expires_at: null,
+          failed_login_attempts: 0,
+          locked_until: null,
+          last_login_at: new Date().toISOString(),
+        });
+        await logAudit(base44, "password_reset", username, user.role, "Dormant account unlocked via OTP + password change", user.school_code, auditExtra);
+        await logAudit(base44, "login_success", username, user.role, "Dormant account unlocked — login successful", user.school_code, auditExtra);
+        return Response.json({
+          success: true,
+          user: {
+            id: user.id,
+            role: user.role,
+            username: user.username,
+            full_name: user.full_name,
+            school_code: user.school_code,
+            system_code: user.system_code,
+            school_name: user.school_name,
+            system_name: user.system_name,
+            email: user.email,
+            teacher_id: user.teacher_id,
+            password_reset_required: false,
+          },
+        });
+      }
+
+      // Send a one-time unlock code to the user's email
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + MFA_CODE_EXPIRY_MS).toISOString();
+      await base44.asServiceRole.entities.Teacher.update(user.id, {
+        mfa_code: code,
+        mfa_code_expires_at: expiresAt,
+      });
+      await logAudit(base44, "login_locked", username, user.role, "Dormant account — unlock code sent", user.school_code, auditExtra);
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: user.email,
+            subject: "Your ReportAL 360 Account Reactivation Code",
+            html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+              <h2 style="color: #1e293b;">Account Reactivation Required</h2>
+              <p style="color: #475569;">Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.</p>
+              <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px; color: #1e293b;">${code}</p>
+              <p style="color: #64748b; font-size: 14px;">This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.</p>
+            </div>`,
+          }),
+        });
+      } catch (e) {
+        // Email send failed — still return dormant_unlock_required so user can retry
+      }
+
+      const emailParts = user.email.split("@");
+      const emailHint = emailParts.length === 2
+        ? emailParts[0].slice(0, 2) + "***@" + emailParts[1]
+        : "your email";
+
+      return Response.json({
+        success: false,
+        dormant_unlock_required: true,
+        email_hint: emailHint,
+      });
+    }
+
     // --- MFA check ---
     const needsMfa = user.email && user.mfa_enabled !== false && !user.password_reset_required;
 
@@ -168,6 +268,7 @@ export default async function(req) {
     }
 
     // Full login successful
+    await base44.asServiceRole.entities.Teacher.update(user.id, { last_login_at: new Date().toISOString() });
     await logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code, auditExtra);
 
     return Response.json({

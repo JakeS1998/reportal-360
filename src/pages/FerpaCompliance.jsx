@@ -119,7 +119,7 @@ const SECTIONS = [
       { label: "Least privilege enforced by role", status: "done" },
       { label: "Admin roles limited", status: "done" },
       { label: "Annual access reviews", status: "partial" },
-      { label: "Dormant accounts disabled", status: "roadmap" },
+      { label: "Dormant accounts disabled (180-day inactivity lock)", status: "done" },
       { label: "Temporary elevated access expires", status: "roadmap" },
     ],
   },
