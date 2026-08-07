@@ -86,29 +86,84 @@ export default function ClassManagement() {
     setAutoRunning(true);
     setAutoResult(null);
     try {
-      const existing = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500);
+      const [existing, ttRes] = await Promise.all([
+        base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500),
+        base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5),
+      ]);
+      const timetable = ttRes[0];
+
+      // Build teaching-period slots from the school timetable (excludes break & lunch).
+      // Falls back to hourly 8 AM–3 PM when no timetable is configured.
+      const DAY_START = timetable?.school_start ? toMin(timetable.school_start) : 8 * 60;
+      const DAY_END = timetable?.school_end ? toMin(timetable.school_end) : 15 * 60;
+      const breakR = timetable?.break_start && timetable?.break_end ? [toMin(timetable.break_start), toMin(timetable.break_end)] : null;
+      const lunchR = timetable?.lunch_start && timetable?.lunch_end ? [toMin(timetable.lunch_start), toMin(timetable.lunch_end)] : null;
+      const PERIOD = 60;
+      const slots = [];
+      for (let s = DAY_START; s + PERIOD <= DAY_END; s += PERIOD) {
+        const e = s + PERIOD;
+        if (breakR && s < breakR[1] && e > breakR[0]) continue;
+        if (lunchR && s < lunchR[1] && e > lunchR[0]) continue;
+        slots.push({ start: s, end: e });
+      }
+
       const byClass = {};
       existing.forEach((s) => { (byClass[s.class_id] ||= []).push(s); });
+
+      // Teacher busy map
       const busy = {};
       existing.forEach((s) => {
         if (!s.teacher_id) return;
         (busy[s.teacher_id] ||= {})[s.day_of_week] ||= [];
         busy[s.teacher_id][s.day_of_week].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
       });
-      const slots = [];
-      for (let h = 8; h < 15; h++) slots.push({ start: h * 60, end: (h + 1) * 60 });
+
+      // Student rosters per class + student busy map (so a student is never double-booked)
+      const classStudents = {};
+      cm.studentAssignments.filter((sa) => sa.status === "active").forEach((sa) => {
+        (classStudents[sa.class_id] ||= new Set()).add(sa.student_id);
+      });
+      const studentBusy = {};
+      existing.forEach((s) => {
+        const studs = classStudents[s.class_id];
+        if (!studs) return;
+        studs.forEach((sid) => {
+          (studentBusy[sid] ||= {})[s.day_of_week] ||= [];
+          studentBusy[sid][s.day_of_week].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
+        });
+      });
+
+      const overlaps = (list, slot) => list.some((b) => slot.start < b.end && slot.end > b.start);
+      const teacherFree = (tid, day, slot) => !overlaps((busy[tid] || {})[day] || [], slot);
+      const studentsFree = (classId, day, slot) => {
+        const studs = classStudents[classId];
+        if (!studs || studs.size === 0) return true;
+        for (const sid of studs) if (overlaps((studentBusy[sid] || {})[day] || [], slot)) return false;
+        return true;
+      };
+      const markStudentsBusy = (classId, day, slot) => {
+        const studs = classStudents[classId];
+        if (!studs) return;
+        studs.forEach((sid) => { (studentBusy[sid] ||= {})[day] ||= []; studentBusy[sid][day].push({ start: slot.start, end: slot.end }); });
+      };
+
       const countFree = (tid) => {
         let n = 0;
-        for (const day of SCHED_DAYS) {
-          const dayBusy = (busy[tid] || {})[day] || [];
-          for (const slot of slots) if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) n++;
-        }
+        for (const day of SCHED_DAYS) for (const slot of slots) if (teacherFree(tid, day, slot)) n++;
         return n;
       };
+
       const scheduled = [];
       const failed = [];
       const assigned = [];
-      for (const cls of cm.classes.filter((c) => c.status === "active")) {
+
+      // Schedule the most-constrained classes first (most enrolled students), so
+      // shared students get a consistent timetable before less-shared classes fill slots.
+      const queue = cm.classes
+        .filter((c) => c.status === "active")
+        .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
+
+      for (const cls of queue) {
         const target = Math.max(1, Math.min(5, parseInt(cls.sessions_per_week, 10) || 1));
         let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
         // Auto-assign a teacher by subject if none assigned
@@ -134,13 +189,15 @@ export default function ClassManagement() {
         if (need === 0) continue;
         const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_of_week));
         let placedThis = 0;
+        let studentBlocked = 0;
         for (let i = 0; i < need; i++) {
           let placed = null;
           const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
           for (const day of dayOrder) {
-            const dayBusy = (busy[tAssign.teacher_id] || {})[day] || [];
             for (const slot of slots) {
-              if (!dayBusy.some((b) => slot.start < b.end && slot.end > b.start)) { placed = { day, ...slot }; break; }
+              if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
+              if (!studentsFree(cls.id, day, slot)) { studentBlocked++; continue; }
+              placed = { day, ...slot }; break;
             }
             if (placed) break;
           }
@@ -153,12 +210,16 @@ export default function ClassManagement() {
           });
           (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
           busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
+          markStudentsBusy(cls.id, placed.day, placed);
           usedDays.add(placed.day);
           placedThis++;
           scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
         }
         if (placedThis < need) {
-          failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (8 AM–3 PM)` });
+          const reason = studentBlocked > 0
+            ? `Only ${have + placedThis}/${target} sessions fit (${studentBlocked} slot${studentBlocked === 1 ? "" : "s"} blocked by student conflicts)`
+            : `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)`;
+          failed.push({ name: cls.class_name, reason });
         }
       }
       setAutoResult({ scheduled: scheduled.length, failed, assigned });
