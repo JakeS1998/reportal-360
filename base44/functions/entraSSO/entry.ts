@@ -54,7 +54,7 @@ export default async function(req) {
         code,
         redirect_uri,
         grant_type: "authorization_code",
-        scope: "openid profile email User.Read",
+        scope: "openid profile email",
       }),
     });
 
