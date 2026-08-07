@@ -12,7 +12,7 @@ const LOGO_URL =
 export default function LogoTransparent({ className }) {
   return (
     <>
-      <div className={className} style={{ filter: "brightness(1.45) contrast(1.2) saturate(1.3) drop-shadow(0 6px 18px rgba(0,0,0,0.5))" }}>
+      <div className={className} style={{ filter: "brightness(1.25) contrast(0.9) saturate(0.5) drop-shadow(0 6px 18px rgba(0,0,0,0.5))" }}>
         <Image
           src={LOGO_URL}
           alt="ReportAL 360 — Alabama Education, 360° Insight, Better Outcomes"
