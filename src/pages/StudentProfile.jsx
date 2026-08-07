@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen } from "lucide-react";
 
@@ -10,25 +11,21 @@ const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "b
 export default function StudentProfile() {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const { user } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const student = await base44.entities.Student.get(studentId);
-        const [classAssignments, attendance, attainment, behaviour] = await Promise.all([
-          base44.entities.StudentClass.filter({ student_id: studentId, status: "active" }),
-          base44.entities.AttendanceRecord.filter({ student_id: studentId }, "-date", 500),
-          base44.entities.AttainmentRecord.filter({ student_id: studentId }, "-date", 500),
-          base44.entities.BehaviourRecord.filter({ student_id: studentId }, "-date", 100),
-        ]);
-        const classIds = classAssignments.map((ca) => ca.class_id);
-        let classes = [];
-        if (classIds.length > 0) {
-          const allClasses = await base44.entities.Class.filter({ school_code: student.school_code }, "-created_date", 500);
-          classes = allClasses.filter((c) => classIds.includes(c.id));
-        }
+        const res = await base44.functions.invoke("manageStudents", {
+          action: "get_profile",
+          caller_username: user?.username,
+          caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          student_id: studentId,
+        });
+        if (!res.data?.success) { setLoading(false); return; }
+        const { student, classes, attendance, attainment, behaviour } = res.data;
         const present = attendance.filter((a) => a.status === "present").length;
         const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
         const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
@@ -40,7 +37,7 @@ export default function StudentProfile() {
       }
     };
     load();
-  }, [studentId]);
+  }, [studentId, user]);
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Student not found.</p>;

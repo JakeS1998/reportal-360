@@ -24,20 +24,25 @@ export function useClassManagement() {
     if (!schoolCode) return;
     setLoading(true);
     try {
-      const [yearsRes, classesRes, tcRes, scRes, studentsRes] = await Promise.all([
+      const [yearsRes, classesRes, tcRes, scRes] = await Promise.all([
         base44.entities.AcademicYear.filter({ school_code: schoolCode }, "-start_date", 100),
         base44.entities.Class.filter({ school_code: schoolCode }, "-created_date", 500),
         base44.entities.TeacherClass.filter({ school_code: schoolCode }, undefined, 500),
         base44.entities.StudentClass.filter({ school_code: schoolCode }, undefined, 500),
-        base44.entities.Student.filter({ school_code: schoolCode }, "student_name", 500),
       ]);
       setAcademicYears(yearsRes);
       setClasses(classesRes);
       setTeacherAssignments(tcRes);
       setStudentAssignments(scRes);
 
+      // Students are fetched through the manageStudents function, which enforces
+      // server-side school scoping (the RLS equivalent for this custom-auth app).
+      const studentsRes = await base44.functions.invoke("manageStudents", {
+        action: "list", ...callerCreds, school_code: schoolCode,
+      });
+      let students = studentsRes.data?.students || [];
+
       // Seed sample roster into the database if no students exist for this school
-      let students = studentsRes;
       if (students.length === 0 && school) {
         const sampleRoster = generateStudentRoster(school);
         const records = sampleRoster.map((s) => ({
@@ -54,8 +59,9 @@ export function useClassManagement() {
           status: "active",
         }));
         if (records.length > 0) {
-          await base44.entities.Student.bulkCreate(records);
-          students = await base44.entities.Student.filter({ school_code: schoolCode }, "student_name", 500);
+          await base44.functions.invoke("manageStudents", { action: "bulkCreate", ...callerCreds, records });
+          const reList = await base44.functions.invoke("manageStudents", { action: "list", ...callerCreds, school_code: schoolCode });
+          students = reList.data?.students || [];
         }
       }
       setStudents(students);

@@ -47,7 +47,7 @@ const SECTIONS = [
       { label: "Dashboards use aggregated data where possible", status: "done" },
       { label: "Exports restricted to authorized administrators", status: "done" },
       { label: "Screens prevent accidental disclosure", status: "done" },
-      { label: "Row-level security on student entities", status: "partial" },
+      { label: "Row-level security on student entities (server-enforced school scoping)", status: "done" },
     ],
   },
   {

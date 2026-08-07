@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useSchool } from "@/lib/SchoolContext";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
@@ -53,6 +54,7 @@ function toBool(val) {
 }
 
 export default function StudentImportDialog({ open, onOpenChange, schoolCode, onImported }) {
+  const { user } = useSchool();
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
@@ -92,7 +94,13 @@ export default function StudentImportDialog({ open, onOpenChange, schoolCode, on
     if (valid.length === 0) return;
     setImporting(true);
     try {
-      await base44.entities.Student.bulkCreate(valid);
+      const res = await base44.functions.invoke("manageStudents", {
+        action: "bulkCreate",
+        caller_username: user?.username,
+        caller_password: user?.password || localStorage.getItem("userPassword") || "",
+        records: valid,
+      });
+      if (!res.data?.success) throw new Error(res.data?.error || "Import failed");
       setResult({ success: true, count: valid.length });
       setRows([]);
       setFileName("");
