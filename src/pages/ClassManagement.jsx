@@ -517,7 +517,7 @@ export default function ClassManagement() {
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Sessions / week</Label>
-                <Input type="number" min={1} max={5} value={form.sessions_per_week} onChange={(e) => setForm({ ...form, sessions_per_week: parseInt(e.target.value, 10) || 1 })} className="mt-1" />
+                <Input type="number" min={1} value={form.sessions_per_week} onChange={(e) => setForm({ ...form, sessions_per_week: parseInt(e.target.value, 10) || 1 })} className="mt-1" />
               </div>
             </div>
             <div>
