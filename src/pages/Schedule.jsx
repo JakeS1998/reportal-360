@@ -103,12 +103,17 @@ export default function Schedule() {
   useEffect(() => { load(); loadTimetable(); }, [load, loadTimetable]);
 
   const breakBand = timetable?.break_start && timetable?.break_end
-    ? { start: toMin(timetable.break_start), end: toMin(timetable.break_end), label: "Break" }
+    ? { start: toMin(timetable.break_start), end: toMin(timetable.break_end), label: "Break", kind: "break" }
     : null;
   const lunchBand = timetable?.lunch_start && timetable?.lunch_end
-    ? { start: toMin(timetable.lunch_start), end: toMin(timetable.lunch_end), label: "Lunch" }
+    ? { start: toMin(timetable.lunch_start), end: toMin(timetable.lunch_end), label: "Lunch", kind: "lunch" }
     : null;
-  const bands = [breakBand, lunchBand].filter(Boolean);
+  const homeroomBand = timetable?.homeroom_start && timetable?.homeroom_end
+    ? { start: toMin(timetable.homeroom_start), end: toMin(timetable.homeroom_end), label: "Homeroom", kind: "homeroom" }
+    : null;
+  const bands = [homeroomBand, breakBand, lunchBand].filter(Boolean);
+  const schoolStart = timetable?.school_start ? toMin(timetable.school_start) : null;
+  const schoolEnd = timetable?.school_end ? toMin(timetable.school_end) : null;
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
   const activeClasses = cm.classes.filter((c) => c.status === "active");
@@ -291,10 +296,20 @@ export default function Schedule() {
                       backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)`,
                     }}
                   >
+                    {schoolStart != null && schoolStart > DAY_START_MIN && (
+                      <div className="absolute left-0 right-0 z-0 pointer-events-none bg-slate-100/70" style={{ top: 0, height: (schoolStart - DAY_START_MIN) * PX_PER_MIN }} />
+                    )}
+                    {schoolEnd != null && schoolEnd < DAY_END_MIN && (
+                      <div className="absolute left-0 right-0 z-0 pointer-events-none bg-slate-100/70" style={{ top: (schoolEnd - DAY_START_MIN) * PX_PER_MIN, bottom: 0 }} />
+                    )}
                     {bands.map((b, i) => {
                       const top = (b.start - DAY_START_MIN) * PX_PER_MIN;
                       const height = (b.end - b.start) * PX_PER_MIN;
-                      const isLunch = b.label === "Lunch";
+                      const palette = {
+                        homeroom: { bg: "rgba(99,102,241,0.10)", dash: "rgba(99,102,241,0.35)", text: "text-indigo-600/70" },
+                        break: { bg: "rgba(245,158,11,0.10)", dash: "rgba(245,158,11,0.35)", text: "text-amber-600/70" },
+                        lunch: { bg: "rgba(16,185,129,0.10)", dash: "rgba(16,185,129,0.35)", text: "text-emerald-600/70" },
+                      }[b.kind];
                       return (
                         <div
                           key={`band-${i}`}
@@ -302,12 +317,12 @@ export default function Schedule() {
                           style={{
                             top,
                             height,
-                            backgroundColor: isLunch ? "rgba(16,185,129,0.10)" : "rgba(245,158,11,0.10)",
-                            borderTop: `1px dashed ${isLunch ? "rgba(16,185,129,0.35)" : "rgba(245,158,11,0.35)"}`,
-                            borderBottom: `1px dashed ${isLunch ? "rgba(16,185,129,0.35)" : "rgba(245,158,11,0.35)"}`,
+                            backgroundColor: palette.bg,
+                            borderTop: `1px dashed ${palette.dash}`,
+                            borderBottom: `1px dashed ${palette.dash}`,
                           }}
                         >
-                          <span className={`text-[10px] font-semibold ${isLunch ? "text-emerald-600/70" : "text-amber-600/70"}`}>{b.label}</span>
+                          <span className={`text-[10px] font-semibold ${palette.text}`}>{b.label}</span>
                         </div>
                       );
                     })}

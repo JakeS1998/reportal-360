@@ -6,6 +6,22 @@
       "type": "string",
       "title": "School Code"
     },
+    "school_start": {
+      "type": "string",
+      "title": "School Start (HH:MM)"
+    },
+    "school_end": {
+      "type": "string",
+      "title": "School End (HH:MM)"
+    },
+    "homeroom_start": {
+      "type": "string",
+      "title": "Homeroom Start (HH:MM)"
+    },
+    "homeroom_end": {
+      "type": "string",
+      "title": "Homeroom End (HH:MM)"
+    },
     "break_start": {
       "type": "string",
       "title": "Break Start (HH:MM)"
