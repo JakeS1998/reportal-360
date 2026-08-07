@@ -3,7 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
-import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, subjectColor } from "@/lib/scheduleWeeks";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange } from "@/lib/scheduleWeeks";
+import { useSubjectColors } from "@/lib/useSubjectColors";
 import PrintableTimetable from "./PrintableTimetable";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -68,6 +69,7 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { resolveSubjectColor } = useSubjectColors();
 
   const classIds = useMemo(() => new Set(classes.map((c) => c.id)), [classes]);
 
@@ -178,7 +180,7 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
                             const height = Math.max(24, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                             const widthPct = 100 / lay.count;
                             const cls = classes.find((c) => c.id === s.class_id);
-                            const bg = subjectColor(cls?.subject);
+                            const bg = resolveSubjectColor(cls?.subject);
                             const st = s._status ? STATUS_STYLE[s._status] : STATUS_STYLE.none;
                             return (
                               <div key={s.id} className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden" style={{ top, height, left: `calc(${lay.col * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)`, backgroundColor: bg }}>
@@ -205,10 +207,10 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
             a 2-week rotation print together. Blocks show subject, teacher, room. */}
         <div className="hidden print:block">
           <h1 className="text-lg font-bold text-slate-900 mb-3">Weekly Schedule · {student?.student_name}</h1>
-          <PrintableTimetable weekStart={weekStart} schedules={schedules} classes={classes} />
+          <PrintableTimetable weekStart={weekStart} schedules={schedules} classes={classes} resolveSubjectColor={resolveSubjectColor} />
           {hasBiweekly && (
             <div className="mt-8 print:break-before-page">
-              <PrintableTimetable weekStart={addWeeks(weekStart, 1)} schedules={schedules} classes={classes} />
+              <PrintableTimetable weekStart={addWeeks(weekStart, 1)} schedules={schedules} classes={classes} resolveSubjectColor={resolveSubjectColor} />
             </div>
           )}
         </div>

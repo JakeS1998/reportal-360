@@ -3,8 +3,9 @@ import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
 import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
 import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
+import { useSubjectColors } from "@/lib/useSubjectColors";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
@@ -58,6 +59,7 @@ export default function MyClasses() {
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
+  const { resolveSubjectColor } = useSubjectColors();
 
   useEffect(() => {
     const load = async () => {
@@ -214,7 +216,7 @@ export default function MyClasses() {
                       const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                       const widthPct = 100 / lay.count;
                       const cls = classes[s.class_id];
-                      const bg = gradeColor(cls?.grade_level);
+                      const bg = resolveSubjectColor(cls?.subject);
                       const taken = attendanceMap[s.class_id];
                       const showBadge = isToday && taken === false;
                       return (
@@ -252,10 +254,10 @@ export default function MyClasses() {
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
-        <span className="font-medium text-slate-600">Grade colours:</span>
-        {[...new Set(weekSchedules.map((s) => classes[s.class_id]?.grade_level).filter(Boolean))].sort().map((g) => (
-          <span key={g} className="inline-flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded" style={{ backgroundColor: gradeColor(g) }} /> Grade {g}
+        <span className="font-medium text-slate-600">Subject colours:</span>
+        {[...new Set(weekSchedules.map((s) => classes[s.class_id]?.subject).filter(Boolean))].sort().map((subj) => (
+          <span key={subj} className="inline-flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded" style={{ backgroundColor: resolveSubjectColor(subj) }} /> {subj}
           </span>
         ))}
       </div>

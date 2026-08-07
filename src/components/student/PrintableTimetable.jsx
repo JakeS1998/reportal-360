@@ -1,6 +1,9 @@
 import React from "react";
 import { isScheduleActiveInWeek, formatWeekRange, subjectColor } from "@/lib/scheduleWeeks";
 
+// Falls back to the deterministic hash palette when no resolver is supplied
+// (e.g. when rendered outside a component that has loaded Subject colours).
+
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
 const DAY_END_MIN = 16 * 60;
@@ -45,7 +48,7 @@ function layoutBlocks(blocks) {
 
 // Clean, attendance-free week grid for printing. Each block shows the subject,
 // teacher and room only — the time is read from the left axis and grid position.
-export default function PrintableTimetable({ weekStart, schedules, classes }) {
+export default function PrintableTimetable({ weekStart, schedules, classes, resolveSubjectColor }) {
   const byDay = (day) =>
     schedules
       .filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart))
@@ -90,7 +93,7 @@ export default function PrintableTimetable({ weekStart, schedules, classes }) {
                   const height = Math.max(24, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                   const widthPct = 100 / lay.count;
                   const cls = classes.find((c) => c.id === s.class_id);
-                  const bg = subjectColor(cls?.subject);
+                  const bg = (resolveSubjectColor || subjectColor)(cls?.subject);
                   return (
                     <div key={s.id} className="absolute rounded-md p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden" style={{ top, height, left: `calc(${lay.col * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)`, backgroundColor: bg }}>
                       <p className="font-semibold truncate">{cls?.subject || s.class_name || "—"}</p>

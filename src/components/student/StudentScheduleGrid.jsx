@@ -1,7 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { isScheduleActiveInWeek, subjectColor } from "@/lib/scheduleWeeks";
+import { isScheduleActiveInWeek } from "@/lib/scheduleWeeks";
+import { useSubjectColors } from "@/lib/useSubjectColors";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
@@ -46,6 +47,7 @@ function layoutBlocks(blocks) {
 }
 
 export default function StudentScheduleGrid({ schedules, classes, weekStart, onPrev, onNext, onToday }) {
+  const { resolveSubjectColor } = useSubjectColors();
   const byDay = (day) =>
     schedules
       .filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart))
@@ -95,7 +97,7 @@ export default function StudentScheduleGrid({ schedules, classes, weekStart, onP
                     const height = Math.max(24, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                     const widthPct = 100 / lay.count;
                     const cls = classes.find((c) => c.id === s.class_id);
-                    const bg = subjectColor(cls?.subject);
+                    const bg = resolveSubjectColor(cls?.subject);
                     return (
                       <div key={s.id} className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden" style={{ top, height, left: `calc(${lay.col * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)`, backgroundColor: bg }}>
                         <p className="font-semibold truncate">{s.class_name || cls?.class_name}</p>

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import SchoolHoursDialog from "@/components/schedule/SchoolHoursDialog";
 import TeacherWorkload from "@/components/schedule/TeacherWorkload";
-import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
+import { useSubjectColors } from "@/lib/useSubjectColors";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
@@ -82,6 +83,7 @@ export default function Schedule() {
   const [timetable, setTimetable] = useState(null);
   const [showHours, setShowHours] = useState(false);
   const gridRefs = useRef({});
+  const { resolveSubjectColor } = useSubjectColors();
 
   const load = useCallback(async () => {
     if (!cm.schoolCode) return;
@@ -366,7 +368,7 @@ export default function Schedule() {
                       const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                       const widthPct = 100 / lay.count;
                       const cls = cm.classes.find((c) => c.id === s.class_id);
-                      const bg = gradeColor(cls?.grade_level);
+                      const bg = resolveSubjectColor(cls?.subject);
                       return (
                         <button
                           key={s.id}
