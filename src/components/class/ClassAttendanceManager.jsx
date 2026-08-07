@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, X, Clock, MinusCircle, Save, CalendarCheck } from "lucide-react";
+import { Check, X, Clock, MinusCircle, Save, Send, RotateCcw, BadgeCheck } from "lucide-react";
 
 const STATUSES = [
   { key: "present", label: "Present", icon: Check, active: "bg-emerald-100 text-emerald-700 border-emerald-300" },
@@ -18,16 +18,53 @@ export default function ClassAttendanceManager({ classId, students, onSaved }) {
   const [date, setDate] = useState(today);
   const [marks, setMarks] = useState(() => Object.fromEntries(students.map((s) => [s.student_id, "present"])));
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(true);
+  const [state, setState] = useState(null); // null | { submitted: bool }
 
   const set = (id, status) => setMarks((m) => ({ ...m, [id]: status }));
   const markAll = (status) => setMarks(Object.fromEntries(students.map((s) => [s.student_id, status])));
 
-  const save = async () => {
+  const loadExisting = async () => {
+    setLoadingExisting(true);
+    try {
+      const recs = await base44.entities.AttendanceRecord.filter({ class_id: classId, date }, undefined, 500);
+      if (recs.length > 0) {
+        const m = {};
+        recs.forEach((r) => { m[r.student_id] = r.status; });
+        // keep any students not in records as present
+        students.forEach((s) => { if (!(s.student_id in m)) m[s.student_id] = "present"; });
+        setMarks(m);
+        setState({ submitted: recs.every((r) => r.submitted) });
+      } else {
+        setMarks(Object.fromEntries(students.map((s) => [s.student_id, "present"])));
+        setState(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingExisting(false);
+    }
+  };
+
+  useEffect(() => {
+    loadExisting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, date]);
+
+  const persist = async (submitted) => {
     setSaving(true);
     try {
+      await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, date });
       await base44.entities.AttendanceRecord.bulkCreate(
-        students.map((s) => ({ student_id: s.student_id, class_id: classId, date, status: marks[s.student_id] || "present" }))
+        students.map((s) => ({
+          student_id: s.student_id,
+          class_id: classId,
+          date,
+          status: marks[s.student_id] || "present",
+          submitted,
+        }))
       );
+      await loadExisting();
       onSaved?.();
     } finally {
       setSaving(false);
@@ -36,6 +73,14 @@ export default function ClassAttendanceManager({ classId, students, onSaved }) {
 
   if (students.length === 0) return <p className="text-sm text-slate-400">No students to mark.</p>;
 
+  const badge = loadingExisting
+    ? { text: "Loading…", cls: "bg-slate-100 text-slate-500" }
+    : state?.submitted
+      ? { text: "Submitted", cls: "bg-emerald-50 text-emerald-600" }
+      : state
+        ? { text: "Draft", cls: "bg-amber-50 text-amber-600" }
+        : { text: "Not taken", cls: "bg-slate-100 text-slate-500" };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -43,11 +88,23 @@ export default function ClassAttendanceManager({ classId, students, onSaved }) {
           <label className="text-xs font-medium text-slate-500">Date</label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-0.5 w-44" />
         </div>
-        <div className="flex items-end gap-2">
-          <Button onClick={() => markAll("present")} variant="outline" size="sm"><Check className="w-3.5 h-3.5 mr-1" /> Mark all present</Button>
+        <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${badge.cls}`}>{badge.text}</span>
+        <Button onClick={() => markAll("present")} variant="outline" size="sm"><Check className="w-3.5 h-3.5 mr-1" /> Mark all present</Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button onClick={() => persist(false)} disabled={saving || loadingExisting} variant="outline" size="sm">
+            <Save className="w-3.5 h-3.5 mr-1" /> {saving ? "Saving…" : "Save Draft"}
+          </Button>
+          <Button onClick={() => persist(true)} disabled={saving || loadingExisting} size="sm" className="bg-slate-900 hover:bg-slate-800">
+            {state?.submitted ? <RotateCcw className="w-3.5 h-3.5 mr-1" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+            {saving ? "Saving…" : state?.submitted ? "Amend & Resubmit" : "Submit"}
+          </Button>
         </div>
-        <Button onClick={save} disabled={saving} size="sm" className="ml-auto"><Save className="w-3.5 h-3.5 mr-1" /> {saving ? "Saving…" : "Save attendance"}</Button>
       </div>
+
+      <p className="text-xs text-slate-400 flex items-center gap-1.5">
+        <BadgeCheck className="w-3.5 h-3.5" />
+        Save a draft to come back later, or Submit to finalize. You can still amend a submitted record (e.g. mark a student late after they arrive).
+      </p>
 
       <div className="divide-y divide-slate-50">
         {students.map((sa) => (

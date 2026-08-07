@@ -25,6 +25,11 @@
       ],
       "title": "Status",
       "default": "present"
+    },
+    "submitted": {
+      "type": "boolean",
+      "title": "Submitted",
+      "default": false
     }
   },
   "required": [

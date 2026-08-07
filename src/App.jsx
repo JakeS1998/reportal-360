@@ -12,6 +12,7 @@ import SelectSchool from './pages/SelectSchool';
 import ForceResetPassword from './pages/ForceResetPassword';
 import StaffManagement from './pages/StaffManagement';
 import ClassManagement from './pages/ClassManagement';
+import Schedule from './pages/Schedule';
 import AcademicYears from './pages/AcademicYears';
 import TeacherAssignments from './pages/TeacherAssignments';
 import StudentAssignments from './pages/StudentAssignments';
@@ -80,6 +81,7 @@ const AuthenticatedApp = () => {
         <Route path="/insights" element={<PredictiveInsights />} />
         <Route path="/staff" element={<StaffManagement />} />
         <Route path="/classes" element={<ClassManagement />} />
+        <Route path="/schedule" element={<Schedule />} />
         <Route path="/academic-years" element={<AcademicYears />} />
         <Route path="/teacher-assignments" element={<TeacherAssignments />} />
         <Route path="/student-assignments" element={<StudentAssignments />} />
