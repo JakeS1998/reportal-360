@@ -55,8 +55,9 @@ export default function SsoCallback() {
           navigate("/overview", { replace: true });
         });
       })
-      .catch(() => {
-        setError(`Unable to complete ${providerLabel} sign-in. Please try again.`);
+      .catch((err) => {
+        const real = err?.response?.data?.error || err?.data?.error || err?.message;
+        setError(real || `Unable to complete ${providerLabel} sign-in. Please try again.`);
       });
   }, [navigate]);
 
