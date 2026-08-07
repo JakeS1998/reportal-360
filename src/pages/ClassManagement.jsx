@@ -18,24 +18,44 @@ const mmToHHMM = (min) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
 const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
 
 // Build back-to-back teaching periods from the school timetable, excluding
-// homeroom, break and lunch. Falls back to hourly 8 AM–3 PM when no timetable
-// is configured. Each slot is one class period (e.g. 9:00–10:00, 10:00–11:00).
+// homeroom, break and lunch. Periods resume immediately after each blocked
+// range (e.g. if homeroom ends at 9:00, the first class starts at 9:00), so
+// there are no gaps. Falls back to hourly 8 AM–3 PM when no timetable is set.
 const buildTeachingSlots = (tt) => {
   const DAY_START = tt?.school_start ? toMin(tt.school_start) : 8 * 60;
   const DAY_END = tt?.school_end ? toMin(tt.school_end) : 15 * 60;
-  const breakR = tt?.break_start && tt?.break_end ? [toMin(tt.break_start), toMin(tt.break_end)] : null;
-  const lunchR = tt?.lunch_start && tt?.lunch_end ? [toMin(tt.lunch_start), toMin(tt.lunch_end)] : null;
-  const homeroomR = tt?.homeroom_start && tt?.homeroom_end ? [toMin(tt.homeroom_start), toMin(tt.homeroom_end)] : null;
   const PERIOD = 60;
+  const blocks = [
+    tt?.homeroom_start && tt?.homeroom_end ? [toMin(tt.homeroom_start), toMin(tt.homeroom_end)] : null,
+    tt?.break_start && tt?.break_end ? [toMin(tt.break_start), toMin(tt.break_end)] : null,
+    tt?.lunch_start && tt?.lunch_end ? [toMin(tt.lunch_start), toMin(tt.lunch_end)] : null,
+  ].filter(Boolean).sort((a, b) => a[0] - b[0]);
+  // Advance a time past any block it falls inside (handles adjacent blocks too).
+  const nextFree = (t) => {
+    let cur = t;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [bs, be] of blocks) {
+        if (cur >= bs && cur < be) { cur = be; changed = true; }
+      }
+    }
+    return cur;
+  };
   const out = [];
+  let cursor = nextFree(DAY_START);
   let idx = 0;
-  for (let s = DAY_START; s + PERIOD <= DAY_END; s += PERIOD) {
-    const e = s + PERIOD;
-    if (breakR && s < breakR[1] && e > breakR[0]) continue;
-    if (lunchR && s < lunchR[1] && e > lunchR[0]) continue;
-    if (homeroomR && s < homeroomR[1] && e > homeroomR[0]) continue;
+  while (cursor + PERIOD <= DAY_END) {
+    const e = cursor + PERIOD;
+    const hit = blocks.find(([bs, be]) => cursor < be && e > bs);
+    if (hit) {
+      // The period would cross a block — resume right after it.
+      cursor = nextFree(hit[1]);
+      continue;
+    }
     idx++;
-    out.push({ start: s, end: e, label: `Period ${idx} · ${fmtTime(mmToHHMM(s))}–${fmtTime(mmToHHMM(e))}` });
+    out.push({ start: cursor, end: e, label: `Period ${idx} · ${fmtTime(mmToHHMM(cursor))}–${fmtTime(mmToHHMM(e))}` });
+    cursor = e;
   }
   return out;
 };
@@ -241,9 +261,12 @@ export default function ClassManagement() {
           let placed = null;
           let conflictStudents = [];
           const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
+          // Rotate the starting period each session so a class isn't placed at
+          // the same time every day (e.g. Maths moves across the week).
+          const slotOrder = slots.map((_, idx) => slots[(idx + i) % slots.length]);
           // Pass 1: teacher free AND all enrolled students free (no conflict).
           for (const day of dayOrder) {
-            for (const slot of slots) {
+            for (const slot of slotOrder) {
               if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
               if (studentsFree(cls.id, day, slot)) { placed = { day, ...slot }; break; }
             }
@@ -253,7 +276,7 @@ export default function ClassManagement() {
           // with a suggested alternative class of the same subject.
           if (!placed) {
             for (const day of dayOrder) {
-              for (const slot of slots) {
+              for (const slot of slotOrder) {
                 if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
                 const studs = classStudents[cls.id];
                 const conflicts = [];
