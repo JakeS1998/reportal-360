@@ -45,6 +45,7 @@ export default function ClassManagement() {
   const [accepting, setAccepting] = useState(false);
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
+  const [recurrence, setRecurrence] = useState("weekly");
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -267,7 +268,7 @@ export default function ClassManagement() {
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
             teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: scheduleRoom,
             day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
-            recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
+            recurrence_type: recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10),
           });
           (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
           busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
@@ -439,6 +440,10 @@ export default function ClassManagement() {
           <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
             <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Students"}
           </Button>
+          <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} disabled={autoRunning} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2" title="How often the schedule repeats">
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Biweekly (2-weekly)</option>
+          </select>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
             <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
           </Button>
