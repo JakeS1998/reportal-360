@@ -232,9 +232,10 @@ export default function ClassManagement() {
           let placed = null;
           let conflictStudents = [];
           const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
-          // Rotate the starting period each session so a class isn't placed at
-          // the same time every day (e.g. Maths moves across the week).
-          const slotOrder = slots.map((_, idx) => slots[(idx + i) % slots.length]);
+          // Keep the slot order identical across sessions so a class settles on
+          // the same period each day (a consistent timetable) rather than
+          // drifting to a different time on every day.
+          const slotOrder = slots;
           // Pass 1: teacher free AND all enrolled students free (no conflict).
           for (const day of dayOrder) {
             for (const slot of slotOrder) {
