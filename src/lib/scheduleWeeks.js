@@ -50,3 +50,17 @@ export function gradeColor(grade) {
   for (let i = 0; i < g.length; i++) h = (h * 31 + g.charCodeAt(i)) >>> 0;
   return GRADE_PALETTE[h % GRADE_PALETTE.length];
 }
+
+const SUBJECT_PALETTE = [
+  "#1D4ED8", "#7C3AED", "#059669", "#D97706", "#DB2777",
+  "#0891B2", "#65A30D", "#EA580C", "#4F46E5", "#0D9488",
+  "#BE185D", "#9E1B32",
+];
+
+export function subjectColor(subject) {
+  if (!subject) return "#64748b";
+  const s = String(subject).trim().toLowerCase();
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return SUBJECT_PALETTE[h % SUBJECT_PALETTE.length];
+}

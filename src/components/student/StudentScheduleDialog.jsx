@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, gradeColor } from "@/lib/scheduleWeeks";
+import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, subjectColor } from "@/lib/scheduleWeeks";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
@@ -172,12 +172,14 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
                           const height = Math.max(24, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                           const widthPct = 100 / lay.count;
                           const cls = classes.find((c) => c.id === s.class_id);
-                          const bg = gradeColor(cls?.grade_level);
+                          const bg = subjectColor(cls?.subject);
                           const st = s._status ? STATUS_STYLE[s._status] : STATUS_STYLE.none;
                           return (
                             <div key={s.id} className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden" style={{ top, height, left: `calc(${lay.col * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)`, backgroundColor: bg }}>
                               <p className="font-semibold truncate">{s.class_name || cls?.class_name}</p>
+                              {cls?.subject && <p className="opacity-90 truncate">{cls.subject}</p>}
                               <p className="opacity-90 truncate">{fmtTime(s.start_time)}–{fmtTime(s.end_time)}</p>
+                              {s.teacher_name && <p className="opacity-80 truncate">{s.teacher_name}</p>}
                               <span className="mt-1 inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: st.bg, border: st.border }}>{st.label}</span>
                             </div>
                           );
