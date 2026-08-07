@@ -1,0 +1,92 @@
+{
+  "name": "ReportCard",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Student Name"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "academic_year_id": {
+      "type": "string",
+      "title": "Academic Year ID"
+    },
+    "term": {
+      "type": "string",
+      "title": "Term"
+    },
+    "grades": {
+      "type": "array",
+      "title": "Grades",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "title": "Class ID"
+          },
+          "class_name": {
+            "type": "string",
+            "title": "Class Name"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score (%)"
+          },
+          "grade": {
+            "type": "string",
+            "title": "Letter Grade"
+          }
+        }
+      }
+    },
+    "attendance_rate": {
+      "type": "number",
+      "title": "Attendance Rate (%)"
+    },
+    "teacher_comment": {
+      "type": "string",
+      "title": "Teacher Comment"
+    },
+    "teacher_id": {
+      "type": "string",
+      "title": "Teacher ID"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Teacher Name"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "default": "draft"
+    },
+    "published_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Published Date"
+    }
+  },
+  "required": [
+    "student_id",
+    "student_name",
+    "school_code",
+    "term",
+    "status"
+  ]
+}

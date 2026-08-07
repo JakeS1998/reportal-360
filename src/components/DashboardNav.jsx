@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles,
-  ClipboardList, BookOpen, Award, ChevronDown,
+  ClipboardList, BookOpen, Award, ChevronDown, FileText,
   UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home,
 } from "lucide-react";
 
@@ -35,7 +35,10 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
     },
     {
       heading: "Students",
-      items: [{ to: "/students", label: "Student Roster", icon: ClipboardList }],
+      items: [
+        { to: "/students", label: "Student Roster", icon: ClipboardList },
+        { to: "/reports", label: "Report Builder", icon: FileText },
+      ],
     },
     {
       heading: "Classroom",
