@@ -118,7 +118,7 @@ const SECTIONS = [
       { label: "Termination removes access (delete + deactivate)", status: "done" },
       { label: "Least privilege enforced by role", status: "done" },
       { label: "Admin roles limited", status: "done" },
-      { label: "Annual access reviews", status: "partial" },
+      { label: "Annual access reviews (Sept 1st, manager-completed)", status: "done" },
       { label: "Dormant accounts disabled (180-day inactivity lock)", status: "done" },
       { label: "Temporary elevated access expires (not enabled — N/A)", status: "done" },
     ],

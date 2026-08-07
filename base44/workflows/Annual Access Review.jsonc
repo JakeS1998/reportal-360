@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "annual_access_review",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "open_reviews": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "runAnnualAccessReview"
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Open annual reviews",
+            "description": "Create active review per school"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 1 9 *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Annual Access Review",
+  "description": "Opens an annual access review for every school on September 1st each year, prompting managers to review and confirm staff access."
+}

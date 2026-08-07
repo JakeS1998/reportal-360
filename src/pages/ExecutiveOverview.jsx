@@ -19,9 +19,10 @@ import { useStudentMetrics } from "@/lib/useStudentMetrics";
 import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
 import SectionHeader from "@/components/SectionHeader";
+import AccessReviewBanner from "@/components/AccessReviewBanner";
 
 export default function ExecutiveOverview() {
-  const { school, activeSchool, loading, filters } = useSchool();
+  const { school, activeSchool, loading, filters, isManager, user } = useSchool();
   const metrics = useStudentMetrics();
   const navigate = useNavigate();
   const [countyLb, setCountyLb] = useState({ loading: true });
@@ -74,6 +75,7 @@ export default function ExecutiveOverview() {
 
   return (
     <div className="space-y-8">
+      {isManager && <AccessReviewBanner user={user} school={school} />}
       <FadeIn>
         <SchoolHero school={activeSchool} />
       </FadeIn>

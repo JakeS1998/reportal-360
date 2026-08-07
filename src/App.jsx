@@ -33,6 +33,7 @@ import AttendanceEngagement from './pages/AttendanceEngagement';
 import StudentsDemographics from './pages/StudentsDemographics';
 import PredictiveInsights from './pages/PredictiveInsights';
 import Students from './pages/Students';
+import AccessReview from './pages/AccessReview';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
         <Route path="/students/:studentId" element={<StudentProfile />} />
         <Route path="/training" element={<TrainingPortal />} />
         <Route path="/training-dashboard" element={<TrainingDashboard />} />
+        <Route path="/access-review" element={<AccessReview />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

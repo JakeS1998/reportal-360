@@ -1,0 +1,54 @@
+{
+  "name": "AccessReview",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "year": {
+      "type": "string",
+      "title": "Review Year"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "completed"
+      ],
+      "default": "active"
+    },
+    "started_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Started Date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Completed Date"
+    },
+    "completed_by": {
+      "type": "string",
+      "title": "Completed By"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "school_code",
+    "year",
+    "status"
+  ]
+}
