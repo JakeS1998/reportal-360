@@ -16,10 +16,10 @@ const STATUSES = [
 
 const INACTIVE = "bg-white text-slate-400 border-slate-200 hover:bg-slate-50";
 
-export default function ClassAttendanceManager({ classId, students, onSaved }) {
+export default function ClassAttendanceManager({ classId, scheduleId, dateStr, students, onSaved }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayName = DAY_NAMES[new Date().getDay()];
-  const [date] = useState(today);
+  const [date] = useState(dateStr || today);
   const [marks, setMarks] = useState(() => Object.fromEntries(students.map((s) => [s.student_id, "present"])));
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(true);
@@ -57,7 +57,7 @@ export default function ClassAttendanceManager({ classId, students, onSaved }) {
   const loadExisting = async () => {
     setLoadingExisting(true);
     try {
-      const recs = await base44.entities.AttendanceRecord.filter({ class_id: classId, date }, undefined, 500);
+      const recs = await base44.entities.AttendanceRecord.filter({ class_id: classId, schedule_id: scheduleId, date }, undefined, 500);
       if (recs.length > 0) {
         const m = {};
         recs.forEach((r) => { m[r.student_id] = r.status; });
@@ -83,11 +83,12 @@ export default function ClassAttendanceManager({ classId, students, onSaved }) {
   const persist = async (submitted) => {
     setSaving(true);
     try {
-      await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, date });
+      await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, schedule_id: scheduleId, date });
       await base44.entities.AttendanceRecord.bulkCreate(
         students.map((s) => ({
           student_id: s.student_id,
           class_id: classId,
+          schedule_id: scheduleId,
           date,
           status: marks[s.student_id] || "present",
           submitted,

@@ -129,10 +129,10 @@ export default function MyClasses() {
     ];
     if (todays.length === 0) { setAttendanceMap({}); return; }
     Promise.all(
-      todays.map((s) => base44.entities.AttendanceRecord.filter({ class_id: s.class_id, date: todayStr() }, undefined, 1).catch(() => []))
+      todays.map((s) => base44.entities.AttendanceRecord.filter({ class_id: s.class_id, schedule_id: s.id, date: todayStr() }, undefined, 1).catch(() => []))
     ).then((checks) => {
       const map = {};
-      todays.forEach((s, i) => { map[s.class_id] = checks[i].length > 0; });
+      todays.forEach((s, i) => { map[s.id] = checks[i].length > 0; });
       setAttendanceMap(map);
     });
   }, [schedules, isCurrentWeek, weekStart, covers]);
@@ -178,7 +178,7 @@ export default function MyClasses() {
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
 
   const todays = byDay(todayName());
-  const hasPending = isCurrentWeek && todays.some((s) => attendanceMap[s.class_id] === false);
+  const hasPending = isCurrentWeek && todays.some((s) => attendanceMap[s.id] === false);
 
   return (
     <div className="space-y-6">
@@ -272,7 +272,7 @@ export default function MyClasses() {
                       const widthPct = 100 / lay.count;
                       const cls = classes[s.class_id];
                       const bg = gradeColor(cls?.grade_level);
-                      const taken = attendanceMap[s.class_id];
+                      const taken = attendanceMap[s.id];
                       const showBadge = isToday && taken === false;
                       return (
                         <Link
@@ -348,6 +348,7 @@ export default function MyClasses() {
                 setQuickAction({
                   mode: "attendance",
                   classId: menu.block.class_id,
+                  scheduleId: menu.block.id,
                   className: menu.block.class_name,
                   dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
                   dateStr: menu.dateStr,
@@ -392,6 +393,7 @@ export default function MyClasses() {
         onOpenChange={(o) => { if (!o) setQuickAction(null); }}
         mode={quickAction?.mode}
         classId={quickAction?.classId}
+        scheduleId={quickAction?.scheduleId}
         className={quickAction?.className}
         dayLabel={quickAction?.dayLabel}
         dateStr={quickAction?.dateStr}

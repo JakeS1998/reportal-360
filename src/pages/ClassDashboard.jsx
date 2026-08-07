@@ -5,7 +5,6 @@ import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import ClassAttendanceManager from "@/components/class/ClassAttendanceManager";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
 import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
@@ -20,7 +19,6 @@ export default function ClassDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [attOpen, setAttOpen] = useState(false);
   const [asmOpen, setAsmOpen] = useState(false);
   const [behOpen, setBehOpen] = useState(false);
   const [denied, setDenied] = useState(false);
@@ -175,19 +173,9 @@ export default function ClassDashboard() {
       </SectionCard>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => setAttOpen(true)} variant="outline" size="sm"><ClipboardCheck className="w-4 h-4 mr-1.5" /> Take Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
       </div>
-
-      <Dialog open={attOpen} onOpenChange={setAttOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ClipboardCheck className="w-4 h-4" /> Take Attendance</DialogTitle>
-          </DialogHeader>
-          <ClassAttendanceManager key={`att-${reloadKey}`} classId={classId} students={students} onSaved={() => { setAttOpen(false); reload(); loadData(); }} />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={asmOpen} onOpenChange={setAsmOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">

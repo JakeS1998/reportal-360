@@ -10,6 +10,10 @@
       "type": "string",
       "title": "Class ID"
     },
+    "schedule_id": {
+      "type": "string",
+      "title": "Scheduled Class Instance ID"
+    },
     "date": {
       "type": "string",
       "format": "date",
@@ -35,6 +39,7 @@
   "required": [
     "student_id",
     "class_id",
+    "schedule_id",
     "date",
     "status"
   ]
