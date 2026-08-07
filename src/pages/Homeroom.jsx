@@ -45,6 +45,37 @@ export default function Homeroom() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Keep each homeroom's linked class roster in sync with Homeroom.student_ids,
+  // so the class dashboard reflects homeroom membership (existing + future).
+  useEffect(() => {
+    if (!homerooms.length || !cm.students.length || !cm.schoolCode) return;
+    let active = true;
+    (async () => {
+      const ops = [];
+      for (const h of homerooms) {
+        if (!h.class_id) continue;
+        let existing = [];
+        try {
+          existing = await base44.entities.StudentClass.filter({ class_id: h.class_id, status: "active" }, undefined, 500);
+        } catch (e) { continue; }
+        if (!active) return;
+        const enrolled = new Set(existing.map((sc) => sc.student_id));
+        const wanted = new Set(h.student_ids || []);
+        for (const sid of wanted) {
+          if (!enrolled.has(sid)) {
+            const s = cm.students.find((st) => st.id === sid);
+            ops.push(base44.entities.StudentClass.create({ student_id: sid, student_name: s?.student_name || "", class_id: h.class_id, school_code: cm.schoolCode, status: "active" }));
+          }
+        }
+        for (const sc of existing) {
+          if (!wanted.has(sc.student_id)) ops.push(base44.entities.StudentClass.delete(sc.id));
+        }
+      }
+      if (active && ops.length) await Promise.all(ops);
+    })();
+    return () => { active = false; };
+  }, [homerooms, cm.students, cm.schoolCode]);
+
   const activeTeachers = cm.teachers.filter((t) => (t.role === "teacher" || t.role === "manager") && t.active !== false);
   const assignedTeacherIds = new Set(homerooms.map((h) => h.teacher_id).filter(Boolean));
 
