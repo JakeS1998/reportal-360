@@ -5,7 +5,8 @@ import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
 import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays } from "lucide-react";
+import StudentPortalPreview from "@/components/student/StudentPortalPreview";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -18,6 +19,7 @@ export default function StudentProfile() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -64,9 +66,14 @@ export default function StudentProfile() {
             <p className="text-sm text-slate-500">Grade {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""} {s.student_number ? `· #${s.student_number}` : ""}</p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setShowSchedule(true)}>
-          <CalendarDays className="w-4 h-4 mr-1" /> View Schedule
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowPreview(true)}>
+            <Eye className="w-4 h-4 mr-1" /> View As Student
+          </Button>
+          <Button variant="outline" onClick={() => setShowSchedule(true)}>
+            <CalendarDays className="w-4 h-4 mr-1" /> View Schedule
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -176,6 +183,8 @@ export default function StudentProfile() {
       </SectionCard>
 
       <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} attendance={attendance} schoolCode={s.school_code} />
+
+      <StudentPortalPreview open={showPreview} onOpenChange={setShowPreview} student={s} classes={classes} attendance={attendance} attainment={attainment} schoolCode={s.school_code} />
     </div>
   );
 }
