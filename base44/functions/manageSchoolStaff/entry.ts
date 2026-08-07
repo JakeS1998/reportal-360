@@ -172,8 +172,27 @@ export default async function(req) {
           return Response.json({ success: false, error: "Managers can only remove teachers at their school" }, { status: 403 });
         }
       }
+      // Clean up related data so the teacher's schedule is cleared and room is released
+      const schedules = await base44.asServiceRole.entities.ClassSchedule.filter({ teacher_id: user_id });
+      if (schedules.length > 0) {
+        await base44.asServiceRole.entities.ClassSchedule.deleteMany({ teacher_id: user_id });
+      }
+      const teacherClasses = await base44.asServiceRole.entities.TeacherClass.filter({ teacher_id: user_id });
+      if (teacherClasses.length > 0) {
+        const classIds = teacherClasses.map((tc) => tc.class_id);
+        await base44.asServiceRole.entities.TeacherClass.deleteMany({ teacher_id: user_id });
+        // Release the room and clear the teacher from each affected class
+        for (const classId of classIds) {
+          try {
+            const cls = await base44.asServiceRole.entities.Class.get(classId);
+            if (cls && (cls.teacher_name === existing.full_name || cls.teacher_name === existing.username)) {
+              await base44.asServiceRole.entities.Class.update(classId, { teacher_name: "", room: "" });
+            }
+          } catch {}
+        }
+      }
       await base44.asServiceRole.entities.Teacher.delete(user_id);
-      await logAudit(base44, "user_deleted", caller_username || "", callerRole, `Deleted user ${existing.username} at ${existing.school_code}`, existing.school_code);
+      await logAudit(base44, "user_deleted", caller_username || "", callerRole, `Deleted user ${existing.username} at ${existing.school_code} (schedule cleared, room released)`, existing.school_code);
       return Response.json({ success: true });
     }
 
