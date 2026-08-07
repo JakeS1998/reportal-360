@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
-import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Repeat } from "lucide-react";
+import ArrangeCoverDialog from "@/components/class/ArrangeCoverDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
 
@@ -26,6 +27,7 @@ const toMin = (t) => { if (!t) return 0; const [h, m] = t.split(":"); return par
 const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
 const todayName = () => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
 const todayStr = () => new Date().toISOString().slice(0, 10);
+const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function layoutBlocks(blocks) {
   const sorted = [...blocks].sort((a, b) => a._startMin - b._startMin);
@@ -59,6 +61,8 @@ export default function MyClasses() {
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [coverTarget, setCoverTarget] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -92,6 +96,19 @@ export default function MyClasses() {
     };
     load();
   }, [user?.id]);
+
+  const reloadCovers = async () => {
+    if (!user?.id) return;
+    try {
+      const coversRes = await base44.functions.invoke("manageClassCovers", {
+        action: "list",
+        caller_username: user.username,
+        caller_password: user.password || localStorage.getItem("userPassword") || "",
+        cover_teacher_id: user.id,
+      });
+      setCovers(coversRes.data?.covers || []);
+    } catch (e) { setCovers([]); }
+  };
 
   const isCurrentWeek = useMemo(() => weeksBetween(weekStart, getWeekStart(new Date())) === 0, [weekStart]);
 
@@ -206,6 +223,7 @@ export default function MyClasses() {
               const layout = layoutBlocks(blocks);
               const dayDate = new Date(weekStart);
               dayDate.setDate(dayDate.getDate() + idx);
+              const dayDateStr = toISODate(dayDate);
               const isToday = isCurrentWeek && day === todayName();
               const freeSlots = teachingSlots.filter((slot) => !blocks.some((b) => b._startMin < slot.end && b._endMin > slot.start));
               return (
@@ -259,6 +277,11 @@ export default function MyClasses() {
                           key={s.id}
                           to={`/classes/${s.class_id}`}
                           state={{ fromClassId: s.class_id }}
+                          onContextMenu={(e) => {
+                            if (s._isCover) return;
+                            e.preventDefault();
+                            setMenu({ x: e.clientX, y: e.clientY, block: s, dateStr: dayDateStr, dayLabel: day });
+                          }}
                           className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden hover:ring-2 hover:ring-white transition-shadow block"
                           style={{
                             top,
@@ -292,6 +315,45 @@ export default function MyClasses() {
           </div>
         </div>
       )}
+
+      {menu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setMenu(null)}
+            onContextMenu={(e) => { e.preventDefault(); setMenu(null); }}
+          />
+          <div
+            className="fixed z-50 bg-white rounded-lg shadow-lg border border-slate-200 py-1 w-44"
+            style={{ left: Math.min(menu.x, window.innerWidth - 180), top: Math.min(menu.y, window.innerHeight - 60) }}
+          >
+            <button
+              onClick={() => {
+                setCoverTarget({
+                  classId: menu.block.class_id,
+                  className: menu.block.class_name,
+                  coverDate: menu.dateStr,
+                  dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
+                });
+                setMenu(null);
+              }}
+              className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+            >
+              <Repeat className="w-4 h-4 text-slate-500" /> Arrange Cover
+            </button>
+          </div>
+        </>
+      )}
+
+      <ArrangeCoverDialog
+        open={!!coverTarget}
+        onOpenChange={(o) => { if (!o) setCoverTarget(null); }}
+        classId={coverTarget?.classId}
+        className={coverTarget?.className}
+        coverDate={coverTarget?.coverDate}
+        dayLabel={coverTarget?.dayLabel}
+        onSuccess={reloadCovers}
+      />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
         <span className="font-medium text-slate-600">Grade colours:</span>
