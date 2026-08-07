@@ -14,6 +14,7 @@ export default async function(req) {
     let callerSystemCode = null;
     let callerSchoolCode = null;
     let callerName = "";
+    let callerId = null;
 
     if (caller_username === ADMIN_USERNAME && caller_password === ADMIN_PASSWORD) {
       callerRole = "admin";
@@ -33,6 +34,7 @@ export default async function(req) {
       callerSystemCode = callers[0].system_code;
       callerSchoolCode = callers[0].school_code;
       callerName = callers[0].username;
+      callerId = callers[0].id;
     } else {
       return Response.json({ success: false, error: "Caller credentials required" }, { status: 403 });
     }
@@ -56,11 +58,29 @@ export default async function(req) {
     // --- LIST ---
     if (action === "list") {
       const { school_code } = params;
-      if (!(await authorizeSchool(school_code))) {
+      const targetSchool = school_code || callerSchoolCode;
+      if (!(await authorizeSchool(targetSchool))) {
         return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
       }
+      // Teachers only see students assigned to them (their classes + homeroom)
+      if (callerRole === "teacher") {
+        const [tcRes, scRes, hrRes] = await Promise.all([
+          base44.asServiceRole.entities.TeacherClass.filter({ school_code: targetSchool }, undefined, 500),
+          base44.asServiceRole.entities.StudentClass.filter({ school_code: targetSchool }, undefined, 500),
+          base44.asServiceRole.entities.Homeroom.filter({ teacher_id: callerId }, undefined, 50),
+        ]);
+        const myClassIds = new Set(tcRes.filter((t) => t.teacher_id === callerId).map((t) => t.class_id));
+        const scopedStudentIds = new Set();
+        scRes.forEach((sc) => { if (myClassIds.has(sc.class_id) && sc.status === "active") scopedStudentIds.add(sc.student_id); });
+        hrRes.forEach((h) => (h.student_ids || []).forEach((sid) => scopedStudentIds.add(sid)));
+        const allStudents = await base44.asServiceRole.entities.Student.filter(
+          { school_code: targetSchool }, "student_name", 500
+        );
+        const students = allStudents.filter((s) => scopedStudentIds.has(s.id));
+        return Response.json({ success: true, students });
+      }
       const students = await base44.asServiceRole.entities.Student.filter(
-        { school_code }, "student_name", 500
+        { school_code: targetSchool }, "student_name", 500
       );
       return Response.json({ success: true, students });
     }
@@ -74,6 +94,43 @@ export default async function(req) {
       if (!(await authorizeSchool(student.school_code))) {
         return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
       }
+
+      // Teachers: enforce scope — only students in their classes or homeroom
+      if (callerRole === "teacher") {
+        const [tcRes, classAssignments, hrRes] = await Promise.all([
+          base44.asServiceRole.entities.TeacherClass.filter({ school_code: student.school_code }, undefined, 500),
+          base44.asServiceRole.entities.StudentClass.filter({ student_id, status: "active" }),
+          base44.asServiceRole.entities.Homeroom.filter({ teacher_id: callerId }, undefined, 50),
+        ]);
+        const myClassIds = new Set(tcRes.filter((t) => t.teacher_id === callerId).map((t) => t.class_id));
+        const studentClassIds = new Set(classAssignments.map((ca) => ca.class_id));
+        const sharedClassIds = [...myClassIds].filter((id) => studentClassIds.has(id));
+        const isHomeroomTeacher = hrRes.some((h) => (h.student_ids || []).includes(student_id));
+        if (sharedClassIds.length === 0 && !isHomeroomTeacher) {
+          return Response.json({ success: false, error: "Not authorized: this student is not in your classes or homeroom" }, { status: 403 });
+        }
+        const [attendance, attainment, behaviour] = await Promise.all([
+          base44.asServiceRole.entities.AttendanceRecord.filter({ student_id }, "-date", 500),
+          base44.asServiceRole.entities.AttainmentRecord.filter({ student_id }, "-date", 500),
+          base44.asServiceRole.entities.BehaviourRecord.filter({ student_id }, "-date", 100),
+        ]);
+        const allClasses = await base44.asServiceRole.entities.Class.filter({ school_code: student.school_code }, "-created_date", 500);
+        let classes = allClasses.filter((c) => studentClassIds.has(c.id));
+        await logStudentAccess(base44, "view_student", { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode }, student_id, req);
+        if (isHomeroomTeacher) {
+          // Homeroom teachers see a summary across all the student's classes
+          return Response.json({ success: true, student, classes, classAssignments, attendance, attainment, behaviour });
+        }
+        // Subject teachers: only their own classes' data
+        classes = classes.filter((c) => myClassIds.has(c.id));
+        return Response.json({
+          success: true, student, classes, classAssignments,
+          attendance: attendance.filter((a) => myClassIds.has(a.class_id)),
+          attainment: attainment.filter((a) => myClassIds.has(a.class_id)),
+          behaviour: behaviour.filter((b) => myClassIds.has(b.class_id)),
+        });
+      }
+
       const [classAssignments, attendance, attainment, behaviour] = await Promise.all([
         base44.asServiceRole.entities.StudentClass.filter({ student_id, status: "active" }),
         base44.asServiceRole.entities.AttendanceRecord.filter({ student_id }, "-date", 500),

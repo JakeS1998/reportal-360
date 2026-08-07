@@ -7,15 +7,18 @@ import StudentProgressSheet from "@/components/StudentProgressSheet";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import KpiCard from "@/components/KpiCard";
+import TeacherStudents from "@/components/TeacherStudents";
 import { generateStudentRoster } from "@/lib/sampleStudentData";
 import { Users } from "lucide-react";
 
 export default function Students() {
-  const { activeSchool, loading, filters } = useSchool();
+  const { activeSchool, loading, filters, isTeacher } = useSchool();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
   const rows = useMemo(() => activeSchool ? generateStudentRoster(activeSchool) : [], [activeSchool]);
+
+  if (isTeacher) return <TeacherStudents />;
 
   const filteredRows = rows.filter((r) => {
     if (filters.grade !== "All Grades" && r.grade_level !== filters.grade.replace("Grade ", "")) return false;
