@@ -51,7 +51,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, room } = params;
 
       if (!full_name || !role || !school_code || !system_code || !email) {
         return Response.json(
@@ -108,6 +108,7 @@ export default async function(req) {
         system_name: system_name || "",
         email: email || "",
         subject: subject || "",
+        room: room || "",
         teacher_id: username,
         password_reset_required: true,
       });
@@ -229,7 +230,7 @@ export default async function(req) {
       if (updates.role !== undefined && updates.role !== existing.role && callerRole !== "admin") {
         return Response.json({ success: false, error: "Only admins can change roles" }, { status: 403 });
       }
-      const allowedFields = ["full_name", "email", "subject", "department", "job_title", "active", "role", "mfa_enabled"];
+      const allowedFields = ["full_name", "email", "subject", "room", "department", "job_title", "active", "role", "mfa_enabled"];
       const updateData: any = {};
       for (const field of allowedFields) {
         if (updates[field] !== undefined) updateData[field] = updates[field];

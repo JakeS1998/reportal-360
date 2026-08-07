@@ -46,11 +46,19 @@ export default function SchoolUserManager({
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [subject, setSubject] = useState("");
+  const [room, setRoom] = useState("");
+  const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
-    full_name: "", email: "", subject: "", department: "", job_title: "", role: "teacher", active: true,
+    full_name: "", email: "", subject: "", room: "", department: "", job_title: "", role: "teacher", active: true,
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    base44.entities.Subject.list("name", 200).then(setSubjects).catch(() => {});
+  }, []);
+
+  const roomsFor = (subjName) => (subjects.find((s) => s.name === subjName)?.rooms) || [];
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -138,6 +146,7 @@ export default function SchoolUserManager({
         system_name: selectedSchool.system_name || getSystemName(selectedSchool.system_code),
         email,
         subject,
+        room,
         username: username || undefined,
         password: password || undefined,
       });
@@ -148,6 +157,7 @@ export default function SchoolUserManager({
         setUsername("");
         setPassword("");
         setSubject("");
+        setRoom("");
         loadUsers();
       } else {
         setError(res.data?.error || "Failed to create user");
@@ -445,15 +455,36 @@ export default function SchoolUserManager({
                 />
                 <p className="text-xs text-slate-400 mt-1">Required for MFA verification codes</p>
               </div>
-              <div className="md:col-span-2">
-                <Label className="text-sm font-medium text-slate-700">Subject (optional)</Label>
-                <Input
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Mathematics"
-                  className="mt-1"
-                />
-                <p className="text-xs text-slate-400 mt-1">Used to match teachers to classes with the same subject</p>
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">Subject</Label>
+                  <select
+                    value={subject}
+                    onChange={(e) => { setSubject(e.target.value); setRoom(""); }}
+                    className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">Select a subject…</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Used to match teachers to classes with the same subject</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
+                  <select
+                    value={room}
+                    onChange={(e) => setRoom(e.target.value)}
+                    disabled={roomsFor(subject).length === 0}
+                    className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+                  >
+                    <option value="">{roomsFor(subject).length === 0 ? "No rooms for subject" : "Select a room…"}</option>
+                    {roomsFor(subject).map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Used as the default room for scheduled classes</p>
+                </div>
               </div>
             </div>
             {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -510,6 +541,7 @@ export default function SchoolUserManager({
                           full_name: u.full_name || "",
                           email: u.email || "",
                           subject: u.subject || "",
+                          room: u.room || "",
                           department: u.department || "",
                           job_title: u.job_title || "",
                           role: u.role || "teacher",
@@ -569,12 +601,30 @@ export default function SchoolUserManager({
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-700">Subject</Label>
-              <Input
+              <select
                 value={editForm.subject}
-                onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })}
-                placeholder="e.g. Mathematics"
-                className="mt-1"
-              />
+                onChange={(e) => setEditForm({ ...editForm, subject: e.target.value, room: "" })}
+                className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="">Select a subject…</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
+              <select
+                value={editForm.room}
+                onChange={(e) => setEditForm({ ...editForm, room: e.target.value })}
+                disabled={roomsFor(editForm.subject).length === 0}
+                className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+              >
+                <option value="">{roomsFor(editForm.subject).length === 0 ? "No rooms for subject" : "Select a room…"}</option>
+                {roomsFor(editForm.subject).map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

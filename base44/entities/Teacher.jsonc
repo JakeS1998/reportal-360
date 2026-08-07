@@ -56,6 +56,10 @@
       "type": "string",
       "title": "Subject"
     },
+    "room": {
+      "type": "string",
+      "title": "Assigned Room"
+    },
     "job_title": {
       "type": "string",
       "title": "Job Title"

@@ -24,6 +24,7 @@ import FerpaCompliance from './pages/FerpaCompliance';
 import SecurityDashboard from './pages/SecurityDashboard';
 import SsoCallback from './pages/SsoCallback';
 import PolicyManagement from './pages/PolicyManagement';
+import Subjects from './pages/Subjects';
 import TrainingPortal from './pages/TrainingPortal';
 import TrainingDashboard from './pages/TrainingDashboard';
 import AdminLogin from './pages/AdminLogin';
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
       <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route path="/sso-callback" element={<SsoCallback />} />
       <Route path="/admin/policies" element={<PolicyManagement />} />
+      <Route path="/admin/subjects" element={<Subjects />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />
         <Route path="/academics" element={<AcademicPerformance />} />

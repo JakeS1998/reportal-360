@@ -1,0 +1,41 @@
+{
+  "name": "Subject",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Subject Name"
+    },
+    "rooms": {
+      "type": "array",
+      "title": "Rooms",
+      "items": {
+        "type": "string"
+      }
+    },
+    "color": {
+      "type": "string",
+      "title": "Color (hex)"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

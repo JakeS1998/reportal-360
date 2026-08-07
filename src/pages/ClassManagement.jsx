@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,13 @@ export default function ClassManagement() {
   const [dupYear, setDupYear] = useState("");
   const [autoRunning, setAutoRunning] = useState(false);
   const [autoResult, setAutoResult] = useState(null);
+  const [subjectDefs, setSubjectDefs] = useState([]);
+
+  useEffect(() => {
+    base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
+  }, []);
+
+  const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
 
@@ -116,6 +123,12 @@ export default function ClassManagement() {
           tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
           assigned.push({ class: cls.class_name, teacher: pick.full_name || pick.username });
         }
+        const teacherRecord = cm.teachers.find((t) => t.id === tAssign.teacher_id);
+        let scheduleRoom = teacherRecord?.room || "";
+        if (!scheduleRoom) {
+          const subjRooms = roomsForSubject(cls.subject);
+          if (subjRooms.length > 0) scheduleRoom = subjRooms[0];
+        }
         const have = (byClass[cls.id] || []).length;
         const need = Math.max(0, target - have);
         if (need === 0) continue;
@@ -134,7 +147,7 @@ export default function ClassManagement() {
           if (!placed) break;
           await base44.entities.ClassSchedule.create({
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
-            teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: cls.room || "",
+            teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: scheduleRoom,
             day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
             recurrence_type: "weekly", recurrence_weeks: 1, start_date: new Date().toISOString().slice(0, 10),
           });
@@ -310,7 +323,10 @@ export default function ClassManagement() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm font-medium text-slate-700">Subject</Label>
-                <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="e.g. Mathematics" className="mt-1" />
+                <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value, room: "" })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <option value="">Select a subject…</option>
+                  {subjectDefs.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Grade</Label>
@@ -322,7 +338,10 @@ export default function ClassManagement() {
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Room</Label>
-                <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g. 204" className="mt-1" />
+                <select value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} disabled={roomsForSubject(form.subject).length === 0} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 disabled:opacity-50">
+                  <option value="">{roomsForSubject(form.subject).length === 0 ? "No rooms for subject" : "Select a room…"}</option>
+                  {roomsForSubject(form.subject).map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Sessions / week</Label>
