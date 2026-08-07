@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
-import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Repeat } from "lucide-react";
+import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Repeat, ClipboardCheck, ShieldAlert } from "lucide-react";
 import ArrangeCoverDialog from "@/components/class/ArrangeCoverDialog";
+import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
 
@@ -63,6 +64,7 @@ export default function MyClasses() {
   const [timetable, setTimetable] = useState(null);
   const [menu, setMenu] = useState(null);
   const [coverTarget, setCoverTarget] = useState(null);
+  const [quickAction, setQuickAction] = useState(null); // { mode, classId, className, dayLabel, dateStr }
 
   useEffect(() => {
     const load = async () => {
@@ -341,6 +343,36 @@ export default function MyClasses() {
             >
               <Repeat className="w-4 h-4 text-slate-500" /> Arrange Cover
             </button>
+            <button
+              onClick={() => {
+                setQuickAction({
+                  mode: "attendance",
+                  classId: menu.block.class_id,
+                  className: menu.block.class_name,
+                  dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
+                  dateStr: menu.dateStr,
+                });
+                setMenu(null);
+              }}
+              className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+            >
+              <ClipboardCheck className="w-4 h-4 text-slate-500" /> Take Attendance
+            </button>
+            <button
+              onClick={() => {
+                setQuickAction({
+                  mode: "behaviour",
+                  classId: menu.block.class_id,
+                  className: menu.block.class_name,
+                  dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
+                  dateStr: menu.dateStr,
+                });
+                setMenu(null);
+              }}
+              className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+            >
+              <ShieldAlert className="w-4 h-4 text-slate-500" /> Log Behaviour
+            </button>
           </div>
         </>
       )}
@@ -353,6 +385,17 @@ export default function MyClasses() {
         coverDate={coverTarget?.coverDate}
         dayLabel={coverTarget?.dayLabel}
         onSuccess={reloadCovers}
+      />
+
+      <QuickActionsDialog
+        open={!!quickAction}
+        onOpenChange={(o) => { if (!o) setQuickAction(null); }}
+        mode={quickAction?.mode}
+        classId={quickAction?.classId}
+        className={quickAction?.className}
+        dayLabel={quickAction?.dayLabel}
+        dateStr={quickAction?.dateStr}
+        user={user}
       />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
