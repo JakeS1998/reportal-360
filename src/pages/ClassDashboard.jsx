@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ const INCIDENT_COLOR = { positive: "text-emerald-600", warning: "text-amber-600"
 export default function ClassDashboard() {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { user } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -39,7 +41,13 @@ export default function ClassDashboard() {
       // assignment so it always reflects the admin auto-assignment.
       if (homerooms.length && homerooms[0].student_ids?.length) {
         const hr = homerooms[0];
-        const allStudents = await base44.entities.Student.filter({ school_code: cls.school_code }, "student_name", 500);
+        const res = await base44.functions.invoke("manageStudents", {
+          action: "list",
+          caller_username: user?.username,
+          caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          school_code: cls.school_code,
+        });
+        const allStudents = res.data?.students || [];
         const idSet = new Set(hr.student_ids);
         students = allStudents
           .filter((s) => idSet.has(s.id))
@@ -54,7 +62,7 @@ export default function ClassDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [classId, user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
