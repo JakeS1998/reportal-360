@@ -92,6 +92,38 @@
         "Reduced",
         "Paid"
       ]
+    },
+    "username": {
+      "type": "string",
+      "title": "Login Username"
+    },
+    "password": {
+      "type": "string",
+      "title": "Login Password"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email (for SSO / password reset)"
+    },
+    "password_reset_required": {
+      "type": "boolean",
+      "title": "Password Reset Required",
+      "default": false
+    },
+    "failed_login_attempts": {
+      "type": "number",
+      "title": "Failed Login Attempts",
+      "default": 0
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Locked Until"
+    },
+    "last_login_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Login At"
     }
   },
   "required": [

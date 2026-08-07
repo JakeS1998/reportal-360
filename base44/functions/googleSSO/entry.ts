@@ -96,6 +96,37 @@ export default async function(req) {
       await base44.asServiceRole.entities.Teacher.update(user.id, { last_login_at: new Date().toISOString() });
       await logAudit(base44, "login_success", user.username, user.role, "SSO login successful (Google)", user.school_code, { ip_address: ip, user_agent: userAgent });
     } else {
+      // No teacher match — try a student account by email (optional student SSO)
+      const students = await base44.asServiceRole.entities.Student.filter({ email });
+      if (students.length > 0) {
+        const student = students[0];
+        if (student.status && student.status !== "active") {
+          await logAudit(base44, "login_failed", student.username || email, "student", "SSO login attempt on inactive student account", student.school_code, { ip_address: ip, user_agent: userAgent });
+          return Response.json({ success: false, error: "This account has been deactivated. Please contact your administrator." }, { status: 403 });
+        }
+        const schools = await base44.asServiceRole.entities.School.filter({ school_code: student.school_code }, "-year", 1);
+        const school = schools[0] || {};
+        await base44.asServiceRole.entities.Student.update(student.id, { last_login_at: new Date().toISOString() });
+        await logAudit(base44, "login_success", student.username, "student", "Student SSO login successful (Google)", student.school_code, { ip_address: ip, user_agent: userAgent });
+        return Response.json({
+          success: true,
+          user: {
+            id: student.id,
+            role: "student",
+            username: student.username,
+            full_name: student.student_name,
+            school_code: student.school_code,
+            system_code: school.system_code || "",
+            school_name: school.school_name || "",
+            system_name: school.system_name || "",
+            email: student.email || email,
+            student_id: student.id,
+            grade_level: student.grade_level || "",
+            password_reset_required: false,
+            sso: true,
+          },
+        });
+      }
       // SSO registration is disabled — accounts must be created by a school admin first
       await logAudit(base44, "login_failed", email, "unknown", "Google SSO attempt by unregistered user", undefined, { ip_address: ip, user_agent: userAgent });
       return Response.json({ success: false, error: "Your account has not been set up yet. Please contact your school administrator to be added before signing in with Google." }, { status: 403 });

@@ -38,6 +38,7 @@ import Students from './pages/Students';
 import AccessReview from './pages/AccessReview';
 import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
+import StudentDashboard from './pages/StudentDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route path="/sso-callback" element={<SsoCallback />} />
+      <Route path="/my-student" element={<StudentDashboard />} />
       <Route path="/admin/policies" element={<PolicyManagement />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />

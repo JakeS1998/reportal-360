@@ -109,7 +109,7 @@ export default function SelectSchool() {
 
       // Normal login — fetch school data and enter dashboard
       await completeLogin(user);
-      navigate("/overview", { replace: true });
+      navigate(user.role === "student" ? "/my-student" : "/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to log in");
     } finally {
@@ -137,7 +137,7 @@ export default function SelectSchool() {
         return;
       }
       await completeLogin(user);
-      navigate("/overview", { replace: true });
+      navigate(user.role === "student" ? "/my-student" : "/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to verify");
     } finally {
@@ -183,7 +183,7 @@ export default function SelectSchool() {
       }
       const user = res.data.user;
       await completeLogin(user);
-      navigate("/overview", { replace: true });
+      navigate(user.role === "student" ? "/my-student" : "/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to reactivate");
     } finally {

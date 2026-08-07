@@ -61,6 +61,67 @@ export default async function(req) {
       });
     }
 
+    // --- Student login (username ends with ".student"; no MFA/OTP) ---
+    if (username.endsWith(".student")) {
+      const sDot = username.indexOf(".");
+      const sSchoolCode = sDot > 0 ? username.slice(0, sDot) : null;
+      const sQuery: any = { username };
+      if (sSchoolCode) sQuery.school_code = sSchoolCode;
+      const students = await base44.asServiceRole.entities.Student.filter(sQuery);
+      if (students.length === 0) {
+        await logAudit(base44, "login_failed", username, "student", "Student not found", sSchoolCode || undefined, auditExtra);
+        return Response.json({ success: false, error: "Invalid username or password" });
+      }
+      const student = students[0];
+      if (student.status && student.status !== "active") {
+        await logAudit(base44, "login_failed", username, "student", "Inactive student account", student.school_code, auditExtra);
+        return Response.json({ success: false, error: "This account has been deactivated. Please contact your administrator." });
+      }
+      if (student.locked_until && new Date(student.locked_until) > new Date()) {
+        await logAudit(base44, "login_locked", username, "student", "Login attempt on locked student account", student.school_code, auditExtra);
+        return Response.json({ success: false, error: "Account temporarily locked due to repeated failed attempts. Please try again later or contact your administrator." });
+      }
+      if (student.password !== password) {
+        const attempts = (student.failed_login_attempts || 0) + 1;
+        const updates: any = { failed_login_attempts: attempts };
+        let detail = `Failed attempt ${attempts}`;
+        if (attempts >= MAX_FAILED_ATTEMPTS) {
+          updates.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
+          detail = `Account locked after ${attempts} failed attempts`;
+        }
+        await base44.asServiceRole.entities.Student.update(student.id, updates);
+        await logAudit(base44, attempts >= MAX_FAILED_ATTEMPTS ? "login_locked" : "login_failed", username, "student", detail, student.school_code, auditExtra);
+        return Response.json({ success: false, error: "Invalid username or password" });
+      }
+      if (student.failed_login_attempts > 0 || student.locked_until) {
+        await base44.asServiceRole.entities.Student.update(student.id, { failed_login_attempts: 0, locked_until: null });
+      }
+      // Resolve school/system info for the dashboard
+      const schools = await base44.asServiceRole.entities.School.filter({ school_code: student.school_code }, "-year", 1);
+      const school = schools[0] || {};
+      await base44.asServiceRole.entities.Student.update(student.id, { last_login_at: new Date().toISOString() });
+      await logAudit(base44, "login_success", username, "student", "Student login successful", student.school_code, auditExtra);
+      return Response.json({
+        success: true,
+        user: {
+          id: student.id,
+          role: "student",
+          username: student.username,
+          password: student.password,
+          full_name: student.student_name,
+          school_code: student.school_code,
+          system_code: school.system_code || "",
+          school_name: school.school_name || "",
+          system_name: school.system_name || "",
+          email: student.email || "",
+          student_id: student.id,
+          grade_level: student.grade_level || "",
+          homeroom: student.homeroom || "",
+          password_reset_required: student.password_reset_required === true,
+        },
+      });
+    }
+
     // Parse the 4-digit school code from the username (format: schoolcode.name)
     const dotIndex = username.indexOf(".");
     const parsedSchoolCode = dotIndex > 0 ? username.slice(0, dotIndex) : null;
