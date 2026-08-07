@@ -193,7 +193,7 @@ export default async function(req) {
         heading: "Account Reactivation Required",
         message: "Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.",
         code,
-        footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.",
+        footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator. Note: your registered email address is case-sensitive — enter it exactly as it appears on your account when using Microsoft or Google sign-in.",
       }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
       const emailParts = user.email.split("@");
@@ -241,7 +241,7 @@ export default async function(req) {
           heading: "Your Verification Code",
           message: "Your ReportAL 360 verification code is:",
           code,
-          footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator.",
+          footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator. Note: your registered email address is case-sensitive — enter it exactly as it appears on your account when using Microsoft or Google sign-in.",
         }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
 
         const emailParts = user.email.split("@");
