@@ -17,7 +17,30 @@ const pad = (n) => String(n).padStart(2, "0");
 const mmToHHMM = (min) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
 const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const hh = parseInt(h, 10); const ampm = hh >= 12 ? "PM" : "AM"; const h12 = hh % 12 || 12; return `${h12}:${m} ${ampm}`; };
 
-const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active", sessions_per_week: 1, teacher_id: "", schedule_day: "", schedule_start: "08:00", schedule_end: "09:00" };
+// Build back-to-back teaching periods from the school timetable, excluding
+// homeroom, break and lunch. Falls back to hourly 8 AM–3 PM when no timetable
+// is configured. Each slot is one class period (e.g. 9:00–10:00, 10:00–11:00).
+const buildTeachingSlots = (tt) => {
+  const DAY_START = tt?.school_start ? toMin(tt.school_start) : 8 * 60;
+  const DAY_END = tt?.school_end ? toMin(tt.school_end) : 15 * 60;
+  const breakR = tt?.break_start && tt?.break_end ? [toMin(tt.break_start), toMin(tt.break_end)] : null;
+  const lunchR = tt?.lunch_start && tt?.lunch_end ? [toMin(tt.lunch_start), toMin(tt.lunch_end)] : null;
+  const homeroomR = tt?.homeroom_start && tt?.homeroom_end ? [toMin(tt.homeroom_start), toMin(tt.homeroom_end)] : null;
+  const PERIOD = 60;
+  const out = [];
+  let idx = 0;
+  for (let s = DAY_START; s + PERIOD <= DAY_END; s += PERIOD) {
+    const e = s + PERIOD;
+    if (breakR && s < breakR[1] && e > breakR[0]) continue;
+    if (lunchR && s < lunchR[1] && e > lunchR[0]) continue;
+    if (homeroomR && s < homeroomR[1] && e > homeroomR[0]) continue;
+    idx++;
+    out.push({ start: s, end: e, label: `Period ${idx} · ${fmtTime(mmToHHMM(s))}–${fmtTime(mmToHHMM(e))}` });
+  }
+  return out;
+};
+
+const EMPTY_FORM = { class_name: "", subject: "", grade_level: "", period: "", room: "", description: "", academic_year_id: "", status: "active", sessions_per_week: 1, teacher_id: "", schedule_day: "", schedule_start: "", schedule_end: "" };
 
 export default function ClassManagement() {
   const cm = useClassManagement();
@@ -35,10 +58,20 @@ export default function ClassManagement() {
   const [assignRunning, setAssignRunning] = useState(false);
   const [assignResult, setAssignResult] = useState(null);
   const [subjectDefs, setSubjectDefs] = useState([]);
+  const [timetable, setTimetable] = useState(null);
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!cm.schoolCode) return;
+    base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5)
+      .then((r) => setTimetable(r[0] || null))
+      .catch(() => {});
+  }, [cm.schoolCode]);
+
+  const teachingSlots = useMemo(() => buildTeachingSlots(timetable), [timetable]);
 
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
@@ -94,22 +127,9 @@ export default function ClassManagement() {
       ]);
       const timetable = ttRes[0];
 
-      // Build teaching-period slots from the school timetable (excludes break & lunch).
+      // Build teaching-period slots from the school timetable (excludes homeroom, break & lunch).
       // Falls back to hourly 8 AM–3 PM when no timetable is configured.
-      const DAY_START = timetable?.school_start ? toMin(timetable.school_start) : 8 * 60;
-      const DAY_END = timetable?.school_end ? toMin(timetable.school_end) : 15 * 60;
-      const breakR = timetable?.break_start && timetable?.break_end ? [toMin(timetable.break_start), toMin(timetable.break_end)] : null;
-      const lunchR = timetable?.lunch_start && timetable?.lunch_end ? [toMin(timetable.lunch_start), toMin(timetable.lunch_end)] : null;
-      const homeroomR = timetable?.homeroom_start && timetable?.homeroom_end ? [toMin(timetable.homeroom_start), toMin(timetable.homeroom_end)] : null;
-      const PERIOD = 60;
-      const slots = [];
-      for (let s = DAY_START; s + PERIOD <= DAY_END; s += PERIOD) {
-        const e = s + PERIOD;
-        if (breakR && s < breakR[1] && e > breakR[0]) continue;
-        if (lunchR && s < lunchR[1] && e > lunchR[0]) continue;
-        if (homeroomR && s < homeroomR[1] && e > homeroomR[0]) continue;
-        slots.push({ start: s, end: e });
-      }
+      const slots = buildTeachingSlots(timetable).map((s) => ({ start: s.start, end: s.end }));
 
       const byClass = {};
       existing.forEach((s) => { (byClass[s.class_id] ||= []).push(s); });
@@ -548,7 +568,7 @@ export default function ClassManagement() {
                 </div>
                 <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-3">
                   <p className="text-xs font-semibold text-slate-600">Weekly schedule (optional)</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs text-slate-500">Day</Label>
                       <select value={form.schedule_day} onChange={(e) => setForm({ ...form, schedule_day: e.target.value })} className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-2 py-1.5">
@@ -557,15 +577,22 @@ export default function ClassManagement() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-500">Start</Label>
-                      <Input type="time" value={form.schedule_start} onChange={(e) => setForm({ ...form, schedule_start: e.target.value })} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500">End</Label>
-                      <Input type="time" value={form.schedule_end} onChange={(e) => setForm({ ...form, schedule_end: e.target.value })} className="mt-1" />
+                      <Label className="text-xs text-slate-500">Period</Label>
+                      <select
+                        value={form.schedule_start}
+                        onChange={(e) => {
+                          const slot = teachingSlots.find((s) => mmToHHMM(s.start) === e.target.value);
+                          setForm({ ...form, schedule_start: slot ? mmToHHMM(slot.start) : "", schedule_end: slot ? mmToHHMM(slot.end) : "" });
+                        }}
+                        disabled={!form.schedule_day}
+                        className="mt-1 w-full text-sm bg-white border border-slate-200 rounded-lg px-2 py-1.5 disabled:opacity-50"
+                      >
+                        <option value="">{form.schedule_day ? "Select a period…" : "Select a day first"}</option>
+                        {teachingSlots.map((s) => <option key={s.start} value={mmToHHMM(s.start)}>{s.label}</option>)}
+                      </select>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400">Leave the day blank to skip scheduling — you can auto-schedule later.</p>
+                  <p className="text-[11px] text-slate-400">Periods come from your school hours (homeroom, break and lunch are excluded), so classes sit back-to-back. Leave the day blank to skip scheduling — you can auto-schedule later.</p>
                 </div>
               </>
             )}
