@@ -7,6 +7,7 @@ import LogoMono from "./LogoMono";
 import LandmarkPreview from "./LandmarkPreview";
 import FilterBar from "./FilterBar";
 import DashboardNav from "./DashboardNav";
+import NotificationBell from "./NotificationBell";
 
 const NAVY = "#0B1530";
 const CRIMSON = "#9E1B32";
@@ -119,7 +120,10 @@ function Shell() {
               </p>
             </div>
           </div>
-          <LandmarkPreview />
+          <div className="flex items-center gap-2 shrink-0">
+            <NotificationBell />
+            <LandmarkPreview />
+          </div>
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-8">
           <FilterBar school={school} contentRef={contentRef} />
