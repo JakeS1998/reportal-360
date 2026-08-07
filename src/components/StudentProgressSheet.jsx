@@ -5,8 +5,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
 import { generateStudentProgress, scoreToGrade } from "@/lib/sampleStudentData";
-import { TrendingUp, TrendingDown, Minus, CalendarDays } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, CalendarDays, Eye } from "lucide-react";
 import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
+import StudentPortalPreview from "@/components/student/StudentPortalPreview";
 
 const SUBJECT_COLORS = { Math: "#1D4ED8", Reading: "#7C3AED", Science: "#10B981" };
 
@@ -43,6 +44,34 @@ export default function StudentProgressSheet({ student, onClose }) {
   const [showSchedule, setShowSchedule] = useState(false);
   const [schedulePayload, setSchedulePayload] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewPayload, setPreviewPayload] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handleViewAsStudent = async () => {
+    if (!student?.student_number) return;
+    setPreviewLoading(true);
+    try {
+      const schoolCode = activeSchool?.school_code;
+      const matches = await base44.entities.Student.filter({ student_number: student.student_number, school_code: schoolCode }, undefined, 1);
+      const rec = matches[0];
+      if (!rec) { alert("No data found for this student yet."); return; }
+      const res = await base44.functions.invoke("manageStudents", {
+        action: "get_profile",
+        caller_username: user?.username,
+        caller_password: user?.password || localStorage.getItem("userPassword") || "",
+        student_id: rec.id,
+      });
+      if (!res.data?.success) { alert("No data found for this student yet."); return; }
+      setPreviewPayload({ student: res.data.student, classes: res.data.classes || [], attendance: res.data.attendance || [], attainment: res.data.attainment || [], schoolCode: rec.school_code || schoolCode });
+      setShowPreview(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load the student preview. Please try again.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleViewSchedule = async () => {
     if (!student?.student_number) return;
@@ -89,7 +118,10 @@ export default function StudentProgressSheet({ student, onClose }) {
         </SheetHeader>
 
         <div className="mt-4 space-y-5">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={handleViewAsStudent} disabled={previewLoading}>
+              <Eye className="w-4 h-4 mr-1" /> {previewLoading ? "Loading…" : "View As Student"}
+            </Button>
             <Button variant="outline" size="sm" onClick={handleViewSchedule} disabled={scheduleLoading}>
               <CalendarDays className="w-4 h-4 mr-1" /> {scheduleLoading ? "Loading…" : "View Schedule"}
             </Button>
@@ -163,6 +195,16 @@ export default function StudentProgressSheet({ student, onClose }) {
           classes={schedulePayload?.classes || []}
           attendance={schedulePayload?.attendance || []}
           schoolCode={schedulePayload?.schoolCode}
+        />
+
+        <StudentPortalPreview
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          student={previewPayload?.student}
+          classes={previewPayload?.classes || []}
+          attendance={previewPayload?.attendance || []}
+          attainment={previewPayload?.attainment || []}
+          schoolCode={previewPayload?.schoolCode}
         />
       </SheetContent>
     </Sheet>
