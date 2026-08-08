@@ -5,7 +5,6 @@ import SectionCard from "@/components/SectionCard";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import ReportCardEditor from "@/components/report/ReportCardEditor";
-import AskReportAL from "@/components/report/AskReportAL";
 import AdminReportWorkspace from "@/components/report/AdminReportWorkspace";
 import { FileText, Sparkles, Trash2, Eye, GraduationCap } from "lucide-react";
 
@@ -343,7 +342,6 @@ export default function ReportBuilder() {
           )}
         </SectionCard>
       )}
-      {!isTeacher && <AskReportAL user={user} />}
     </div>
   );
 }

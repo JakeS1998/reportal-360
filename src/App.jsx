@@ -40,6 +40,7 @@ import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
 import StudentDashboard from './pages/StudentDashboard';
 import ClassCover from './pages/ClassCover';
+import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -116,6 +117,7 @@ function App() {
         <Router>
           <ScrollToTop />
           <AuthenticatedApp />
+          <AlLauncher />
         </Router>
         <Toaster />
       </QueryClientProvider>
