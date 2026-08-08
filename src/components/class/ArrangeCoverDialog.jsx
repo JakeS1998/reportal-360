@@ -30,7 +30,7 @@ export default function ArrangeCoverDialog({ open, onOpenChange, classId, classN
       caller_username: user.username,
       caller_password: user.password || localStorage.getItem("userPassword") || "",
       caller_email: user.email || "",
-      caller_sso: user.sso === true,
+      caller_sso: Boolean(user.sso || user.email),
       school_code: user.school_code,
     })
       .then((res) => {
@@ -61,6 +61,8 @@ export default function ArrangeCoverDialog({ open, onOpenChange, classId, classN
         action: "create",
         caller_username: user.username,
         caller_password: user.password || localStorage.getItem("userPassword") || "",
+        caller_email: user.email || "",
+        caller_sso: Boolean(user.sso || user.email),
         class_id: classId,
         cover_date: date,
         cover_teacher_id: coverTeacherId,
