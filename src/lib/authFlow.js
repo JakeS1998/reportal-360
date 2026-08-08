@@ -16,27 +16,15 @@ export function isSessionExpired(session) {
   return false;
 }
 
-// Shared post-login helper: fetches school data + system schools list,
-// stores the full session in localStorage, and returns it.
+// Shared post-login helper: stores a lightweight session immediately.
+// SchoolContext refreshes the detailed school data after navigation.
 export async function completeLogin(user) {
-  const dataRes = await base44.functions.invoke("fetchSchoolData", {
-    system_code: user.system_code,
+  const schoolData = {
     school_code: user.school_code,
-  });
-
-  if (dataRes.data?.error) {
-    throw new Error(dataRes.data.error);
-  }
-
-  const schoolData = dataRes.data;
-
-  // Enrich user with system/school names if missing
-  if (!user.system_name && schoolData?.system_name) {
-    user.system_name = schoolData.system_name;
-  }
-  if (!user.school_name && schoolData?.school_name && user.school_code !== "0000") {
-    user.school_name = schoolData.school_name;
-  }
+    system_code: user.system_code,
+    school_name: user.school_name || "",
+    system_name: user.system_name || "",
+  };
 
   let systemSchools = [];
   if (user.role === "area" || user.school_code === "0000") {

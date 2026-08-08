@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { logAudit, extractRequestInfo, getAdminCredentials, validatePasswordComplexity } from '../../shared/security.ts';
 import { buildEmailHtml } from '../../shared/alabamaScenes.ts';
+import { waitUntil } from 'base44:runtime';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -100,7 +101,7 @@ export default async function(req) {
       const schools = await base44.asServiceRole.entities.School.filter({ school_code: student.school_code }, "-year", 1);
       const school = schools[0] || {};
       await base44.asServiceRole.entities.Student.update(student.id, { last_login_at: new Date().toISOString() });
-      await logAudit(base44, "login_success", username, "student", "Student login successful", student.school_code, auditExtra);
+      waitUntil(logAudit(base44, "login_success", username, "student", "Student login successful", student.school_code, auditExtra));
       return Response.json({
         success: true,
         user: {
@@ -250,12 +251,13 @@ export default async function(req) {
       });
       await logAudit(base44, "login_locked", username, user.role, "Dormant account — unlock code sent", user.school_code, auditExtra);
 
-      const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Account Reactivation Code", buildEmailHtml({
+      waitUntil(sendVerificationEmail(base44, user, "Your ReportAL 360 Account Reactivation Code", buildEmailHtml({
         heading: "Account Reactivation Required",
         message: "Your account has been inactive for 180 days and has been locked for security. To reactivate it, use the code below and choose a new password.",
         code,
         footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator. Note: your registered email address is case-sensitive — enter it exactly as it appears on your account when using Microsoft or Google sign-in.",
-      }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
+      }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra }));
+      const delivered = true;
 
       const emailParts = user.email.split("@");
       const emailHint = emailParts.length === 2
@@ -298,12 +300,13 @@ export default async function(req) {
           mfa_code_expires_at: expiresAt,
         });
 
-        const delivered = await sendVerificationEmail(base44, user, "Your ReportAL 360 Verification Code", buildEmailHtml({
+        waitUntil(sendVerificationEmail(base44, user, "Your ReportAL 360 Verification Code", buildEmailHtml({
           heading: "Your Verification Code",
           message: "Your ReportAL 360 verification code is:",
           code,
           footerNote: "This code expires in 10 minutes. If you did not attempt to log in to ReportAL 360, please contact your administrator. Note: your registered email address is case-sensitive — enter it exactly as it appears on your account when using Microsoft or Google sign-in.",
-        }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra });
+        }), { username, role: user.role, schoolCode: user.school_code, extra: auditExtra }));
+        const delivered = true;
 
         const emailParts = user.email.split("@");
         const emailHint = emailParts.length === 2
@@ -321,7 +324,7 @@ export default async function(req) {
 
     // Full login successful
     await base44.asServiceRole.entities.Teacher.update(user.id, { last_login_at: new Date().toISOString() });
-    await logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code, auditExtra);
+    waitUntil(logAudit(base44, "login_success", username, user.role, "Login successful", user.school_code, auditExtra));
 
     return Response.json({
       success: true,
