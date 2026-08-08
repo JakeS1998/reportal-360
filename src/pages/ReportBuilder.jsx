@@ -214,10 +214,7 @@ export default function ReportBuilder() {
         <p className="text-sm text-slate-500">{isTeacher ? "Build report cards for students in your classes." : `Build report cards for ${school?.school_name || "your school"}.`}</p>
       </div>
 
-      {!isTeacher && <>
-        <AskReportAL user={user} />
-        <AdminReportWorkspace user={user} />
-      </>}
+      {!isTeacher && <AdminReportWorkspace user={user} />}
 
       <SectionCard title="1. Select Class & Term" icon={Sparkles}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -346,6 +343,7 @@ export default function ReportBuilder() {
           )}
         </SectionCard>
       )}
+      {!isTeacher && <AskReportAL user={user} />}
     </div>
   );
 }
