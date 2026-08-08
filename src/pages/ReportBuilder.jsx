@@ -5,6 +5,8 @@ import SectionCard from "@/components/SectionCard";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import ReportCardEditor from "@/components/report/ReportCardEditor";
+import AskReportAL from "@/components/report/AskReportAL";
+import AdminReportWorkspace from "@/components/report/AdminReportWorkspace";
 import { FileText, Sparkles, Trash2, Eye, GraduationCap } from "lucide-react";
 
 const TERMS = ["Q1", "Q2", "Q3", "Q4", "Semester 1", "Semester 2", "Final"];
@@ -211,6 +213,11 @@ export default function ReportBuilder() {
         <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2"><FileText className="w-5 h-5 text-slate-500" /> Report Card Builder</h2>
         <p className="text-sm text-slate-500">{isTeacher ? "Build report cards for students in your classes." : `Build report cards for ${school?.school_name || "your school"}.`}</p>
       </div>
+
+      {!isTeacher && <>
+        <AskReportAL user={user} />
+        <AdminReportWorkspace user={user} />
+      </>}
 
       <SectionCard title="1. Select Class & Term" icon={Sparkles}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

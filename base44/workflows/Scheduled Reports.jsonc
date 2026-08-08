@@ -1,0 +1,45 @@
+{
+  "description": "Checks and delivers due administrator reports.",
+  "name": "Scheduled Reports",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "scheduled_reports",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "deliver_reports": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "runScheduledReports",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Deliver scheduled reports",
+            "description": "Check reports due now"
+          }
+        }
+      }
+    ]
+  }
+}

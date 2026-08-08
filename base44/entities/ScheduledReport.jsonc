@@ -1,0 +1,83 @@
+{
+  "name": "ScheduledReport",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Report Title"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "metrics": {
+      "type": "array",
+      "title": "Metrics",
+      "items": {
+        "type": "string"
+      }
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class Filter"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "title": "End Date"
+    },
+    "attendance_below": {
+      "type": "number",
+      "title": "Attendance Below"
+    },
+    "recipient_email": {
+      "type": "string",
+      "format": "email",
+      "title": "Registered Recipient Email"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly"
+      ],
+      "default": "weekly",
+      "title": "Frequency"
+    },
+    "day_of_week": {
+      "type": "number",
+      "title": "Day of Week"
+    },
+    "day_of_month": {
+      "type": "number",
+      "title": "Day of Month"
+    },
+    "hour": {
+      "type": "number",
+      "title": "Delivery Hour"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "title": "Active"
+    },
+    "last_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Sent At"
+    }
+  },
+  "required": [
+    "title",
+    "school_code",
+    "metrics",
+    "recipient_email",
+    "frequency",
+    "hour"
+  ]
+}
