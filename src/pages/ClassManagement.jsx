@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2, CalendarCheck } from "lucide-react";
 import { buildTeachingSlots } from "@/lib/teachingSlots";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
+import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
 const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
@@ -46,6 +47,7 @@ export default function ClassManagement() {
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
   const [recurrence, setRecurrence] = useState("weekly");
+  const [attendanceTarget, setAttendanceTarget] = useState(null);
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -396,6 +398,22 @@ export default function ClassManagement() {
     }
   };
 
+  const openAttendance = async (cls) => {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10);
+    const dayLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+    const schedules = await base44.entities.ClassSchedule.filter({ class_id: cls.id }, undefined, 200);
+    const schedule = schedules.find((item) => item.day_of_week === dayName);
+    setAttendanceTarget({
+      classId: cls.id,
+      className: cls.class_name,
+      scheduleId: schedule?.id || `manual-${cls.id}-${dateStr}`,
+      dateStr,
+      dayLabel,
+    });
+  };
+
   const handleDelete = async (cls) => {
     if (!confirm(`Delete "${cls.class_name}"? This removes all teacher and student assignments.`)) return;
     await cm.deleteClass(cls.id);
@@ -580,6 +598,9 @@ export default function ClassManagement() {
                 </div>
 
                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-100">
+                  <Button onClick={() => openAttendance(cls)} size="sm" variant="outline" className="mr-1 border-slate-200 text-slate-700">
+                    <CalendarCheck className="w-3.5 h-3.5" /> Record attendance
+                  </Button>
                   <button onClick={() => openEdit(cls)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
                   <button onClick={() => { setDupClass(cls); setDupYear(cm.currentYear?.id || ""); }} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
                   <button onClick={() => handleArchive(cls)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" title={cls.status === "archived" ? "Unarchive" : "Archive"}><Archive className="w-3.5 h-3.5" /></button>
@@ -590,6 +611,18 @@ export default function ClassManagement() {
           })}
         </div>
       )}
+
+      <QuickActionsDialog
+        open={!!attendanceTarget}
+        onOpenChange={(open) => !open && setAttendanceTarget(null)}
+        mode="attendance"
+        classId={attendanceTarget?.classId}
+        scheduleId={attendanceTarget?.scheduleId}
+        className={attendanceTarget?.className}
+        dayLabel={attendanceTarget?.dayLabel}
+        dateStr={attendanceTarget?.dateStr}
+        user={cm.user}
+      />
 
       {/* Create / Edit Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>

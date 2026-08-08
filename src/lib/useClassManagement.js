@@ -225,7 +225,7 @@ export function useClassManagement() {
   };
 
   return {
-    schoolCode, schoolName, currentYear,
+    user, schoolCode, schoolName, currentYear,
     academicYears, classes, teacherAssignments, studentAssignments, teachers, students,
     loading, loadData,
     createClass, updateClass, deleteClass, duplicateClass,
