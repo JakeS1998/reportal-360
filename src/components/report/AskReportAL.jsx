@@ -19,7 +19,7 @@ export default function AskReportAL({ user }) {
   };
   return (
     <Dialog>
-      <DialogTrigger asChild><button className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-slate-900 text-white shadow-lg hover:bg-slate-800 flex items-center justify-center" title="Ask Al" aria-label="Ask Al"><Sparkles className="w-6 h-6" /></button></DialogTrigger>
+      <DialogTrigger asChild><button className="fixed bottom-5 right-5 md:bottom-6 md:right-6 z-[70] w-14 h-14 rounded-full bg-slate-900 text-white shadow-lg hover:bg-slate-800 flex items-center justify-center" title="Ask Al" aria-label="Ask Al"><Sparkles className="w-6 h-6" /></button></DialogTrigger>
       <DialogContent className="max-w-xl">
         <DialogHeader><DialogTitle>Ask <span className="font-mono">Al</span></DialogTitle><DialogDescription>Answers are grounded in your authorised school data.</DialogDescription></DialogHeader>
         <div className="flex flex-wrap gap-2">{prompts.map((item) => <button key={item} onClick={() => setQuestion(item)} className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-100">{item}</button>)}</div>
