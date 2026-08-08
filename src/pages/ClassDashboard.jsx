@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
-import { ArrowLeft, Users, UserCheck, Calendar, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
+import QuickActionsDialog from "@/components/class/QuickActionsDialog";
+import { ArrowLeft, Users, UserCheck, Calendar, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "text-emerald-600", warning: "text-amber-600", minor: "text-orange-600", major: "text-rose-600" };
@@ -21,6 +22,7 @@ export default function ClassDashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [asmOpen, setAsmOpen] = useState(false);
   const [behOpen, setBehOpen] = useState(false);
+  const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [denied, setDenied] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -105,6 +107,16 @@ export default function ClassDashboard() {
 
   const reload = () => setReloadKey((k) => k + 1);
 
+  const openAttendance = async () => {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10);
+    const dayLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+    const schedules = await base44.entities.ClassSchedule.filter({ class_id: classId }, undefined, 200);
+    const schedule = schedules.find((item) => item.day_of_week === dayName);
+    setAttendanceTarget({ scheduleId: schedule?.id || `manual-${classId}-${dateStr}`, dateStr, dayLabel });
+  };
+
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (denied) return <p className="text-sm text-slate-400 text-center py-16">You don't have access to this class.</p>;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Class not found.</p>;
@@ -173,9 +185,28 @@ export default function ClassDashboard() {
       </SectionCard>
 
       <div className="flex flex-wrap gap-2">
+        <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
       </div>
+
+      <QuickActionsDialog
+        open={!!attendanceTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAttendanceTarget(null);
+            reload();
+            loadData();
+          }
+        }}
+        mode="attendance"
+        classId={classId}
+        scheduleId={attendanceTarget?.scheduleId}
+        className={cls.class_name}
+        dayLabel={attendanceTarget?.dayLabel}
+        dateStr={attendanceTarget?.dateStr}
+        user={user}
+      />
 
       <Dialog open={asmOpen} onOpenChange={setAsmOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
