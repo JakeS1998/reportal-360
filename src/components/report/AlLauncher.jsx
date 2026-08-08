@@ -11,6 +11,6 @@ export default function AlLauncher() {
     setUser(session?.user || null);
   }, [location.pathname]);
 
-  if (!user || !["manager", "area", "admin"].includes(user.role)) return null;
+  if (!user || !["teacher", "manager", "area", "admin"].includes(user.role)) return null;
   return <AskReportAL user={user} />;
 }

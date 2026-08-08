@@ -6,21 +6,27 @@ export default async function(req) {
   try {
     const { question, school_code, caller_username, caller_password } = await req.json();
     const base44 = createClientFromRequest(req);
-    const admin = getAdminCredentials();
-    let authorised = caller_username === admin.username && caller_password === admin.password;
-    let caller = null;
-    if (!authorised && caller_username) {
-      caller = (await base44.asServiceRole.entities.Teacher.filter({ username: caller_username, password: caller_password }, undefined, 1))[0];
-      authorised = !!caller && ["manager", "area"].includes(caller.role);
-      if (authorised && caller.role === "manager" && caller.school_code !== school_code) authorised = false;
-      if (authorised && caller.role === "area") {
-        const directory = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_code }, undefined, 1);
-        authorised = directory[0]?.system_code === caller.system_code;
-      }
-    }
-    if (!authorised) return Response.json({ success: false, error: "Administrator access is required." }, { status: 403 });
     if (!question || !school_code) return Response.json({ success: false, error: "Question and school are required." }, { status: 400 });
-    const analytics = await buildReportAnalytics(base44, { school_code });
+    const admin = getAdminCredentials();
+    const isAdmin = caller_username === admin.username && caller_password === admin.password;
+    const caller = isAdmin ? null : (await base44.asServiceRole.entities.Teacher.filter({ username: caller_username, password: caller_password }, undefined, 1))[0];
+    if (!isAdmin && !caller) return Response.json({ success: false, error: "Your session could not be verified." }, { status: 403 });
+
+    let classIds;
+    if (!isAdmin) {
+      if (caller.role === "manager" && caller.school_code !== school_code) return Response.json({ success: false, error: "You can only access your own school data." }, { status: 403 });
+      if (caller.role === "area") {
+        const directory = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_code }, undefined, 1);
+        if (directory[0]?.system_code !== caller.system_code) return Response.json({ success: false, error: "You can only access schools in your assigned system." }, { status: 403 });
+      }
+      if (caller.role === "teacher") {
+        if (caller.school_code !== school_code) return Response.json({ success: false, error: "You can only access your own school data." }, { status: 403 });
+        const assignments = await base44.asServiceRole.entities.TeacherClass.filter({ teacher_id: caller.teacher_id, school_code }, undefined, 500);
+        classIds = assignments.map((assignment) => assignment.class_id);
+      }
+      if (!["teacher", "manager", "area"].includes(caller.role)) return Response.json({ success: false, error: "Your role does not have access to school analytics." }, { status: 403 });
+    }
+    const analytics = await buildReportAnalytics(base44, { school_code, class_ids: classIds });
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are ReportAL's education data analyst. Answer only from the authorised data below. Be concise, explain limitations, and never invent facts. Cite evidence using the exact source labels in a final 'Data sources' line. Question: ${question}\n\nAuthorised data: ${JSON.stringify(analytics)}`,
       model: "claude_sonnet_4_6",

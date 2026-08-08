@@ -1,12 +1,13 @@
 export async function buildReportAnalytics(base44, config = {}) {
-  const { school_code, class_id, start_date, end_date, attendance_below } = config;
+  const { school_code, class_id, class_ids, start_date, end_date, attendance_below } = config;
   const [students, classes, attainments, attendance] = await Promise.all([
     base44.asServiceRole.entities.Student.filter({ school_code }, "student_name", 500),
     base44.asServiceRole.entities.Class.filter({ school_code }, "class_name", 500),
     base44.asServiceRole.entities.AttainmentRecord.filter({}, "-date", 500),
     base44.asServiceRole.entities.AttendanceRecord.filter({}, "-date", 500),
   ]);
-  const classIds = new Set(classes.filter((item) => !class_id || item.id === class_id).map((item) => item.id));
+  const permittedClassIds = class_ids ? new Set(class_ids) : null;
+  const classIds = new Set(classes.filter((item) => (!class_id || item.id === class_id) && (!permittedClassIds || permittedClassIds.has(item.id))).map((item) => item.id));
   const inRange = (item) => (!start_date || !item.date || item.date >= start_date) && (!end_date || !item.date || item.date <= end_date);
   const attainment = attainments.filter((item) => classIds.has(item.class_id) && inRange(item));
   const attendanceRows = attendance.filter((item) => classIds.has(item.class_id) && inRange(item));
