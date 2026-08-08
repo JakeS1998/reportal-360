@@ -23,6 +23,7 @@ export default async function(req) {
     const analytics = await buildReportAnalytics(base44, { school_code });
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are ReportAL's education data analyst. Answer only from the authorised data below. Be concise, explain limitations, and never invent facts. Cite evidence using the exact source labels in a final 'Data sources' line. Question: ${question}\n\nAuthorised data: ${JSON.stringify(analytics)}`,
+      model: "claude_sonnet_4_6",
       response_json_schema: { type: "object", properties: { answer: { type: "string" }, referenced_student_ids: { type: "array", items: { type: "string" } }, caveat: { type: "string" } }, required: ["answer"] }
     });
     const citedStudents = analytics.students.filter((student) => (result.referenced_student_ids || []).includes(student.student_id));
