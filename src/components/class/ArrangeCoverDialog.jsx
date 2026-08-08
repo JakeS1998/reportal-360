@@ -29,10 +29,22 @@ export default function ArrangeCoverDialog({ open, onOpenChange, classId, classN
       action: "list_colleagues",
       caller_username: user.username,
       caller_password: user.password || localStorage.getItem("userPassword") || "",
+      caller_email: user.email || "",
+      caller_sso: user.sso === true,
       school_code: user.school_code,
     })
-      .then((res) => setColleagues(res.data?.colleagues || []))
-      .catch(() => setColleagues([]))
+      .then((res) => {
+        if (!res.data?.success) {
+          setColleagues([]);
+          setError(res.data?.error || "Unable to load colleagues.");
+          return;
+        }
+        setColleagues(res.data.colleagues || []);
+      })
+      .catch((err) => {
+        setColleagues([]);
+        setError(err.response?.data?.error || err.message || "Unable to load colleagues.");
+      })
       .finally(() => setLoadingColleagues(false));
   }, [open, coverDate, user]);
 

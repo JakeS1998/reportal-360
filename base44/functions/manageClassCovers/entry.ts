@@ -14,7 +14,7 @@ function dayOfWeek(dateStr) {
 export default async function(req) {
   try {
     const body = await req.json();
-    const { action, caller_username, caller_password, ...params } = body;
+    const { action, caller_username, caller_password, caller_email, caller_sso, ...params } = body;
     const base44 = createClientFromRequest(req);
 
     // --- Authenticate caller ---
@@ -27,6 +27,19 @@ export default async function(req) {
     if (caller_username === ADMIN_USERNAME && caller_password === ADMIN_PASSWORD) {
       callerRole = "admin";
       callerName = "admin";
+    } else if (caller_sso && caller_email) {
+      const callers = await base44.asServiceRole.entities.Teacher.filter({ email: caller_email }, undefined, 1);
+      if (callers.length === 0) {
+        return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      }
+      if (callers[0].active === false) {
+        return Response.json({ success: false, error: "Account inactive" }, { status: 403 });
+      }
+      callerRole = callers[0].role;
+      callerSystemCode = callers[0].system_code;
+      callerSchoolCode = callers[0].school_code;
+      callerId = callers[0].id;
+      callerName = callers[0].username;
     } else if (caller_username) {
       const callers = await base44.asServiceRole.entities.Teacher.filter({
         username: caller_username,
@@ -67,10 +80,10 @@ export default async function(req) {
         return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
       }
       const teachers = await base44.asServiceRole.entities.Teacher.filter(
-        { school_code: schoolCode, active: true }, "full_name", 500
+        { school_code: schoolCode }, "full_name", 500
       );
       const colleagues = teachers
-        .filter((t) => t.id !== callerId && (t.role === "teacher" || t.role === "manager"))
+        .filter((t) => t.id !== callerId && t.active !== false && ["teacher", "manager", "school_admin"].includes(t.role))
         .map((t) => ({ id: t.id, full_name: t.full_name, subject: t.subject || "", role: t.role }));
       return Response.json({ success: true, colleagues });
     }
