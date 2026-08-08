@@ -28,18 +28,19 @@ export default async function(req) {
       callerRole = "admin";
       callerName = "admin";
     } else if (caller_sso && caller_email) {
-      const callers = await base44.asServiceRole.entities.Teacher.filter({ email: caller_email }, undefined, 1);
-      if (callers.length === 0) {
+      const staff = await base44.asServiceRole.entities.Teacher.filter({}, undefined, 500);
+      const caller = staff.find((teacher) => teacher.email?.toLowerCase() === caller_email.toLowerCase());
+      if (!caller) {
         return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
       }
-      if (callers[0].active === false) {
+      if (caller.active === false) {
         return Response.json({ success: false, error: "Account inactive" }, { status: 403 });
       }
-      callerRole = callers[0].role;
-      callerSystemCode = callers[0].system_code;
-      callerSchoolCode = callers[0].school_code;
-      callerId = callers[0].id;
-      callerName = callers[0].username;
+      callerRole = caller.role;
+      callerSystemCode = caller.system_code;
+      callerSchoolCode = caller.school_code;
+      callerId = caller.id;
+      callerName = caller.username;
     } else if (caller_username) {
       const callers = await base44.asServiceRole.entities.Teacher.filter({
         username: caller_username,
