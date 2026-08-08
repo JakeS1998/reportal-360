@@ -4,12 +4,16 @@ import { buildReportAnalytics } from '../../shared/reportAnalytics.ts';
 
 export default async function(req) {
   try {
-    const { question, school_code, caller_username, caller_password } = await req.json();
+    const { question, school_code, caller_username, caller_password, caller_email, caller_sso } = await req.json();
     const base44 = createClientFromRequest(req);
     if (!question || !school_code) return Response.json({ success: false, error: "Question and school are required." }, { status: 400 });
     const admin = getAdminCredentials();
     const isAdmin = caller_username === admin.username && caller_password === admin.password;
-    const caller = isAdmin ? null : (await base44.asServiceRole.entities.Teacher.filter({ username: caller_username, password: caller_password }, undefined, 1))[0];
+    const caller = isAdmin ? null : caller_password
+      ? (await base44.asServiceRole.entities.Teacher.filter({ username: caller_username, password: caller_password }, undefined, 1))[0]
+      : caller_sso && caller_email
+        ? (await base44.asServiceRole.entities.Teacher.filter({ username: caller_username, email: caller_email }, undefined, 1))[0]
+        : null;
     if (!isAdmin && !caller) return Response.json({ success: false, error: "Your session could not be verified." }, { status: 403 });
 
     let classIds;

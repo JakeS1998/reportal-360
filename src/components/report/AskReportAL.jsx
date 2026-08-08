@@ -13,7 +13,7 @@ export default function AskReportAL({ user }) {
     if (!question.trim()) return;
     setLoading(true); setAnswer(null);
     try {
-      const response = await base44.functions.invoke("askReportAL", { question, school_code: user.school_code, caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "" });
+      const response = await base44.functions.invoke("askReportAL", { question, school_code: user.school_code, caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "", caller_email: user.email || "", caller_sso: user.sso === true });
       setAnswer(response.data?.success ? response.data : { error: response.data?.error || "Al could not generate an answer." });
     } catch (error) {
       setAnswer({ error: error.response?.data?.error || error.message || "Al could not generate an answer." });
