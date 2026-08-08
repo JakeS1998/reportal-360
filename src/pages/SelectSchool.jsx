@@ -251,9 +251,9 @@ export default function SelectSchool() {
       <img
         src={scene.url}
         alt={scene.title}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="fixed inset-0 w-full h-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
+      <div className="fixed inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
 
       <div className="absolute top-6 left-6 z-10 max-w-sm bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg">
         <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">This {periodLabel}'s Alabama Landmark</p>
