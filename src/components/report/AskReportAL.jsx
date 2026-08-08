@@ -14,7 +14,9 @@ export default function AskReportAL({ user }) {
     setLoading(true); setAnswer(null);
     try {
       const response = await base44.functions.invoke("askReportAL", { question, school_code: user.school_code, caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "" });
-      setAnswer(response.data);
+      setAnswer(response.data?.success ? response.data : { error: response.data?.error || "Al could not generate an answer." });
+    } catch (error) {
+      setAnswer({ error: error.response?.data?.error || error.message || "Al could not generate an answer." });
     } finally { setLoading(false); }
   };
   return (
