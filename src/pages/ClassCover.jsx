@@ -52,6 +52,8 @@ export default function ClassCover() {
             action: "list_colleagues",
             caller_username: user.username,
             caller_password: callerPassword,
+            caller_email: user.email || "",
+            caller_sso: Boolean(user.sso || user.email),
             school_code: user.school_code,
           });
           setColleagues(colRes.data?.colleagues || []);

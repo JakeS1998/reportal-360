@@ -86,6 +86,8 @@ export default function MyClasses() {
             action: "list",
             caller_username: user.username,
             caller_password: user.password || localStorage.getItem("userPassword") || "",
+            caller_email: user.email || "",
+            caller_sso: Boolean(user.sso || user.email),
             cover_teacher_id: user.id,
           });
           setCovers(coversRes.data?.covers || []);
