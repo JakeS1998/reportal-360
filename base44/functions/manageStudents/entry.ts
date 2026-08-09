@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getAdminCredentials, logStudentAccess } from '../../shared/security.ts';
+import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
 
@@ -32,7 +33,7 @@ async function generateUniqueUsername(base44, schoolCode, name) {
 export default async function(req) {
   try {
     const body = await req.json();
-    const { action, caller_username, caller_password, ...params } = body;
+    const { action, caller_username, caller_password, caller_email, caller_sso, ...params } = body;
     const base44 = createClientFromRequest(req);
 
     // --- Authenticate caller ---
@@ -63,21 +64,19 @@ export default async function(req) {
         callerName = students[0].username;
         callerId = students[0].id;
       } else {
-        const callers = await base44.asServiceRole.entities.Teacher.filter({
-          username: caller_username,
-          password: caller_password,
+        const caller = await resolveStaffCaller(base44, {
+          callerUsername: caller_username,
+          callerPassword: caller_password,
+          callerEmail: caller_email,
+          callerSso: caller_sso,
         });
-        if (callers.length === 0) {
-          return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
-        }
-        if (callers[0].active === false) {
-          return Response.json({ success: false, error: "Account inactive" }, { status: 403 });
-        }
-        callerRole = callers[0].role;
-        callerSystemCode = callers[0].system_code;
-        callerSchoolCode = callers[0].school_code;
-        callerName = callers[0].username;
-        callerId = callers[0].id;
+        if (!caller) return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
+        if (caller.active === false) return Response.json({ success: false, error: "Account inactive" }, { status: 403 });
+        callerRole = caller.role;
+        callerSystemCode = caller.system_code;
+        callerSchoolCode = caller.school_code;
+        callerName = caller.username;
+        callerId = caller.id;
       }
     } else {
       return Response.json({ success: false, error: "Caller credentials required" }, { status: 403 });

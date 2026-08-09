@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { logAudit, validatePasswordComplexity, getAdminCredentials } from '../../shared/security.ts';
+import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
 
@@ -23,7 +24,7 @@ function makeUsername(schoolCode, fullName) {
 export default async function(req) {
   try {
     const body = await req.json();
-    const { action, caller_username, caller_password, ...params } = body;
+    const { action, caller_username, caller_password, caller_email, caller_sso, ...params } = body;
 
     const base44 = createClientFromRequest(req);
 
@@ -34,19 +35,17 @@ export default async function(req) {
 
     if (caller_username === ADMIN_USERNAME && caller_password === ADMIN_PASSWORD) {
       callerRole = "admin";
-    } else if (caller_username) {
-      const callers = await base44.asServiceRole.entities.Teacher.filter({
-        username: caller_username,
-        password: caller_password,
-      });
-      if (callers.length === 0) {
-        return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
-      }
-      callerRole = callers[0].role;
-      callerSystemCode = callers[0].system_code;
-      callerSchoolCode = callers[0].school_code;
     } else {
-      return Response.json({ success: false, error: "Caller credentials required" }, { status: 403 });
+      const caller = await resolveStaffCaller(base44, {
+        callerUsername: caller_username,
+        callerPassword: caller_password,
+        callerEmail: caller_email,
+        callerSso: caller_sso,
+      });
+      if (!caller) return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
+      callerRole = caller.role;
+      callerSystemCode = caller.system_code;
+      callerSchoolCode = caller.school_code;
     }
 
     // --- CREATE ---

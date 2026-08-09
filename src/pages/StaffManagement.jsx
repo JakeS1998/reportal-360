@@ -17,6 +17,8 @@ export default function StaffManagement() {
   const callerCreds = {
     caller_username: user.username,
     caller_password: user.password || localStorage.getItem("userPassword") || "",
+    caller_email: user.email || "",
+    caller_sso: Boolean(user.sso || user.email),
   };
 
   const isManager = user.role === "manager";
@@ -49,7 +51,14 @@ export default function StaffManagement() {
                   system_code: user.system_code,
                   system_name: user.system_name || school?.system_name,
                 }
-              : null
+              : school?.school_code
+                ? {
+                    school_code: school.school_code,
+                    school_name: school.school_name,
+                    system_code: school.system_code || user.system_code,
+                    system_name: school.system_name || user.system_name,
+                  }
+                : null
           }
         />
       </FadeIn>
