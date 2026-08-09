@@ -6,6 +6,7 @@ import SectionCard from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
 import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
 import StudentPortalPreview from "@/components/student/StudentPortalPreview";
+import StudentSensitiveProfile from "@/components/student/StudentSensitiveProfile";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -28,6 +29,8 @@ export default function StudentProfile() {
           action: "get_profile",
           caller_username: user?.username,
           caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          caller_email: user?.email || "",
+          caller_sso: Boolean(user?.sso || user?.email),
           student_id: studentId,
         });
         if (!res.data?.success) { setLoading(false); return; }
@@ -114,6 +117,8 @@ export default function StudentProfile() {
           ))}
         </div>
       </SectionCard>
+
+      <StudentSensitiveProfile student={s} />
 
       <SectionCard title="Class Memberships" icon={BookOpen}>
         {classes.length === 0 ? (

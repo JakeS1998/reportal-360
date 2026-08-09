@@ -93,6 +93,95 @@
         "Paid"
       ]
     },
+    "allergies": {
+      "type": "array",
+      "title": "Allergies",
+      "items": {
+        "type": "string"
+      }
+    },
+    "medications": {
+      "type": "array",
+      "title": "Medications",
+      "items": {
+        "type": "string"
+      }
+    },
+    "medical_notes": {
+      "type": "string",
+      "title": "Medical Notes"
+    },
+    "dietary_requirements": {
+      "type": "string",
+      "title": "Dietary Requirements"
+    },
+    "section_504_plan": {
+      "type": "boolean",
+      "title": "504 Plan on File",
+      "default": false
+    },
+    "section_504_details": {
+      "type": "string",
+      "title": "504 Plan Details"
+    },
+    "section_504_document_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "504 Plan Document URL"
+    },
+    "iep_on_file": {
+      "type": "boolean",
+      "title": "IEP on File",
+      "default": false
+    },
+    "iep_details": {
+      "type": "string",
+      "title": "IEP Details"
+    },
+    "emergency_contacts": {
+      "type": "array",
+      "title": "Emergency Contacts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "relationship": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      }
+    },
+    "authorized_pickups": {
+      "type": "array",
+      "title": "Authorized Pickups",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "relationship": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "custody_alerts": {
+      "type": "string",
+      "title": "Custody or Release Alerts"
+    },
     "username": {
       "type": "string",
       "title": "Login Username"
