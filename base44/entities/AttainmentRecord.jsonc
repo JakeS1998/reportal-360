@@ -14,6 +14,21 @@
       "type": "string",
       "title": "Assessment Name"
     },
+    "assignment_type": {
+      "type": "string",
+      "title": "Assignment Type",
+      "enum": [
+        "classwork",
+        "quiz",
+        "test",
+        "essay",
+        "project",
+        "homework",
+        "presentation",
+        "other"
+      ],
+      "default": "classwork"
+    },
     "date": {
       "type": "string",
       "format": "date",
@@ -28,6 +43,35 @@
       "title": "Max Score",
       "default": 100
     },
+    "letter_grade": {
+      "type": "string",
+      "title": "Letter Grade",
+      "enum": [
+        "A+",
+        "A",
+        "A-",
+        "B+",
+        "B",
+        "B-",
+        "C+",
+        "C",
+        "C-",
+        "D+",
+        "D",
+        "D-",
+        "F"
+      ]
+    },
+    "submission_status": {
+      "type": "string",
+      "title": "Submission Status",
+      "enum": [
+        "submitted",
+        "late",
+        "missed"
+      ],
+      "default": "submitted"
+    },
     "subject": {
       "type": "string",
       "title": "Subject"
@@ -36,7 +80,6 @@
   "required": [
     "student_id",
     "class_id",
-    "assessment_name",
-    "score"
+    "assessment_name"
   ]
 }

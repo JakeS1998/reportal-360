@@ -96,7 +96,8 @@ export default function ClassDashboard() {
       }
       const present = attendance.filter((a) => a.status === "present").length;
       const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
-      const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
+      const scoredAttainment = attainment.filter((record) => typeof record.score === "number" && record.submission_status !== "missed");
+      const avgScore = scoredAttainment.length > 0 ? Math.round(scoredAttainment.reduce((sum, record) => sum + (record.score / (record.max_score || 100)) * 100, 0) / scoredAttainment.length) : null;
       setData({ cls, teachers, students, attendance, attainment, behaviour, attendanceRate, avgScore });
     } catch (err) {
       console.error(err);
@@ -256,9 +257,9 @@ export default function ClassDashboard() {
                 <div key={a.id} className="flex items-center justify-between text-sm">
                   <div className="min-w-0">
                     <p className="text-slate-700 truncate">{a.assessment_name}</p>
-                    <p className="text-xs text-slate-400">{a.date} {a.subject ? `· ${a.subject}` : ""}</p>
+                    <p className="text-xs text-slate-400">{a.date}{a.assignment_type ? ` · ${a.assignment_type}` : ""}{a.subject ? ` · ${a.subject}` : ""}</p>
                   </div>
-                  <span className="font-medium text-slate-700 shrink-0">{a.score}/{a.max_score || 100}</span>
+                  <span className="font-medium text-slate-700 shrink-0">{a.submission_status === "missed" ? "Missed" : `${a.score}/${a.max_score || 100}${a.letter_grade ? ` · ${a.letter_grade}` : ""}`}{a.submission_status === "late" ? " · Late" : ""}</span>
                 </div>
               ))}
             </div>
