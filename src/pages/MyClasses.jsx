@@ -361,6 +361,13 @@ export default function MyClasses() {
             >
               <ClipboardCheck className="w-4 h-4 text-slate-500" /> Take Attendance
             </button>
+            <Link
+              to="/lesson-plans"
+              onClick={() => setMenu(null)}
+              className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+            >
+              <BookOpen className="w-4 h-4 text-slate-500" /> Lesson Planning
+            </Link>
             <button
               onClick={() => {
                 setQuickAction({
