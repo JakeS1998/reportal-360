@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import SchoolHoursDialog from "@/components/schedule/SchoolHoursDialog";
 import TeacherWorkload from "@/components/schedule/TeacherWorkload";
+import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
 import { useSubjectColors } from "@/lib/useSubjectColors";
 
@@ -82,6 +83,8 @@ export default function Schedule() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
   const [showHours, setShowHours] = useState(false);
+  const [lessonContext, setLessonContext] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
   const gridRefs = useRef({});
   const { resolveSubjectColor } = useSubjectColors();
 
@@ -220,6 +223,13 @@ export default function Schedule() {
     } finally {
       setClearing(false);
     }
+  };
+
+  const openLessonPlan = (schedule, dayIndex) => {
+    const lessonDate = new Date(weekStart);
+    lessonDate.setDate(lessonDate.getDate() + dayIndex);
+    setLessonContext({ class_id: schedule.class_id, class_name: schedule.class_name, school_code: schedule.school_code, schedule_id: schedule.id, lesson_date: lessonDate.toISOString().slice(0, 10) });
+    setContextMenu(null);
   };
 
   const handleGridClick = (day, e) => {
@@ -373,6 +383,7 @@ export default function Schedule() {
                         <button
                           key={s.id}
                           onClick={(e) => { e.stopPropagation(); openEdit(s); }}
+                          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, schedule: s, dayIndex: idx }); }}
                           className="absolute rounded-lg p-1.5 text-left text-white text-[10px] leading-tight overflow-hidden hover:ring-2 hover:ring-white transition-shadow"
                           style={{
                             top,
@@ -466,6 +477,9 @@ export default function Schedule() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {contextMenu && <div className="fixed z-[60] w-52 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" style={{ left: contextMenu.x, top: contextMenu.y }}><button className="w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" onClick={() => openLessonPlan(contextMenu.schedule, contextMenu.dayIndex)}>Complete lesson plan</button></div>}
+      <LessonPlanDialog open={!!lessonContext} onOpenChange={(open) => { if (!open) setLessonContext(null); }} context={lessonContext} />
 
       <TeacherWorkload teachers={activeTeachers} schedules={schedules} timetable={timetable} callerCreds={callerCreds} />
 

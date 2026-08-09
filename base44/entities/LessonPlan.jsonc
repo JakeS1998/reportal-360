@@ -1,0 +1,91 @@
+{
+  "name": "LessonPlan",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Class Name"
+    },
+    "schedule_id": {
+      "type": "string",
+      "title": "Schedule ID"
+    },
+    "lesson_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Lesson Date"
+    },
+    "title": {
+      "type": "string",
+      "title": "Lesson Title"
+    },
+    "objectives": {
+      "type": "string",
+      "title": "Learning Objectives"
+    },
+    "activities": {
+      "type": "string",
+      "title": "Activities"
+    },
+    "resources": {
+      "type": "string",
+      "title": "Resources"
+    },
+    "assessment": {
+      "type": "string",
+      "title": "Assessment"
+    },
+    "owner_id": {
+      "type": "string",
+      "title": "Author ID"
+    },
+    "owner_name": {
+      "type": "string",
+      "title": "Author Name"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "draft",
+        "pending_review",
+        "approved",
+        "revision_requested"
+      ],
+      "default": "draft"
+    },
+    "shared": {
+      "type": "boolean",
+      "title": "Shared With Teachers",
+      "default": false
+    },
+    "reviewed_by": {
+      "type": "string",
+      "title": "Reviewed By"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Reviewed At"
+    },
+    "review_notes": {
+      "type": "string",
+      "title": "Review Notes"
+    }
+  },
+  "required": [
+    "school_code",
+    "class_id",
+    "title",
+    "owner_id",
+    "status"
+  ]
+}

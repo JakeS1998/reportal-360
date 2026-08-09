@@ -45,6 +45,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       items: [
         { to: "/my-classes", label: "My Classes", icon: BookOpen },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
+        { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
         { to: "/training", label: "Training", icon: Award },
       ],
     },
@@ -55,6 +56,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       heading: "Administration",
       items: [
         { to: "/staff", label: "Admin Panel", icon: UserCog },
+        { to: "/lesson-plan-reviews", label: "Lesson Plan Reviews", icon: ClipboardList },
         { to: "/subjects", label: "Subjects & Rooms", icon: Library },
         { to: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
         { to: "/homerooms", label: "Homerooms", icon: Home },

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
+import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
 import { ArrowLeft, Users, UserCheck, Calendar, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -24,6 +25,7 @@ export default function ClassDashboard() {
   const [behOpen, setBehOpen] = useState(false);
   const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [denied, setDenied] = useState(false);
+  const [lessonPlanOpen, setLessonPlanOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -188,7 +190,10 @@ export default function ClassDashboard() {
         <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
+        <Button onClick={() => setLessonPlanOpen(true)} variant="outline" size="sm"><ClipboardCheck className="w-4 h-4 mr-1.5" /> Complete Lesson Plan</Button>
       </div>
+
+      <LessonPlanDialog open={lessonPlanOpen} onOpenChange={setLessonPlanOpen} context={{ class_id: cls.id, class_name: cls.class_name, school_code: cls.school_code }} />
 
       <QuickActionsDialog
         open={!!attendanceTarget}

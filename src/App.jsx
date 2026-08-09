@@ -40,6 +40,8 @@ import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
 import StudentDashboard from './pages/StudentDashboard';
 import ClassCover from './pages/ClassCover';
+import LessonPlans from './pages/LessonPlans';
+import LessonPlanReviews from './pages/LessonPlanReviews';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -102,6 +104,8 @@ const AuthenticatedApp = () => {
         <Route path="/homerooms" element={<Homeroom />} />
         <Route path="/reports" element={<ReportBuilder />} />
         <Route path="/class-cover" element={<ClassCover />} />
+        <Route path="/lesson-plans" element={<LessonPlans />} />
+        <Route path="/lesson-plan-reviews" element={<LessonPlanReviews />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
