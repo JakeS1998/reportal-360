@@ -114,9 +114,9 @@ export default function StudentDashboard() {
       </header>
 
       <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
-        <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-          <ClipboardCheck className="w-4 h-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700">This is a read-only view of your grades and schedule. Contact your teacher if anything looks incorrect.</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+          <div className="flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-amber-600 shrink-0" /><p className="text-xs text-amber-700">Review your grades, schedule, and assignment work in one place.</p></div>
+          <Button size="sm" variant="outline" onClick={() => navigate("/my-assignments")}>My Assignments</Button>
         </div>
 
         {loading ? (

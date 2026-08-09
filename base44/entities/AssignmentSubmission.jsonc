@@ -1,0 +1,78 @@
+{
+  "name": "AssignmentSubmission",
+  "type": "object",
+  "properties": {
+    "assignment_id": {
+      "type": "string",
+      "title": "Assignment ID"
+    },
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Student Name"
+    },
+    "file_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "Uploaded File URL"
+    },
+    "file_name": {
+      "type": "string",
+      "title": "Uploaded File Name"
+    },
+    "submission_text": {
+      "type": "string",
+      "title": "Submission Text"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Submitted At"
+    },
+    "plagiarism_score": {
+      "type": "number",
+      "title": "AI Similarity Score"
+    },
+    "plagiarism_note": {
+      "type": "string",
+      "title": "AI Similarity Note"
+    },
+    "teacher_viewed_by": {
+      "type": "array",
+      "title": "Viewed By",
+      "items": {
+        "type": "object",
+        "properties": {
+          "teacher_id": {
+            "type": "string"
+          },
+          "teacher_name": {
+            "type": "string"
+          },
+          "viewed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "viewed"
+      ],
+      "default": "submitted",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "assignment_id",
+    "student_id",
+    "submitted_at",
+    "status"
+  ]
+}

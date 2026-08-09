@@ -9,6 +9,7 @@ import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
+import TeacherAssignments from "@/components/assignments/TeacherAssignments";
 import { ArrowLeft, Users, UserCheck, Calendar, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -168,6 +169,10 @@ export default function ClassDashboard() {
             ))}
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard title="Assignments" icon={ClipboardCheck}>
+        <TeacherAssignments classInfo={cls} user={user} />
       </SectionCard>
 
       <SectionCard title={`Student Roster (${students.length})`} icon={Users}>

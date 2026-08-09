@@ -1,0 +1,55 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Class Name"
+    },
+    "title": {
+      "type": "string",
+      "title": "Assignment Title"
+    },
+    "instructions": {
+      "type": "string",
+      "title": "Instructions"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Submission Deadline"
+    },
+    "teacher_id": {
+      "type": "string",
+      "title": "Assigned By Teacher ID"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Assigned By Teacher"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "default": "open",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "school_code",
+    "class_id",
+    "title",
+    "deadline",
+    "teacher_id"
+  ]
+}
