@@ -199,14 +199,15 @@ export default function ClassManagement() {
         cm.students.find((s) => s.id === sid)?.student_name
         || cm.studentAssignments.find((sa) => sa.student_id === sid)?.student_name
         || sid;
-      // Suggest another active class of the same subject the student isn't enrolled in,
-      // preferring one whose existing schedule doesn't clash with the student's other classes.
+      // Suggest another active class in the exact same grade and subject that the
+      // student isn't enrolled in, preferring a schedule without conflicts.
       const suggestAlternative = (cls, sid) => {
         const subj = (cls.subject || "").trim().toLowerCase();
-        if (!subj) return null;
+        const grade = (cls.grade_level || "").trim();
+        if (!subj || !grade) return null;
         const alts = cm.classes.filter(
           (c) => c.id !== cls.id && c.status === "active" && (c.subject || "").toLowerCase() === subj
-            && !(classStudents[c.id] || new Set()).has(sid)
+            && (c.grade_level || "").trim() === grade && !(classStudents[c.id] || new Set()).has(sid)
         );
         if (alts.length === 0) return null;
         const studentSlots = studentBusy[sid] || {};
