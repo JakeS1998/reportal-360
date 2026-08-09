@@ -52,7 +52,7 @@ export default function SsoCallback() {
         }
 
         completeLogin(user).then(() => {
-          navigate(user.role === "student" ? "/my-student" : "/overview", { replace: true });
+          window.location.assign(user.role === "student" ? "/my-student" : "/overview");
         });
       })
       .catch((err) => {
