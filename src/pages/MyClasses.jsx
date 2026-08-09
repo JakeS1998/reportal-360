@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import { Link } from "react-router-dom";
-import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Repeat, ClipboardCheck, ShieldAlert } from "lucide-react";
+import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Repeat, ClipboardCheck, ShieldAlert, Plus } from "lucide-react";
 import ArrangeCoverDialog from "@/components/class/ArrangeCoverDialog";
+import CalendarEventDialog from "@/components/calendar/CalendarEventDialog";
+import CalendarEventBlock from "@/components/calendar/CalendarEventBlock";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
@@ -65,6 +67,9 @@ export default function MyClasses() {
   const [menu, setMenu] = useState(null);
   const [coverTarget, setCoverTarget] = useState(null);
   const [quickAction, setQuickAction] = useState(null); // { mode, classId, className, dayLabel, dateStr }
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarTarget, setCalendarTarget] = useState(null);
+  const [dragStart, setDragStart] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -114,6 +119,14 @@ export default function MyClasses() {
     } catch (e) { setCovers([]); }
   };
 
+  const loadCalendarEvents = useCallback(async () => {
+    if (!user?.id || !user?.school_code) return;
+    const fromDate = toISODate(weekStart); const end = new Date(weekStart); end.setDate(end.getDate() + 4);
+    const res = await base44.functions.invoke("manageCalendarEvents", { action: "list", school_code: user.school_code, from_date: fromDate, to_date: toISODate(end), caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "", caller_email: user.email || "", caller_sso: Boolean(user.sso || user.email) });
+    setCalendarEvents(res.data?.events || []);
+  }, [user?.id, user?.school_code, weekStart]);
+
+  useEffect(() => { loadCalendarEvents(); }, [loadCalendarEvents]);
   const isCurrentWeek = useMemo(() => weeksBetween(weekStart, getWeekStart(new Date())) === 0, [weekStart]);
 
   useEffect(() => {
@@ -166,16 +179,11 @@ export default function MyClasses() {
     return out.filter((b) => b.start >= DAY_START_MIN && b.end <= DAY_END_MIN);
   }, [timetable]);
 
-  const byDay = (day) => [
-    ...weekSchedules.filter((s) => s.day_of_week === day),
-    ...weekCovers.filter((c) => c.day_of_week === day).map((c) => ({
-      id: `cover-${c.id}`, class_id: c.class_id, class_name: c.class_name,
-      start_time: c.start_time, end_time: c.end_time, room: c.room,
-      _isCover: true, _coverTeacher: c.original_teacher_name,
-    })),
-  ]
-    .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
-    .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+  const byDay = (day) => {
+    const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day)); const dateStr = toISODate(date);
+    const events = calendarEvents.filter((event) => event.date === dateStr || (event.recurrence === "weekly" && event.date <= dateStr && new Date(`${event.date}T00:00:00`).getDay() === date.getDay()) || (event.recurrence === "monthly" && event.date <= dateStr && event.date.slice(-2) === dateStr.slice(-2))).map((event) => ({ ...event, id: `event-${event.id}`, _calendar: true }));
+    return [...weekSchedules.filter((s) => s.day_of_week === day), ...weekCovers.filter((c) => c.day_of_week === day).map((c) => ({ id: `cover-${c.id}`, class_id: c.class_id, class_name: c.class_name, start_time: c.start_time, end_time: c.end_time, room: c.room, _isCover: true, _coverTeacher: c.original_teacher_name })), ...events].map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) })).filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+  };
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
 
@@ -198,6 +206,7 @@ export default function MyClasses() {
             <ChevronRight className="w-4 h-4 text-slate-600" />
           </button>
           <span className="text-sm font-semibold text-slate-700 ml-1">{formatWeekRange(weekStart)}</span>
+          <button onClick={() => setCalendarTarget({ visibility: "school_event", event_type: "pep_rally", date: toISODate(weekStart), start_time: "09:00", end_time: "09:30" })} className="ml-1 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white hover:bg-slate-800" title="New school event"><Plus className="h-4 w-4" /></button>
         </div>
       </div>
 
@@ -207,10 +216,10 @@ export default function MyClasses() {
         </div>
       )}
 
-      {weekSchedules.length === 0 ? (
+      {weekSchedules.length === 0 && calendarEvents.length === 0 ? (
         <div className="text-center py-16">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-400">No classes scheduled for you this week. Try a different week, or ask a manager to schedule classes.</p>
+          <p className="text-sm text-slate-400">No classes or calendar items scheduled for you this week.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto">
@@ -236,7 +245,7 @@ export default function MyClasses() {
                     <div>{day}</div>
                     <div className="text-[10px] font-normal text-slate-400">{dayDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
                   </div>
-                  <div className="relative" style={{ height: GRID_HEIGHT, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)` }}>
+                  <div className="relative" onContextMenu={(e) => { if (e.target !== e.currentTarget) return; e.preventDefault(); const rect = e.currentTarget.getBoundingClientRect(); const min = Math.round((DAY_START_MIN + (e.clientY - rect.top) / PX_PER_MIN) / 15) * 15; setCalendarTarget({ visibility: "personal", event_type: "meeting", date: dayDateStr, start_time: mmToHHMM(Math.max(DAY_START_MIN, min)), end_time: mmToHHMM(Math.min(DAY_END_MIN, min + 30)) }); }} onMouseDown={(e) => { if (e.target === e.currentTarget) setDragStart({ date: dayDateStr, y: e.clientY, top: e.currentTarget.getBoundingClientRect().top }); }} onMouseUp={(e) => { if (!dragStart || dragStart.date !== dayDateStr) return; const a = Math.round((DAY_START_MIN + (dragStart.y - dragStart.top) / PX_PER_MIN) / 15) * 15; const b = Math.round((DAY_START_MIN + (e.clientY - dragStart.top) / PX_PER_MIN) / 15) * 15; setDragStart(null); if (Math.abs(a - b) >= 15) setCalendarTarget({ visibility: "personal", event_type: "meeting", date: dayDateStr, start_time: mmToHHMM(Math.max(DAY_START_MIN, Math.min(a, b))), end_time: mmToHHMM(Math.min(DAY_END_MIN, Math.max(a, b))) }); }} style={{ height: GRID_HEIGHT, backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR - 1}px, #eef2f7 ${PX_PER_HOUR}px)` }}>
                     {specialBlocks.map((sb) => {
                       const top = (sb.start - DAY_START_MIN) * PX_PER_MIN;
                       const height = Math.max(20, (sb.end - sb.start) * PX_PER_MIN - 2);
@@ -270,6 +279,7 @@ export default function MyClasses() {
                     {blocks.map((s) => {
                       const lay = layout[s.id] || { col: 0, count: 1 };
                       const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
+                      if (s._calendar) return <CalendarEventBlock key={s.id} event={s} style={{ top, height: Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2), left: `calc(${lay.col * (100 / lay.count)}% + 2px)`, width: `calc(${100 / lay.count}% - 4px)` }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCalendarTarget({ ...s, id: s.id.replace("event-", "") }); }} />;
                       const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                       const widthPct = 100 / lay.count;
                       const cls = classes[s.class_id];
@@ -386,6 +396,8 @@ export default function MyClasses() {
           </div>
         </>
       )}
+
+      <CalendarEventDialog open={!!calendarTarget} onOpenChange={(open) => { if (!open) setCalendarTarget(null); }} event={calendarTarget} onSaved={loadCalendarEvents} />
 
       <ArrangeCoverDialog
         open={!!coverTarget}
