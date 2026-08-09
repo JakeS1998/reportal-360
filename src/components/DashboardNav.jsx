@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles,
   ClipboardList, BookOpen, Award, ChevronDown, FileText,
-  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat,
+  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare,
 } from "lucide-react";
 
 const CRIMSON = "#9E1B32";
@@ -46,6 +46,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/my-classes", label: "My Classes", icon: BookOpen },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
+        { to: "/messages", label: "Messages", icon: MessageSquare },
         { to: "/training", label: "Training", icon: Award },
       ],
     },

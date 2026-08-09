@@ -8,6 +8,7 @@ import LandmarkPreview from "./LandmarkPreview";
 import FilterBar from "./FilterBar";
 import DashboardNav from "./DashboardNav";
 import NotificationBell from "./NotificationBell";
+import AlertPopup from "./messages/AlertPopup";
 
 const NAVY = "#0B1530";
 const CRIMSON = "#9E1B32";
@@ -130,6 +131,7 @@ function Shell() {
           <div ref={contentRef}>
             <Outlet />
           </div>
+          <AlertPopup />
           <footer className="mt-10 pt-6 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400">
             <div className="flex items-center gap-2">
               <AlabamaOutline className="w-4 h-4" style={{ color: CRIMSON }} />

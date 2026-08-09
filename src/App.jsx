@@ -43,6 +43,7 @@ import MyAssignments from './pages/MyAssignments';
 import ClassCover from './pages/ClassCover';
 import LessonPlans from './pages/LessonPlans';
 import LessonPlanReviews from './pages/LessonPlanReviews';
+import Messages from './pages/Messages';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -107,6 +108,7 @@ const AuthenticatedApp = () => {
         <Route path="/reports" element={<ReportBuilder />} />
         <Route path="/class-cover" element={<ClassCover />} />
         <Route path="/lesson-plans" element={<LessonPlans />} />
+        <Route path="/messages" element={<Messages />} />
         <Route path="/lesson-plan-reviews" element={<LessonPlanReviews />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

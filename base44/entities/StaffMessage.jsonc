@@ -1,0 +1,55 @@
+{
+  "name": "StaffMessage",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "sender_id": {
+      "type": "string",
+      "title": "Sender ID"
+    },
+    "sender_name": {
+      "type": "string",
+      "title": "Sender Name"
+    },
+    "recipient_id": {
+      "type": "string",
+      "title": "Recipient ID"
+    },
+    "recipient_name": {
+      "type": "string",
+      "title": "Recipient Name"
+    },
+    "type": {
+      "type": "string",
+      "title": "Message Type",
+      "enum": [
+        "message",
+        "alert"
+      ],
+      "default": "message"
+    },
+    "title": {
+      "type": "string",
+      "title": "Title"
+    },
+    "content": {
+      "type": "string",
+      "title": "Message"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Read At"
+    }
+  },
+  "required": [
+    "school_code",
+    "sender_id",
+    "recipient_id",
+    "type",
+    "content"
+  ]
+}
