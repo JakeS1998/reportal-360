@@ -47,11 +47,12 @@ export default function SchoolUserManager({
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [subject, setSubject] = useState("");
+  const [subjectList, setSubjectList] = useState([]);
   const [room, setRoom] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
-    full_name: "", email: "", subject: "", room: "", department: "", job_title: "", role: "teacher", active: true,
+    full_name: "", email: "", subject: "", subjects: [], room: "", department: "", job_title: "", role: "teacher", active: true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -146,7 +147,8 @@ export default function SchoolUserManager({
         school_name: selectedSchool.school_name,
         system_name: selectedSchool.system_name || getSystemName(selectedSchool.system_code),
         email,
-        subject,
+        subject: subjectList[0] || subject,
+        subjects: subjectList,
         room,
         username: username || undefined,
         password: password || undefined,
@@ -158,6 +160,7 @@ export default function SchoolUserManager({
         setUsername("");
         setPassword("");
         setSubject("");
+        setSubjectList([]);
         setRoom("");
         loadUsers();
       } else {
@@ -458,29 +461,27 @@ export default function SchoolUserManager({
               </div>
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-slate-700">Subject</Label>
+                  <Label className="text-sm font-medium text-slate-700">Subjects</Label>
                   <select
-                    value={subject}
-                    onChange={(e) => { setSubject(e.target.value); setRoom(""); }}
-                    className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    multiple
+                    value={subjectList}
+                    onChange={(e) => { setSubjectList(Array.from(e.target.selectedOptions, (option) => option.value)); setRoom(""); }}
+                    className="mt-1 w-full h-28 text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
-                    <option value="">Select a subject…</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
+                    {subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                   </select>
-                  <p className="text-xs text-slate-400 mt-1">Used to match teachers to classes with the same subject</p>
+                  <p className="text-xs text-slate-400 mt-1">Select every subject this teacher can teach.</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
                   <select
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
-                    disabled={roomsFor(subject).length === 0}
+                    disabled={roomsFor(subjectList[0] || subject).length === 0}
                     className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
                   >
-                    <option value="">{roomsFor(subject).length === 0 ? "No rooms for subject" : "Select a room…"}</option>
-                    {roomsFor(subject).map((r) => (
+                    <option value="">{roomsFor(subjectList[0] || subject).length === 0 ? "No rooms for primary subject" : "Select a room…"}</option>
+                    {roomsFor(subjectList[0] || subject).map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
                   </select>
@@ -529,8 +530,7 @@ export default function SchoolUserManager({
                       )}
                     </div>
                     <p className="text-xs text-slate-400 truncate">
-                      {u.username}
-                      {u.school_name ? ` · ${u.school_name}` : ""}
+                      {u.username}{u.school_name ? ` · ${u.school_name}` : ""}{(u.subjects?.length || u.subject) ? ` · ${(u.subjects?.length ? u.subjects : [u.subject]).join(", ")}` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -542,6 +542,7 @@ export default function SchoolUserManager({
                           full_name: u.full_name || "",
                           email: u.email || "",
                           subject: u.subject || "",
+                          subjects: u.subjects || (u.subject ? [u.subject] : []),
                           room: u.room || "",
                           department: u.department || "",
                           job_title: u.job_title || "",
@@ -601,28 +602,27 @@ export default function SchoolUserManager({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-slate-700">Subject</Label>
+              <Label className="text-sm font-medium text-slate-700">Subjects</Label>
               <select
-                value={editForm.subject}
-                onChange={(e) => setEditForm({ ...editForm, subject: e.target.value, room: "" })}
-                className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                multiple
+                value={editForm.subjects}
+                onChange={(e) => { const selected = Array.from(e.target.selectedOptions, (option) => option.value); setEditForm({ ...editForm, subjects: selected, subject: selected[0] || "", room: "" }); }}
+                className="mt-1 w-full h-28 text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
               >
-                <option value="">Select a subject…</option>
-                {subjects.map((s) => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
+                {subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
+              <p className="text-xs text-slate-400 mt-1">Select every subject this teacher can teach.</p>
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
               <select
                 value={editForm.room}
                 onChange={(e) => setEditForm({ ...editForm, room: e.target.value })}
-                disabled={roomsFor(editForm.subject).length === 0}
+                disabled={roomsFor(editForm.subjects?.[0] || editForm.subject).length === 0}
                 className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
               >
-                <option value="">{roomsFor(editForm.subject).length === 0 ? "No rooms for subject" : "Select a room…"}</option>
-                {roomsFor(editForm.subject).map((r) => (
+                <option value="">{roomsFor(editForm.subjects?.[0] || editForm.subject).length === 0 ? "No rooms for primary subject" : "Select a room…"}</option>
+                {roomsFor(editForm.subjects?.[0] || editForm.subject).map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>

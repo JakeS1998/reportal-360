@@ -54,7 +54,14 @@
     },
     "subject": {
       "type": "string",
-      "title": "Subject"
+      "title": "Primary Subject"
+    },
+    "subjects": {
+      "type": "array",
+      "title": "Assigned Subjects",
+      "items": {
+        "type": "string"
+      }
     },
     "room": {
       "type": "string",
