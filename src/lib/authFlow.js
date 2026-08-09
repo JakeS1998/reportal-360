@@ -19,12 +19,24 @@ export function isSessionExpired(session) {
 // Shared post-login helper: stores a lightweight session immediately.
 // SchoolContext refreshes the detailed school data after navigation.
 export async function completeLogin(user) {
-  const schoolData = {
+  let schoolData = {
     school_code: user.school_code,
     system_code: user.system_code,
     school_name: user.school_name || "",
     system_name: user.system_name || "",
   };
+
+  if (user.school_code && user.system_code) {
+    try {
+      const schoolRes = await base44.functions.invoke("fetchSchoolData", {
+        system_code: user.system_code,
+        school_code: user.school_code,
+      });
+      if (schoolRes.data && !schoolRes.data.error) schoolData = schoolRes.data;
+    } catch {
+      // The basic school identity above is enough to continue into the dashboard.
+    }
+  }
 
   let systemSchools = [];
   if (user.role === "area" || user.school_code === "0000") {

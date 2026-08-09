@@ -5,6 +5,15 @@ import { isSessionExpired } from "@/lib/authFlow";
 
 const SchoolContext = createContext(null);
 
+const getStoredSession = () => {
+  try {
+    const session = JSON.parse(localStorage.getItem("userSession") || "null");
+    return session && !isSessionExpired(session) ? session : null;
+  } catch {
+    return null;
+  }
+};
+
 const DEFAULT_FILTERS = {
   year: "2025",
   grade: "All Grades",
@@ -16,10 +25,11 @@ const DEFAULT_FILTERS = {
 
 export function SchoolProvider({ children }) {
   const navigate = useNavigate();
-  const [school, setSchool] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [systemSchools, setSystemSchools] = useState([]);
+  const [session] = useState(getStoredSession);
+  const [school, setSchool] = useState(() => session?.school || null);
+  const [user, setUser] = useState(() => session?.user || null);
+  const [loading, setLoading] = useState(() => !session);
+  const [systemSchools, setSystemSchools] = useState(() => session?.systemSchools || []);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
   const setFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
