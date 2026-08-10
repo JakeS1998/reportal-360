@@ -47,6 +47,7 @@ import ClassCover from './pages/ClassCover';
 import LessonPlans from './pages/LessonPlans';
 import LessonPlanReviews from './pages/LessonPlanReviews';
 import Messages from './pages/Messages';
+import ParentConversations from './pages/ParentConversations';
 import StudentAccessAudit from './pages/StudentAccessAudit';
 import AlLauncher from '@/components/report/AlLauncher';
 
@@ -117,6 +118,7 @@ const AuthenticatedApp = () => {
         <Route path="/class-cover" element={<ClassCover />} />
         <Route path="/lesson-plans" element={<LessonPlans />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/parent-conversations" element={<ParentConversations />} />
         <Route path="/lesson-plan-reviews" element={<LessonPlanReviews />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

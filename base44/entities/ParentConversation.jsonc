@@ -1,0 +1,70 @@
+{
+  "name": "ParentConversation",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Student Name"
+    },
+    "parent_email": {
+      "type": "string",
+      "format": "email",
+      "title": "Parent Email"
+    },
+    "parent_name": {
+      "type": "string",
+      "title": "Parent Name"
+    },
+    "teacher_id": {
+      "type": "string",
+      "title": "Teacher ID"
+    },
+    "teacher_name": {
+      "type": "string",
+      "title": "Teacher Name"
+    },
+    "subject": {
+      "type": "string",
+      "title": "Subject"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Last Message At"
+    },
+    "last_message_preview": {
+      "type": "string",
+      "title": "Last Message Preview"
+    },
+    "unread_for_teacher": {
+      "type": "boolean",
+      "default": false,
+      "title": "Unread for Teacher"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "default": "open",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "school_code",
+    "student_id",
+    "parent_email",
+    "teacher_id",
+    "subject",
+    "status"
+  ]
+}

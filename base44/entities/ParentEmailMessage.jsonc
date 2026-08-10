@@ -1,0 +1,47 @@
+{
+  "name": "ParentEmailMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "title": "Conversation ID"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "outbound",
+        "inbound"
+      ],
+      "title": "Direction"
+    },
+    "sender_name": {
+      "type": "string",
+      "title": "Sender Name"
+    },
+    "sender_email": {
+      "type": "string",
+      "format": "email",
+      "title": "Sender Email"
+    },
+    "body": {
+      "type": "string",
+      "title": "Message Body"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Sent At"
+    },
+    "resend_email_id": {
+      "type": "string",
+      "title": "Resend Email ID"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "direction",
+    "sender_email",
+    "body",
+    "sent_at"
+  ]
+}

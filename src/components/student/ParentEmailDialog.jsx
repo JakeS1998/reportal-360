@@ -15,7 +15,7 @@ export default function ParentEmailDialog({ open, onOpenChange, student, user })
   const [error, setError] = useState("");
   const send = async () => {
     setSending(true); setError("");
-    const res = await base44.functions.invoke("manageStudents", { action: "send_parent_email", caller_username: user?.username, caller_password: user?.password || localStorage.getItem("userPassword") || "", caller_email: user?.email || "", caller_sso: Boolean(user?.sso || user?.email), student_id: student.id, recipient_email: recipient, subject, message });
+    const res = await base44.functions.invoke("manageParentConversations", { action: "start", caller_username: user?.username, caller_password: user?.password || localStorage.getItem("userPassword") || "", caller_email: user?.email || "", caller_sso: Boolean(user?.sso || user?.email), student_id: student.id, recipient_email: recipient, subject, message });
     setSending(false);
     if (res.data?.success) { setRecipient(""); setSubject(""); setMessage(""); onOpenChange(false); } else setError(res.data?.error || "Email could not be sent.");
   };

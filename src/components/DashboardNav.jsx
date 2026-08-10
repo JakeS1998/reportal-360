@@ -47,6 +47,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
         { to: "/messages", label: "Messages", icon: MessageSquare },
+        { to: "/parent-conversations", label: "Parent Conversations", icon: MessageSquare },
         { to: "/training", label: "Training", icon: Award },
       ],
     },
