@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, CalendarDays, MapPin, BookOpen, AlertTriangle, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import SchoolHoursDialog from "@/components/schedule/SchoolHoursDialog";
+import DetentionAssignmentDialog from "@/components/schedule/DetentionAssignmentDialog";
 import TeacherWorkload from "@/components/schedule/TeacherWorkload";
 import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
@@ -83,6 +84,7 @@ export default function Schedule() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
   const [showHours, setShowHours] = useState(false);
+  const [showDetention, setShowDetention] = useState(false);
   const [lessonContext, setLessonContext] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const gridRefs = useRef({});
@@ -276,6 +278,9 @@ export default function Schedule() {
           </Button>
           <Button variant="outline" onClick={() => setShowHours(true)}>
             <Clock className="w-4 h-4 mr-1" /> School Hours
+          </Button>
+          <Button variant="outline" onClick={() => setShowDetention(true)}>
+            <CalendarDays className="w-4 h-4 mr-1" /> Assign Detention
           </Button>
           <Button onClick={() => openCreate()} className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-1" /> Schedule Class
@@ -483,6 +488,8 @@ export default function Schedule() {
       <LessonPlanDialog open={!!lessonContext} onOpenChange={(open) => { if (!open) setLessonContext(null); }} context={lessonContext} />
 
       <TeacherWorkload teachers={activeTeachers} schedules={schedules} timetable={timetable} callerCreds={callerCreds} />
+
+      <DetentionAssignmentDialog open={showDetention} onOpenChange={setShowDetention} schoolCode={cm.schoolCode} schoolName={cm.schoolName} teachers={activeTeachers} startDate={weekStart.toISOString().slice(0, 10)} onSaved={() => { load(); cm.loadData(); }} />
 
       <SchoolHoursDialog
         open={showHours}

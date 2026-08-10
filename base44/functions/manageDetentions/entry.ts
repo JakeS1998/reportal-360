@@ -34,7 +34,7 @@ export default async function(req: Request): Promise<Response> {
     if (!session) {
       const dayName = weekdays[new Date(`${date}T00:00:00`).getDay()];
       const weeklySchedules = await base44.asServiceRole.entities.ClassSchedule.filter({ school_code: student.school_code, day_of_week: dayName }, undefined, 200);
-      const templates = await Promise.all(weeklySchedules.map(async (schedule) => ({ schedule, classInfo: await base44.asServiceRole.entities.Class.get(schedule.class_id) })));
+      const templates = await Promise.all(weeklySchedules.filter((schedule) => schedule.recurrence_type === 'weekly' || schedule.recurrence_type === 'biweekly').map(async (schedule) => ({ schedule, classInfo: await base44.asServiceRole.entities.Class.get(schedule.class_id) })));
       const template = templates.find(({ schedule, classInfo }) => schedule.teacher_id && `${classInfo?.class_name || ''} ${classInfo?.subject || ''}`.toLowerCase().includes('detention'));
       if (!template) return Response.json({ success: false, error: `No detention staff member is scheduled for ${dayName}` }, { status: 400 });
       const staff = await base44.asServiceRole.entities.Teacher.get(template.schedule.teacher_id);
