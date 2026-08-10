@@ -138,6 +138,14 @@ export default async function(req: Request): Promise<Response> {
       await base44.asServiceRole.entities.ParentConversation.update(conversation.id, { last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
       return Response.json({ success: true });
     }
+    if (action === 'delete') {
+      const conversation = await base44.asServiceRole.entities.ParentConversation.get(body.conversation_id);
+      if (!conversation || (caller.role === 'teacher' && conversation.teacher_id !== caller.id) || (caller.role !== 'teacher' && caller.school_code && conversation.school_code !== caller.school_code)) return Response.json({ success: false, error: 'Conversation unavailable' }, { status: 403 });
+      await base44.asServiceRole.entities.ParentEmailMessage.deleteMany({ conversation_id: conversation.id });
+      await base44.asServiceRole.entities.ParentConversation.delete(conversation.id);
+      return Response.json({ success: true });
+    }
+
     return Response.json({ success: false, error: 'Unknown action' }, { status: 400 });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
