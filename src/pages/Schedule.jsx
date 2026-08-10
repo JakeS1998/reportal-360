@@ -126,6 +126,7 @@ export default function Schedule() {
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
   const activeClasses = cm.classes.filter((c) => c.status === "active");
+  const gradeLevels = [...new Set(cm.classes.map((item) => item.grade_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
 
   const openCreate = (overrides = {}) => {
     setEditing(null);
@@ -487,6 +488,7 @@ export default function Schedule() {
         open={showHours}
         onOpenChange={setShowHours}
         schoolCode={cm.schoolCode}
+        grades={gradeLevels}
         onSaved={(payload) => setTimetable({ ...timetable, ...payload, school_code: cm.schoolCode })}
       />
     </div>
