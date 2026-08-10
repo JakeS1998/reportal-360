@@ -74,7 +74,7 @@ export default function QuickActionsDialog({ open, onOpenChange, mode, classId, 
         ) : students.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">No students enrolled in this class.</div>
         ) : mode === "attendance" ? (
-          <ClassAttendanceManager classId={classId} scheduleId={scheduleId} dateStr={dateStr} students={students} onSaved={() => onOpenChange(false)} />
+          <ClassAttendanceManager classId={classId} scheduleId={scheduleId} dateStr={dateStr} students={students} user={user} onSaved={() => onOpenChange(false)} />
         ) : (
           <ClassBehaviourManager classId={classId} students={students} onSaved={() => onOpenChange(false)} />
         )}

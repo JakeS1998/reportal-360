@@ -76,6 +76,21 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ success: true, conversation });
     }
 
+    if (action === 'absence_notification') {
+      const { student_id, attendance_date } = body;
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !(await canContactStudent(base44, caller, student_id))) return Response.json({ success: false, error: 'Student access is unavailable' }, { status: 400 });
+      const contact = (student.emergency_contacts || []).find((item) => item.email);
+      if (!contact) return Response.json({ success: true, notified: false });
+      const subject = `Attendance update for ${student.student_name}`;
+      const message = `Hello ${contact.name || 'Parent/Guardian'},\n\nThis is to let you know that ${student.student_name} was marked absent from class on ${attendance_date}. Please contact the school if you believe this has been recorded in error.`;
+      const now = new Date().toISOString();
+      const conversation = await base44.asServiceRole.entities.ParentConversation.create({ school_code: student.school_code, student_id, student_name: student.student_name, parent_email: contact.email.toLowerCase(), parent_name: contact.name || '', teacher_id: caller.id, teacher_name: caller.full_name || caller.username, subject, last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
+      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${subject}` });
+      await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: message, sent_at: now, resend_email_id: sent.id || '' });
+      return Response.json({ success: true, notified: true, conversation });
+    }
+
     if (action === 'start') {
       const { student_id, recipient_email, subject, message } = body;
       if (!student_id || !recipient_email || !clean(subject) || !clean(message)) return Response.json({ success: false, error: 'Recipient, subject, and message are required' }, { status: 400 });

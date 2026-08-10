@@ -16,7 +16,7 @@ const STATUSES = [
 
 const INACTIVE = "bg-white text-slate-400 border-slate-200 hover:bg-slate-50";
 
-export default function ClassAttendanceManager({ classId, scheduleId, dateStr, students, onSaved }) {
+export default function ClassAttendanceManager({ classId, scheduleId, dateStr, students, user, onSaved }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayName = DAY_NAMES[new Date().getDay()];
   const [date] = useState(dateStr || today);
@@ -94,6 +94,18 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
           submitted,
         }))
       );
+      if (submitted) {
+        const absentStudents = students.filter((student) => marks[student.student_id] === "absent");
+        await Promise.allSettled(absentStudents.map((student) => base44.functions.invoke("manageParentConversations", {
+          action: "absence_notification",
+          student_id: student.student_id,
+          attendance_date: date,
+          caller_username: user?.username,
+          caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          caller_email: user?.email || "",
+          caller_sso: Boolean(user?.sso || user?.email),
+        })));
+      }
       await loadExisting();
       onSaved?.();
     } finally {
