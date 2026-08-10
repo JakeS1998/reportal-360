@@ -14,13 +14,15 @@ export const suggestPeriodTimes = (timetable) => {
   const end = toMin(timetable.school_end);
   const count = Math.max(1, Number(timetable.period_count) || 1);
   const blocks = blocksFor(timetable);
-  const boundaries = [start, ...blocks.flat(), end].filter((value, index, values) => value >= start && value <= end && (index === 0 || value !== values[index - 1]));
   const segments = [];
-  for (let index = 0; index < boundaries.length - 1; index += 2) {
-    const segmentStart = boundaries[index];
-    const segmentEnd = boundaries[index + 1];
-    if (segmentEnd > segmentStart) segments.push({ start: segmentStart, end: segmentEnd, duration: segmentEnd - segmentStart });
-  }
+  let cursor = start;
+  blocks.forEach(([blockStart, blockEnd]) => {
+    const blockedStart = Math.max(start, blockStart);
+    const blockedEnd = Math.min(end, blockEnd);
+    if (blockedStart > cursor) segments.push({ start: cursor, end: blockedStart, duration: blockedStart - cursor });
+    cursor = Math.max(cursor, blockedEnd);
+  });
+  if (cursor < end) segments.push({ start: cursor, end, duration: end - cursor });
   const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
   if (!segments.length || count > totalDuration / 5) return [];
   const allocations = segments.map((segment) => Math.floor((segment.duration / totalDuration) * count));
