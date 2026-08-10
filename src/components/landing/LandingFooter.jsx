@@ -41,8 +41,8 @@ export default function LandingFooter() {
             <ul className="space-y-2.5 text-sm">
               <li><a href="https://www.blueridgegroup.org" target="_blank" rel="noreferrer" className="text-white/70 hover:text-white">Blueridge Group</a></li>
               <li><a href="#contact" className="text-white/70 hover:text-white">Contact</a></li>
-              <li><a href="#privacy" className="text-white/70 hover:text-white">Privacy</a></li>
-              <li><a href="#terms" className="text-white/70 hover:text-white">Terms</a></li>
+              <li><Link to="/privacy" className="text-white/70 hover:text-white">Privacy</Link></li>
+              <li><Link to="/terms" className="text-white/70 hover:text-white">Terms</Link></li>
             </ul>
           </div>
         </div>
