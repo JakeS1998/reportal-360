@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSchool } from "@/lib/SchoolContext";
+import { generateStudentProgress, generateStudentRoster } from "@/lib/sampleStudentData";
 import SectionCard from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
 import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
@@ -13,11 +14,19 @@ import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, Calen
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
 
+function buildSampleProfile(student) {
+  const progress = generateStudentProgress(student);
+  const attainment = progress.scoreTrend.map((subject, index) => ({ id: subject.subject, assessment_name: `${subject.subject} benchmark`, date: `2026-0${index + 1}-15`, score: subject.data[3].score, max_score: 100 }));
+  const attendance = progress.attendanceTrend.map((term, index) => ({ id: term.period, date: `2026-0${index + 1}-01`, status: term.rate >= 90 ? "present" : "late" }));
+  const [first_name = "", ...last] = student.student_name.split(" ");
+  return { student: { ...student, first_name, last_name: last.join(" "), status: "active" }, classes: [], attendance, attainment, behaviour: [], attendanceRate: Math.round(progress.attendanceTrend.reduce((sum, term) => sum + term.rate, 0) / progress.attendanceTrend.length), avgScore: Math.round(attainment.reduce((sum, record) => sum + record.score, 0) / attainment.length) };
+}
+
 export default function StudentProfile() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useSchool();
+  const { user, activeSchool } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSchedule, setShowSchedule] = useState(false);
@@ -26,6 +35,13 @@ export default function StudentProfile() {
 
   useEffect(() => {
     const load = async () => {
+      if (studentId.startsWith("sample-")) {
+        const studentNumber = studentId.slice("sample-".length);
+        const sampleStudent = generateStudentRoster(activeSchool).find((student) => student.student_number === studentNumber);
+        setData(sampleStudent ? buildSampleProfile(sampleStudent) : null);
+        setLoading(false);
+        return;
+      }
       try {
         const res = await base44.functions.invoke("manageStudents", {
           action: "get_profile",
@@ -48,7 +64,7 @@ export default function StudentProfile() {
       }
     };
     load();
-  }, [studentId, user]);
+  }, [studentId, user, activeSchool]);
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Student not found.</p>;
@@ -72,7 +88,7 @@ export default function StudentProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>
+          {!studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>}
           <Button variant="outline" onClick={() => setShowPreview(true)}>
             <Eye className="w-4 h-4 mr-1" /> View As Student
           </Button>

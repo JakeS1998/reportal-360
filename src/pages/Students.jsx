@@ -5,7 +5,6 @@ import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import StudentRosterTable from "@/components/StudentRosterTable";
 import StudentToolbar from "@/components/StudentToolbar";
-import StudentProgressSheet from "@/components/StudentProgressSheet";
 import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import KpiCard from "@/components/KpiCard";
@@ -17,7 +16,6 @@ export default function Students() {
   const { activeSchool, loading, filters, isTeacher, user } = useSchool();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState(null);
   const [homerooms, setHomerooms] = useState([]);
   const [homeroomByStudentNumber, setHomeroomByStudentNumber] = useState({});
   const [studentIdsByNumber, setStudentIdsByNumber] = useState({});
@@ -133,11 +131,10 @@ export default function Students() {
           <StudentRosterTable
             rows={filteredRows}
             subjectFilter={filters.subject}
-            onSelect={(student) => student.profileId ? navigate(`/students/${student.profileId}`) : setSelected(student)}
+            onSelect={(student) => navigate(`/students/${student.profileId || `sample-${student.student_number}`}`)}
           />
         </SectionCard>
       </FadeIn>
-      <StudentProgressSheet student={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
