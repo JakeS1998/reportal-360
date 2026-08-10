@@ -158,6 +158,14 @@ export default async function(req) {
       return Response.json({ success: true, students: students.map(sanitizeStudent) });
     }
 
+    if (action === "list_access_audit") {
+      if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
+      const targetSchool = params.school_code || callerSchoolCode;
+      if (!(await authorizeSchool(targetSchool))) return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
+      const logs = await base44.asServiceRole.entities.AuditLog.filter({ school_code: targetSchool, event_type: "view_student" }, "-created_date", 200);
+      return Response.json({ success: true, logs });
+    }
+
     // --- GET_PROFILE (student + related FERPA records, all school-scoped) ---
     if (action === "get_profile") {
       const { student_id } = params;

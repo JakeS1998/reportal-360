@@ -47,6 +47,7 @@ import ClassCover from './pages/ClassCover';
 import LessonPlans from './pages/LessonPlans';
 import LessonPlanReviews from './pages/LessonPlanReviews';
 import Messages from './pages/Messages';
+import StudentAccessAudit from './pages/StudentAccessAudit';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
         <Route path="/academic-years" element={<AcademicYears />} />
         <Route path="/teacher-assignments" element={<TeacherAssignments />} />
         <Route path="/student-assignments" element={<StudentAssignments />} />
+        <Route path="/student-access-audit" element={<StudentAccessAudit />} />
         <Route path="/my-classes" element={<MyClasses />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
         <Route path="/students/:studentId" element={<StudentProfile />} />

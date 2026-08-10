@@ -93,6 +93,26 @@
         "Paid"
       ]
     },
+    "address_line_1": {
+      "type": "string",
+      "title": "Address Line 1"
+    },
+    "address_line_2": {
+      "type": "string",
+      "title": "Address Line 2"
+    },
+    "city": {
+      "type": "string",
+      "title": "City"
+    },
+    "state": {
+      "type": "string",
+      "title": "State"
+    },
+    "postal_code": {
+      "type": "string",
+      "title": "Postal Code"
+    },
     "allergies": {
       "type": "array",
       "title": "Allergies",
