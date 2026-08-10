@@ -69,8 +69,7 @@ export default async function(req: Request): Promise<Response> {
       const contact = (student.emergency_contacts || []).find((item) => item.email?.toLowerCase() === recipient_email.toLowerCase());
       if (!contact) return Response.json({ success: false, error: 'Choose an email saved on the student profile' }, { status: 400 });
       const conversation = await base44.asServiceRole.entities.ParentConversation.create({ school_code: student.school_code, student_id, student_name: student.student_name, parent_email: recipient_email.toLowerCase(), parent_name: contact.name || '', teacher_id: caller.id, teacher_name: caller.full_name || caller.username, subject: clean(subject), last_message_at: new Date().toISOString(), last_message_preview: clean(message).slice(0, 160), unread_for_teacher: false, status: 'open' });
-      const replyTo = `reply+${conversation.id}@reportal360.blueridge-group.co.uk`;
-      const sent = await sendEmail({ conversation, sender: caller, body: clean(message), replyTo, subject: clean(subject) });
+      const sent = await sendEmail({ conversation, sender: caller, body: clean(message), replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${clean(subject)}` });
       await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: clean(message), sent_at: new Date().toISOString(), resend_email_id: sent.id || '' });
       return Response.json({ success: true, conversation });
     }
@@ -80,8 +79,8 @@ export default async function(req: Request): Promise<Response> {
       const message = clean(body.message);
       if (!conversation || !message || (caller.role === 'teacher' && conversation.teacher_id !== caller.id)) return Response.json({ success: false, error: 'Conversation or message unavailable' }, { status: 403 });
       const now = new Date().toISOString();
-      const replyTo = `reply+${conversation.id}@reportal360.blueridge-group.co.uk`;
-      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo, subject: conversation.subject.startsWith('Re:') ? conversation.subject : `Re: ${conversation.subject}` });
+      const replySubject = conversation.subject.startsWith('Re:') ? conversation.subject : `Re: ${conversation.subject}`;
+      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${replySubject}` });
       await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: message, sent_at: now, resend_email_id: sent.id || '' });
       await base44.asServiceRole.entities.ParentConversation.update(conversation.id, { last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
       return Response.json({ success: true });

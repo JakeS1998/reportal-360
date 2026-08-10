@@ -29,10 +29,13 @@ export default async function(req: Request): Promise<Response> {
     if (!incoming.ok) throw new Error('Could not retrieve inbound email');
     const incomingPayload = await incoming.json();
     const received = incomingPayload.data || incomingPayload;
-    const recipient = (event.data?.to || event.data?.received_for || []).find((address) => address.includes('reply+')) || '';
-    const match = recipient.match(/reply\+([^@]+)@/i);
-    if (!match) return Response.json({ received: true });
-    const conversation = await base44.asServiceRole.entities.ParentConversation.get(match[1]);
+    const recipient = [...(event.data?.to || []), ...(event.data?.received_for || [])].find((address) => address.includes('reply+')) || '';
+    const replyMatch = recipient.match(/reply\+([^@]+)@/i);
+    const subject = String(event.data?.subject || received.subject || '');
+    const subjectMatch = subject.match(/\[Ref:\s*([^\]]+)\]/i);
+    const conversationId = replyMatch?.[1] || subjectMatch?.[1]?.trim();
+    if (!conversationId) return Response.json({ received: true });
+    const conversation = await base44.asServiceRole.entities.ParentConversation.get(conversationId);
     const senderEmail = String(event.data?.from || received.from || '').match(/<([^>]+)>/)?.[1] || String(event.data?.from || received.from || '').trim().toLowerCase();
     if (!conversation || senderEmail.toLowerCase() !== conversation.parent_email.toLowerCase()) return Response.json({ received: true });
     const body = String(received.text || received.html || '').replace(/<[^>]*>/g, '').trim();
