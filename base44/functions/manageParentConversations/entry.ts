@@ -4,7 +4,7 @@ import { getAdminCredentials } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
 const { username: adminUsername, password: adminPassword } = getAdminCredentials();
-const fromAddress = 'noreply@reportal360.blueridge-group.co.uk';
+const fromAddress = 'hello@reportal360.blueridge-group.co.uk';
 
 function clean(value) {
   return String(value || '').trim();
