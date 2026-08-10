@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
@@ -14,10 +15,12 @@ import { Users } from "lucide-react";
 
 export default function Students() {
   const { activeSchool, loading, filters, isTeacher, user } = useSchool();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [homerooms, setHomerooms] = useState([]);
   const [homeroomByStudentNumber, setHomeroomByStudentNumber] = useState({});
+  const [studentIdsByNumber, setStudentIdsByNumber] = useState({});
 
   const rows = useMemo(() => activeSchool ? generateStudentRoster(activeSchool) : [], [activeSchool]);
 
@@ -40,7 +43,14 @@ export default function Students() {
         if (!active) return;
         setHomerooms(hrRes);
         const idToNumber = {};
-        (studentsRes.data?.students || []).forEach((s) => { if (s.student_number) idToNumber[s.id] = s.student_number; });
+        const profileIds = {};
+        (studentsRes.data?.students || []).forEach((s) => {
+          if (s.student_number) {
+            idToNumber[s.id] = s.student_number;
+            profileIds[s.student_number] = s.id;
+          }
+        });
+        setStudentIdsByNumber(profileIds);
         const map = {};
         hrRes.forEach((h) => {
           (h.student_ids || []).forEach((sid) => {
@@ -57,8 +67,12 @@ export default function Students() {
   }, [activeSchool?.school_code, user?.username]);
 
   const rowsWithHomeroom = useMemo(
-    () => rows.map((r) => ({ ...r, homeroom: homeroomByStudentNumber[r.student_number] || "" })),
-    [rows, homeroomByStudentNumber]
+    () => rows.map((r) => ({
+      ...r,
+      homeroom: homeroomByStudentNumber[r.student_number] || "",
+      profileId: studentIdsByNumber[r.student_number],
+    })),
+    [rows, homeroomByStudentNumber, studentIdsByNumber]
   );
 
   const homeroomOptions = useMemo(
@@ -116,7 +130,11 @@ export default function Students() {
       <FadeIn delay={60}>
         <SectionCard title="Student Roster" subtitle={`${filteredRows.length} students · ${activeSchool?.school_name || ""} · FY ${activeSchool?.year || ""}`} icon={Users}>
           <StudentToolbar search={search} onSearch={setSearch} homeroomOptions={homerooms.length ? homeroomOptions : null} />
-          <StudentRosterTable rows={filteredRows} subjectFilter={filters.subject} onSelect={setSelected} />
+          <StudentRosterTable
+            rows={filteredRows}
+            subjectFilter={filters.subject}
+            onSelect={(student) => student.profileId ? navigate(`/students/${student.profileId}`) : setSelected(student)}
+          />
         </SectionCard>
       </FadeIn>
       <StudentProgressSheet student={selected} onClose={() => setSelected(null)} />
