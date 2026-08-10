@@ -11,34 +11,21 @@ const blocksFor = (timetable) => [
 
 export const suggestPeriodTimes = (timetable) => {
   const start = toMin(timetable.school_start);
-  const end = toMin(timetable.school_end);
   const count = Math.max(1, Number(timetable.period_count) || 1);
+  const lessonDuration = Math.max(5, Number(timetable.lesson_duration) || 60);
   const blocks = blocksFor(timetable);
-  const segments = [];
-  let cursor = start;
-  blocks.forEach(([blockStart, blockEnd]) => {
-    const blockedStart = Math.max(start, blockStart);
-    const blockedEnd = Math.min(end, blockEnd);
-    if (blockedStart > cursor) segments.push({ start: cursor, end: blockedStart, duration: blockedStart - cursor });
-    cursor = Math.max(cursor, blockedEnd);
-  });
-  if (cursor < end) segments.push({ start: cursor, end, duration: end - cursor });
-  const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
-  if (!segments.length || count > totalDuration / 5) return [];
-  const allocations = segments.map((segment) => Math.floor((segment.duration / totalDuration) * count));
-  while (allocations.reduce((sum, value) => sum + value, 0) < count) {
-    const index = segments.map((segment, itemIndex) => (segment.duration / totalDuration) * count - allocations[itemIndex]).reduce((best, value, itemIndex, values) => value > values[best] ? itemIndex : best, 0);
-    allocations[index] += 1;
-  }
   const periods = [];
-  segments.forEach((segment, segmentIndex) => {
-    const periodCount = allocations[segmentIndex];
-    for (let index = 0; index < periodCount; index += 1) {
-      const periodStart = Math.round(segment.start + (segment.duration * index) / periodCount);
-      const periodEnd = Math.round(segment.start + (segment.duration * (index + 1)) / periodCount);
-      periods.push({ label: `Period ${periods.length + 1}`, start: mmToHHMM(periodStart), end: mmToHHMM(periodEnd) });
+  let cursor = start;
+  while (periods.length < count) {
+    const block = blocks.find(([blockStart, blockEnd]) => cursor < blockEnd && cursor + lessonDuration > blockStart);
+    if (block) {
+      cursor = Math.max(cursor, block[1]);
+      continue;
     }
-  });
+    const periodEnd = cursor + lessonDuration;
+    periods.push({ label: `Period ${periods.length + 1}`, start: mmToHHMM(cursor), end: mmToHHMM(periodEnd) });
+    cursor = periodEnd;
+  }
   return periods;
 };
 

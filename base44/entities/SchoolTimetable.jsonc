@@ -25,7 +25,7 @@
     },
     "school_end": {
       "type": "string",
-      "title": "School End (HH:MM)"
+      "title": "Calculated School End (HH:MM)"
     },
     "homeroom_start": {
       "type": "string",
@@ -55,6 +55,11 @@
       "type": "number",
       "title": "Periods Per Day",
       "default": 6
+    },
+    "lesson_duration": {
+      "type": "number",
+      "title": "Lesson Duration (Minutes)",
+      "default": 60
     },
     "periods": {
       "type": "array",
@@ -88,6 +93,7 @@
     "break_end",
     "lunch_start",
     "lunch_end",
-    "period_count"
+    "period_count",
+    "lesson_duration"
   ]
 }
