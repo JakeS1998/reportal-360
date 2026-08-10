@@ -61,6 +61,21 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ success: true, conversation: { ...conversation, unread_for_teacher: false }, messages });
     }
 
+    if (action === 'incident_notification') {
+      const { student_id, incident_type, severity, description, action_taken, incident_date } = body;
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !clean(description) || !(await canContactStudent(base44, caller, student_id))) return Response.json({ success: false, error: 'Incident details or student access are unavailable' }, { status: 400 });
+      const contact = (student.emergency_contacts || []).find((item) => item.email);
+      if (!contact) return Response.json({ success: false, error: 'No parent email is saved on this student profile' }, { status: 400 });
+      const subject = `Behaviour update for ${student.student_name}`;
+      const message = `Hello ${contact.name || 'Parent/Guardian'},\n\nWe are writing to let you know about a ${String(incident_type || 'behaviour').toLowerCase()} incident involving ${student.student_name} on ${incident_date}.\n\nDetails: ${clean(description)}${clean(action_taken) ? `\n\nAction taken: ${clean(action_taken)}` : ''}\n\nSeverity: ${clean(severity) || 'low'}`;
+      const now = new Date().toISOString();
+      const conversation = await base44.asServiceRole.entities.ParentConversation.create({ school_code: student.school_code, student_id, student_name: student.student_name, parent_email: contact.email.toLowerCase(), parent_name: contact.name || '', teacher_id: caller.id, teacher_name: caller.full_name || caller.username, subject, last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
+      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${subject}` });
+      await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: message, sent_at: now, resend_email_id: sent.id || '' });
+      return Response.json({ success: true, conversation });
+    }
+
     if (action === 'start') {
       const { student_id, recipient_email, subject, message } = body;
       if (!student_id || !recipient_email || !clean(subject) || !clean(message)) return Response.json({ success: false, error: 'Recipient, subject, and message are required' }, { status: 400 });

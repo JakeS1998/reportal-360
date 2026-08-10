@@ -233,7 +233,7 @@ export default function ClassDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Log Behaviour Incident</DialogTitle>
           </DialogHeader>
-          <ClassBehaviourManager key={`beh-${reloadKey}`} classId={classId} students={students} onSaved={() => { setBehOpen(false); reload(); loadData(); }} />
+          <ClassBehaviourManager key={`beh-${reloadKey}`} classId={classId} students={students} user={user} onSaved={() => { setBehOpen(false); reload(); loadData(); }} />
         </DialogContent>
       </Dialog>
 

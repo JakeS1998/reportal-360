@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Smile, AlertTriangle, ShieldAlert, OctagonAlert } from "lucide-react";
+import { Save, Smile, AlertTriangle, ShieldAlert, OctagonAlert, Mail } from "lucide-react";
 
 const INCIDENT_TYPES = [
   { key: "positive", label: "Positive", icon: Smile, active: "bg-emerald-100 text-emerald-700 border-emerald-300" },
@@ -16,7 +16,7 @@ const INCIDENT_TYPES = [
 const SEVERITIES = ["low", "medium", "high"];
 const INACTIVE = "bg-white text-slate-400 border-slate-200 hover:bg-slate-50";
 
-export default function ClassBehaviourManager({ classId, students, onSaved }) {
+export default function ClassBehaviourManager({ classId, students, user, onSaved }) {
   const today = new Date().toISOString().slice(0, 10);
   const [studentId, setStudentId] = useState(students[0]?.student_id || "");
   const [date, setDate] = useState(today);
@@ -27,7 +27,7 @@ export default function ClassBehaviourManager({ classId, students, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const save = async () => {
+  const save = async (notifyParent = false) => {
     if (!studentId || !description.trim()) return;
     setSaving(true);
     setError("");
@@ -41,6 +41,22 @@ export default function ClassBehaviourManager({ classId, students, onSaved }) {
         description: description.trim(),
         action_taken: actionTaken.trim() || undefined,
       });
+      if (notifyParent) {
+        const result = await base44.functions.invoke("manageParentConversations", {
+          action: "incident_notification",
+          student_id: studentId,
+          incident_type: incidentType,
+          severity,
+          description: description.trim(),
+          action_taken: actionTaken.trim(),
+          incident_date: date,
+          caller_username: user?.username,
+          caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          caller_email: user?.email || "",
+          caller_sso: Boolean(user?.sso || user?.email),
+        });
+        if (!result.data?.success) throw new Error(result.data?.error || "Incident was logged, but the parent could not be notified");
+      }
       setDescription("");
       setActionTaken("");
       onSaved?.();
@@ -130,9 +146,12 @@ export default function ClassBehaviourManager({ classId, students, onSaved }) {
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
-      <div className="flex justify-end">
-        <Button onClick={save} disabled={saving || !studentId || !description.trim()} size="sm">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button onClick={save} variant="outline" disabled={saving || !studentId || !description.trim()} size="sm">
           <Save className="w-3.5 h-3.5 mr-1" /> {saving ? "Saving…" : "Log incident"}
+        </Button>
+        <Button onClick={() => save(true)} disabled={saving || !studentId || !description.trim()} size="sm">
+          <Mail className="w-3.5 h-3.5 mr-1" /> {saving ? "Saving…" : "Log & notify parent"}
         </Button>
       </div>
     </div>
