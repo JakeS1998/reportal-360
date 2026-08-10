@@ -14,18 +14,29 @@ export const suggestPeriodTimes = (timetable) => {
   const end = toMin(timetable.school_end);
   const count = Math.max(1, Number(timetable.period_count) || 1);
   const blocks = blocksFor(timetable);
-  const available = end - start - blocks.reduce((total, [blockStart, blockEnd]) => total + Math.max(0, Math.min(end, blockEnd) - Math.max(start, blockStart)), 0);
-  const duration = Math.max(5, Math.floor((available / count) / 5) * 5);
-  const periods = [];
-  let cursor = start;
-  while (periods.length < count && cursor < end) {
-    const block = blocks.find(([blockStart, blockEnd]) => cursor < blockEnd && cursor + duration > blockStart);
-    if (block) { cursor = cursor < block[0] ? block[1] : block[1]; continue; }
-    const periodEnd = cursor + duration;
-    if (periodEnd > end) break;
-    periods.push({ label: `Period ${periods.length + 1}`, start: mmToHHMM(cursor), end: mmToHHMM(periodEnd) });
-    cursor = periodEnd;
+  const boundaries = [start, ...blocks.flat(), end].filter((value, index, values) => value >= start && value <= end && (index === 0 || value !== values[index - 1]));
+  const segments = [];
+  for (let index = 0; index < boundaries.length - 1; index += 2) {
+    const segmentStart = boundaries[index];
+    const segmentEnd = boundaries[index + 1];
+    if (segmentEnd > segmentStart) segments.push({ start: segmentStart, end: segmentEnd, duration: segmentEnd - segmentStart });
   }
+  const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0);
+  if (!segments.length || count > totalDuration / 5) return [];
+  const allocations = segments.map((segment) => Math.floor((segment.duration / totalDuration) * count));
+  while (allocations.reduce((sum, value) => sum + value, 0) < count) {
+    const index = segments.map((segment, itemIndex) => (segment.duration / totalDuration) * count - allocations[itemIndex]).reduce((best, value, itemIndex, values) => value > values[best] ? itemIndex : best, 0);
+    allocations[index] += 1;
+  }
+  const periods = [];
+  segments.forEach((segment, segmentIndex) => {
+    const periodCount = allocations[segmentIndex];
+    for (let index = 0; index < periodCount; index += 1) {
+      const periodStart = Math.round(segment.start + (segment.duration * index) / periodCount);
+      const periodEnd = Math.round(segment.start + (segment.duration * (index + 1)) / periodCount);
+      periods.push({ label: `Period ${periods.length + 1}`, start: mmToHHMM(periodStart), end: mmToHHMM(periodEnd) });
+    }
+  });
   return periods;
 };
 
