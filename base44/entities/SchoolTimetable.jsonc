@@ -27,6 +27,10 @@
       "type": "string",
       "title": "Calculated School End (HH:MM)"
     },
+    "detention_start_time": {
+      "type": "string",
+      "title": "Detention Start Override (HH:MM)"
+    },
     "homeroom_start": {
       "type": "string",
       "title": "Homeroom Start (HH:MM)"

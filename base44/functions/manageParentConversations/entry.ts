@@ -102,6 +102,18 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ success: true, notified: true });
     }
 
+    if (action === 'detention_notification') {
+      const { student_id, detention_date, detention_start_time } = body;
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !(await canContactStudent(base44, caller, student_id))) return Response.json({ success: false, error: 'Student access is unavailable' }, { status: 400 });
+      const contact = (student.emergency_contacts || []).find((item) => item.email);
+      if (!contact) return Response.json({ success: true, notified: false });
+      const subject = `Detention notice for ${student.student_name}`;
+      const message = `Hello ${contact.name || 'Parent/Guardian'},\n\nThis is to let you know that ${student.student_name} has been assigned detention on ${detention_date} at ${detention_start_time}. Please contact the school if you have any questions.`;
+      await sendNotificationEmail({ recipientEmail: contact.email.toLowerCase(), schoolName: caller.school_name, subject, heading: 'Detention notice', message });
+      return Response.json({ success: true, notified: true });
+    }
+
     if (action === 'start') {
       const { student_id, recipient_email, subject, message } = body;
       if (!student_id || !recipient_email || !clean(subject) || !clean(message)) return Response.json({ success: false, error: 'Recipient, subject, and message are required' }, { status: 400 });

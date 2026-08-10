@@ -1,0 +1,59 @@
+{
+  "name": "DetentionSession",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "One-off Class ID"
+    },
+    "schedule_id": {
+      "type": "string",
+      "title": "One-off Schedule ID"
+    },
+    "staff_id": {
+      "type": "string",
+      "title": "Assigned Staff ID"
+    },
+    "staff_name": {
+      "type": "string",
+      "title": "Assigned Staff Name"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Detention Date"
+    },
+    "start_time": {
+      "type": "string",
+      "title": "Start Time"
+    },
+    "end_time": {
+      "type": "string",
+      "title": "End Time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "completed",
+        "cancelled"
+      ],
+      "default": "scheduled",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "school_code",
+    "class_id",
+    "schedule_id",
+    "staff_id",
+    "date",
+    "start_time",
+    "end_time",
+    "status"
+  ]
+}

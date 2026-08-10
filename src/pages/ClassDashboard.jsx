@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
+import DetentionDialog from "@/components/class/DetentionDialog";
 import ClassLessonPlans from "@/components/class/ClassLessonPlans";
 import TeacherAssignments from "@/components/assignments/TeacherAssignments";
 import { ArrowLeft, Users, UserCheck, Calendar, CalendarDays, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
@@ -24,6 +25,7 @@ export default function ClassDashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [asmOpen, setAsmOpen] = useState(false);
   const [behOpen, setBehOpen] = useState(false);
+  const [detentionOpen, setDetentionOpen] = useState(false);
   const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [denied, setDenied] = useState(false);
 
@@ -199,6 +201,7 @@ export default function ClassDashboard() {
         <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
+        <Button onClick={() => setDetentionOpen(true)} variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-1.5" /> Assign Detention</Button>
       </div>
 
       <QuickActionsDialog
@@ -218,6 +221,8 @@ export default function ClassDashboard() {
         dateStr={attendanceTarget?.dateStr}
         user={user}
       />
+
+      <DetentionDialog open={detentionOpen} onOpenChange={setDetentionOpen} classId={classId} students={students} user={user} onSaved={() => { reload(); loadData(); }} />
 
       <Dialog open={asmOpen} onOpenChange={setAsmOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
