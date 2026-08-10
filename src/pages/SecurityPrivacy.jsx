@@ -1,5 +1,6 @@
 import React from "react";
 import LegalLayout from "@/components/legal/LegalLayout";
+import FerpaAlignmentVisual from "@/components/security/FerpaAlignmentVisual";
 
 const sections = [
   ["Protecting school information", "ReportAL 360 is designed for schools and districts handling sensitive staff and student information. We use layered safeguards intended to keep data private, secure, and available to authorised users."],
@@ -14,5 +15,5 @@ const sections = [
 ];
 
 export default function SecurityPrivacy() {
-  return <LegalLayout title="Security & Data Privacy" updated="10 August 2026">{sections.map(([heading, text]) => <section key={heading}><h2 className="text-xl font-heading font-semibold text-foreground">{heading}</h2><p className="mt-3">{text}</p></section>)}</LegalLayout>;
+  return <LegalLayout title="Security & Data Privacy" updated="10 August 2026"><FerpaAlignmentVisual />{sections.map(([heading, text]) => <section key={heading}><h2 className="text-xl font-heading font-semibold text-foreground">{heading}</h2><p className="mt-3">{text}</p></section>)}</LegalLayout>;
 }
