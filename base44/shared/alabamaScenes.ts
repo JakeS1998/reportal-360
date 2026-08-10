@@ -37,10 +37,14 @@ export function pickScene(): typeof SCENES[number] {
 export function buildEmailHtml(opts: {
   heading: string;
   message: string;
-  code: string;
+  code?: string;
   footerNote: string;
 }): string {
   const scene = pickScene();
+  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] || character));
+  const message = escapeHtml(opts.message).replace(/\n/g, "<br>");
+  const footerNote = escapeHtml(opts.footerNote).replace(/\n/g, "<br>");
+  const codeSection = opts.code ? `<p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;background:#f8fafc;border-radius:8px;color:#1e293b;margin:0 0 20px;">${escapeHtml(opts.code)}</p>` : "";
   return `<div style="background:#0f172a;padding:24px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;">
     <tr><td align="center">
@@ -60,10 +64,10 @@ export function buildEmailHtml(opts: {
         </tr>
         <tr>
           <td style="padding:32px 28px;background:#ffffff;">
-            <h2 style="margin:0 0 12px;color:#1e293b;font-size:22px;">${opts.heading}</h2>
-            <p style="margin:0 0 20px;color:#475569;line-height:1.6;font-size:15px;">${opts.message}</p>
-            <p style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:20px;background:#f8fafc;border-radius:8px;color:#1e293b;margin:0 0 20px;">${opts.code}</p>
-            <p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">${opts.footerNote}</p>
+            <h2 style="margin:0 0 12px;color:#1e293b;font-size:22px;">${escapeHtml(opts.heading)}</h2>
+            <p style="margin:0 0 20px;color:#475569;line-height:1.6;font-size:15px;">${message}</p>
+            ${codeSection}
+            <p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">${footerNote}</p>
           </td>
         </tr>
         <tr>

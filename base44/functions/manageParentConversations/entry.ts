@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { secrets } from 'base44:runtime';
 import { getAdminCredentials } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
+import { buildEmailHtml } from '../../shared/alabamaScenes.ts';
 
 const { username: adminUsername, password: adminPassword } = getAdminCredentials();
 const fromAddress = 'hello@reportal360.blueridge-group.co.uk';
@@ -31,6 +32,22 @@ async function sendEmail({ conversation, sender, body, replyTo, subject }) {
       reply_to: replyTo,
       subject,
       text: `${body}\n\nReply directly to continue this conversation.`,
+    }),
+  });
+  if (!response.ok) throw new Error('Email could not be sent. Confirm the sending domain is verified.');
+  return await response.json();
+}
+
+async function sendNotificationEmail({ recipientEmail, schoolName, subject, heading, message }) {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secrets.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: `Notifications at ${schoolName || 'the school'} <${fromAddress}>`,
+      to: recipientEmail,
+      subject,
+      text: message,
+      html: buildEmailHtml({ heading, message, footerNote: 'This is an automated notification from your school.' }),
     }),
   });
   if (!response.ok) throw new Error('Email could not be sent. Confirm the sending domain is verified.');
@@ -69,11 +86,8 @@ export default async function(req: Request): Promise<Response> {
       if (!contact) return Response.json({ success: false, error: 'No parent email is saved on this student profile' }, { status: 400 });
       const subject = `Behaviour update for ${student.student_name}`;
       const message = `Hello ${contact.name || 'Parent/Guardian'},\n\nWe are writing to let you know about a ${String(incident_type || 'behaviour').toLowerCase()} incident involving ${student.student_name} on ${incident_date}.\n\nDetails: ${clean(description)}${clean(action_taken) ? `\n\nAction taken: ${clean(action_taken)}` : ''}\n\nSeverity: ${clean(severity) || 'low'}`;
-      const now = new Date().toISOString();
-      const conversation = await base44.asServiceRole.entities.ParentConversation.create({ school_code: student.school_code, student_id, student_name: student.student_name, parent_email: contact.email.toLowerCase(), parent_name: contact.name || '', teacher_id: caller.id, teacher_name: caller.full_name || caller.username, subject, last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
-      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${subject}` });
-      await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: message, sent_at: now, resend_email_id: sent.id || '' });
-      return Response.json({ success: true, conversation });
+      await sendNotificationEmail({ recipientEmail: contact.email.toLowerCase(), schoolName: caller.school_name, subject, heading: 'Behaviour update', message });
+      return Response.json({ success: true, notified: true });
     }
 
     if (action === 'absence_notification') {
@@ -84,11 +98,8 @@ export default async function(req: Request): Promise<Response> {
       if (!contact) return Response.json({ success: true, notified: false });
       const subject = `Attendance update for ${student.student_name}`;
       const message = `Hello ${contact.name || 'Parent/Guardian'},\n\nThis is to let you know that ${student.student_name} was marked absent from class on ${attendance_date}. Please contact the school if you believe this has been recorded in error.`;
-      const now = new Date().toISOString();
-      const conversation = await base44.asServiceRole.entities.ParentConversation.create({ school_code: student.school_code, student_id, student_name: student.student_name, parent_email: contact.email.toLowerCase(), parent_name: contact.name || '', teacher_id: caller.id, teacher_name: caller.full_name || caller.username, subject, last_message_at: now, last_message_preview: message.slice(0, 160), unread_for_teacher: false, status: 'open' });
-      const sent = await sendEmail({ conversation, sender: caller, body: message, replyTo: fromAddress, subject: `[Ref: ${conversation.id}] ${subject}` });
-      await base44.asServiceRole.entities.ParentEmailMessage.create({ conversation_id: conversation.id, direction: 'outbound', sender_name: caller.full_name || caller.username, sender_email: fromAddress, body: message, sent_at: now, resend_email_id: sent.id || '' });
-      return Response.json({ success: true, notified: true, conversation });
+      await sendNotificationEmail({ recipientEmail: contact.email.toLowerCase(), schoolName: caller.school_name, subject, heading: 'Attendance update', message });
+      return Response.json({ success: true, notified: true });
     }
 
     if (action === 'start') {
