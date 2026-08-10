@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Landing from './pages/Landing';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import SecurityPrivacy from './pages/SecurityPrivacy';
 import SelectSchool from './pages/SelectSchool';
 import ForceResetPassword from './pages/ForceResetPassword';
 import StaffManagement from './pages/StaffManagement';
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Landing />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/security" element={<SecurityPrivacy />} />
       <Route path="/login" element={<SelectSchool />} />
       <Route path="/reset-password" element={<ForceResetPassword />} />
       <Route path="/admin-login" element={<AdminLogin />} />

@@ -31,7 +31,7 @@ export default function LandingFooter() {
             <ul className="space-y-2.5 text-sm">
               <li><a href="#features" className="text-white/70 hover:text-white">Features</a></li>
               <li><a href="#pricing" className="text-white/70 hover:text-white">Pricing</a></li>
-              <li><a href="#security" className="text-white/70 hover:text-white">Security</a></li>
+              <li><Link to="/security" className="text-white/70 hover:text-white">Security</Link></li>
               <li><Link to="/login" className="text-white/70 hover:text-white">Sign In</Link></li>
             </ul>
           </div>
