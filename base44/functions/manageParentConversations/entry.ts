@@ -26,11 +26,11 @@ async function sendEmail({ conversation, sender, body, replyTo, subject }) {
     method: 'POST',
     headers: { Authorization: `Bearer ${secrets.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: `${sender.full_name || sender.username} at ReportAL 360 <${fromAddress}>`,
+      from: `${sender.full_name || sender.username} at ${sender.school_name || 'their school'} <${fromAddress}>`,
       to: conversation.parent_email,
       reply_to: replyTo,
       subject,
-      text: `${body}\n\nReply directly to this email to continue the conversation in ReportAL 360.`,
+      text: `${body}\n\nReply directly to continue this conversation.`,
     }),
   });
   if (!response.ok) throw new Error('Email could not be sent. Confirm the sending domain is verified.');
