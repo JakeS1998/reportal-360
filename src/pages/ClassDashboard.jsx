@@ -129,8 +129,8 @@ export default function ClassDashboard() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
-        <ArrowLeft className="w-4 h-4" /> Back
+      <button onClick={() => navigate("/my-classes")} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+        <ArrowLeft className="w-4 h-4" /> Back to My Classes
       </button>
 
       <div>
