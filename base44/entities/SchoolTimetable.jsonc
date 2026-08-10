@@ -6,6 +6,19 @@
       "type": "string",
       "title": "School Code"
     },
+    "scope": {
+      "type": "string",
+      "title": "Applies To",
+      "enum": [
+        "school",
+        "grade"
+      ],
+      "default": "school"
+    },
+    "grade_level": {
+      "type": "string",
+      "title": "Grade Level"
+    },
     "school_start": {
       "type": "string",
       "title": "School Start (HH:MM)"
@@ -37,9 +50,44 @@
     "lunch_end": {
       "type": "string",
       "title": "Lunch End (HH:MM)"
+    },
+    "period_count": {
+      "type": "number",
+      "title": "Periods Per Day",
+      "default": 6
+    },
+    "periods": {
+      "type": "array",
+      "title": "Confirmed Period Times",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      }
     }
   },
   "required": [
-    "school_code"
+    "school_code",
+    "scope",
+    "school_start",
+    "school_end",
+    "break_start",
+    "break_end",
+    "lunch_start",
+    "lunch_end",
+    "period_count"
   ]
 }

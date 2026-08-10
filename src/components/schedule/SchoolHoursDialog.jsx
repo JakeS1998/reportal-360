@@ -1,160 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Coffee, UtensilsCrossed, AlertTriangle, Clock, Home } from "lucide-react";
+import { suggestPeriodTimes } from "@/lib/teachingSlots";
 
-export default function SchoolHoursDialog({ open, onOpenChange, schoolCode, onSaved }) {
+const defaults = { scope: "school", grade_level: "", school_start: "07:30", school_end: "15:00", homeroom_start: "", homeroom_end: "", break_start: "09:30", break_end: "09:45", lunch_start: "12:00", lunch_end: "12:30", period_count: 6, periods: [] };
+const minutes = (time) => { const [hours, mins] = (time || "00:00").split(":"); return Number(hours) * 60 + Number(mins); };
+
+export default function SchoolHoursDialog({ open, onOpenChange, schoolCode, grades = [], onSaved }) {
   const [timetableId, setTimetableId] = useState(null);
-  const [form, setForm] = useState({ school_start: "", school_end: "", homeroom_start: "", homeroom_end: "", break_start: "", break_end: "", lunch_start: "", lunch_end: "" });
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(defaults);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!open || !schoolCode) return;
-    setError("");
-    base44.entities.SchoolTimetable.filter({ school_code: schoolCode })
-      .then((rows) => {
-        if (rows.length > 0) {
-          setTimetableId(rows[0].id);
-          setForm({
-            school_start: rows[0].school_start || "",
-            school_end: rows[0].school_end || "",
-            homeroom_start: rows[0].homeroom_start || "",
-            homeroom_end: rows[0].homeroom_end || "",
-            break_start: rows[0].break_start || "",
-            break_end: rows[0].break_end || "",
-            lunch_start: rows[0].lunch_start || "",
-            lunch_end: rows[0].lunch_end || "",
-          });
-        } else {
-          setTimetableId(null);
-          setForm({ school_start: "07:30", school_end: "15:00", homeroom_start: "07:30", homeroom_end: "07:50", break_start: "09:30", break_end: "09:45", lunch_start: "12:00", lunch_end: "12:45" });
-        }
-      })
-      .catch(() => {});
-  }, [open, schoolCode]);
-
-  const toMin = (t) => {
-    if (!t) return 0;
-    const [h, m] = t.split(":");
-    return parseInt(h, 10) * 60 + parseInt(m, 10);
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (form.school_start && form.school_end && toMin(form.school_end) <= toMin(form.school_start)) {
-      setError("School end must be after school start."); return;
-    }
-    if (form.homeroom_start && form.homeroom_end && toMin(form.homeroom_end) <= toMin(form.homeroom_start)) {
-      setError("Homeroom end must be after homeroom start."); return;
-    }
-    if (form.break_start && form.break_end && toMin(form.break_end) <= toMin(form.break_start)) {
-      setError("Break end must be after break start."); return;
-    }
-    if (form.lunch_start && form.lunch_end && toMin(form.lunch_end) <= toMin(form.lunch_start)) {
-      setError("Lunch end must be after lunch start."); return;
-    }
-    setSaving(true);
-    try {
-      const payload = { ...form, school_code: schoolCode };
-      if (timetableId) {
-        await base44.entities.SchoolTimetable.update(timetableId, payload);
-      } else {
-        const created = await base44.entities.SchoolTimetable.create(payload);
-        setTimetableId(created.id);
-      }
-      onSaved?.(payload);
-      onOpenChange(false);
-    } catch (err) {
-      setError(err?.response?.data?.error || "Failed to save school hours");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>School Hours &amp; Daily Times</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSave} className="space-y-5">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-slate-600" />
-              <p className="text-sm font-semibold text-slate-800">School Day</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-slate-500">Start</Label>
-                <Input type="time" value={form.school_start} onChange={(e) => setForm({ ...form, school_start: e.target.value })} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs text-slate-500">End</Label>
-                <Input type="time" value={form.school_end} onChange={(e) => setForm({ ...form, school_end: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Home className="w-4 h-4 text-indigo-500" />
-              <p className="text-sm font-semibold text-slate-800">Homeroom</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-slate-500">Start</Label>
-                <Input type="time" value={form.homeroom_start} onChange={(e) => setForm({ ...form, homeroom_start: e.target.value })} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs text-slate-500">End</Label>
-                <Input type="time" value={form.homeroom_end} onChange={(e) => setForm({ ...form, homeroom_end: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Coffee className="w-4 h-4 text-amber-500" />
-              <p className="text-sm font-semibold text-slate-800">Morning Break</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-slate-500">Start</Label>
-                <Input type="time" value={form.break_start} onChange={(e) => setForm({ ...form, break_start: e.target.value })} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs text-slate-500">End</Label>
-                <Input type="time" value={form.break_end} onChange={(e) => setForm({ ...form, break_end: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <UtensilsCrossed className="w-4 h-4 text-emerald-500" />
-              <p className="text-sm font-semibold text-slate-800">Lunch</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-slate-500">Start</Label>
-                <Input type="time" value={form.lunch_start} onChange={(e) => setForm({ ...form, lunch_start: e.target.value })} className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs text-slate-500">End</Label>
-                <Input type="time" value={form.lunch_end} onChange={(e) => setForm({ ...form, lunch_end: e.target.value })} className="mt-1" />
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-slate-400">School day, homeroom, break and lunch times are shaded across the weekly grid. Break and lunch are excluded from each teacher's free-period count.</p>
-          {error && <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{error}</p>}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving} className="bg-slate-900 hover:bg-slate-800">{saving ? "Saving..." : "Save"}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  useEffect(() => { if (!open || !schoolCode) return; setError(""); base44.entities.SchoolTimetable.filter({ school_code: schoolCode }, undefined, 50).then((rows) => { const school = rows.find((row) => row.scope !== "grade") || rows[0]; setTimetableId(school?.id || null); setForm(school ? { ...defaults, ...school, periods: school.periods || [] } : defaults); }); }, [open, schoolCode]);
+  const selectScope = (scope, grade = "") => { base44.entities.SchoolTimetable.filter({ school_code: schoolCode }, undefined, 50).then((rows) => { const row = scope === "grade" ? rows.find((item) => item.scope === "grade" && item.grade_level === grade) : rows.find((item) => item.scope !== "grade"); setTimetableId(row?.id || null); setForm(row ? { ...defaults, ...row, periods: row.periods || [] } : { ...defaults, scope, grade_level: grade }); }); };
+  const suggest = () => setForm((current) => ({ ...current, periods: suggestPeriodTimes(current) }));
+  const save = async (event) => { event.preventDefault(); setError(""); if (form.scope === "grade" && !form.grade_level) return setError("Select a grade."); if (minutes(form.school_end) <= minutes(form.school_start)) return setError("School end must be after school start."); if (minutes(form.break_end) - minutes(form.break_start) < 15) return setError("Break must be at least 15 minutes."); if (minutes(form.lunch_end) - minutes(form.lunch_start) < 20) return setError("Lunch must be at least 20 minutes."); if (!form.periods.length) return setError("Generate and confirm the period times."); const invalid = form.periods.some((period) => minutes(period.end) <= minutes(period.start)); if (invalid) return setError("Each period must end after it starts."); const payload = { ...form, school_code: schoolCode }; const record = timetableId ? await base44.entities.SchoolTimetable.update(timetableId, payload) : await base44.entities.SchoolTimetable.create(payload); onSaved?.(record); onOpenChange(false); };
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>School Hours & Period Builder</DialogTitle></DialogHeader><form onSubmit={save} className="space-y-5"><div className="grid gap-3 sm:grid-cols-2"><div><Label>Apply timetable to</Label><select value={form.scope} onChange={(event) => selectScope(event.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="school">Whole school</option><option value="grade">A grade</option></select></div>{form.scope === "grade" && <div><Label>Grade</Label><select value={form.grade_level} onChange={(event) => selectScope("grade", event.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">Select grade</option>{grades.map((grade) => <option key={grade} value={grade}>{grade}</option>)}</select></div>}</div><div className="grid grid-cols-2 gap-3"><div><Label>School start</Label><Input type="time" value={form.school_start} onChange={(event) => update("school_start", event.target.value)} /></div><div><Label>School end</Label><Input type="time" value={form.school_end} onChange={(event) => update("school_end", event.target.value)} /></div><div><Label>Break start</Label><Input type="time" value={form.break_start} onChange={(event) => update("break_start", event.target.value)} /></div><div><Label>Break end</Label><Input type="time" value={form.break_end} onChange={(event) => update("break_end", event.target.value)} /></div><div><Label>Lunch start</Label><Input type="time" value={form.lunch_start} onChange={(event) => update("lunch_start", event.target.value)} /></div><div><Label>Lunch end</Label><Input type="time" value={form.lunch_end} onChange={(event) => update("lunch_end", event.target.value)} /></div></div><div className="rounded-xl border border-border p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><Label>Periods per day</Label><Input type="number" min="1" value={form.period_count} onChange={(event) => update("period_count", Number(event.target.value))} className="mt-1 w-28" /></div><Button type="button" variant="outline" onClick={suggest}>Suggest period times</Button></div><p className="mt-3 text-xs text-muted-foreground">The suggestion uses the school day, break, and lunch windows. Review or adjust every time below before saving.</p><div className="mt-4 space-y-2">{form.periods.map((period, index) => <div key={index} className="grid grid-cols-[1fr_1fr_1fr] gap-2"><Input value={period.label || `Period ${index + 1}`} onChange={(event) => setForm((current) => ({ ...current, periods: current.periods.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item) }))} /><Input type="time" value={period.start} onChange={(event) => setForm((current) => ({ ...current, periods: current.periods.map((item, itemIndex) => itemIndex === index ? { ...item, start: event.target.value } : item) }))} /><Input type="time" value={period.end} onChange={(event) => setForm((current) => ({ ...current, periods: current.periods.map((item, itemIndex) => itemIndex === index ? { ...item, end: event.target.value } : item) }))} /></div>)}</div></div>{error && <p className="text-sm text-destructive">{error}</p>}<DialogFooter><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit">Save confirmed timetable</Button></DialogFooter></form></DialogContent></Dialog>;
 }
