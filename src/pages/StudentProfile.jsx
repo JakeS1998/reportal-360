@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
 import StudentPortalPreview from "@/components/student/StudentPortalPreview";
 import StudentSensitiveProfile from "@/components/student/StudentSensitiveProfile";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye } from "lucide-react";
+import ParentEmailDialog from "@/components/student/ParentEmailDialog";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -21,6 +22,7 @@ export default function StudentProfile() {
   const [loading, setLoading] = useState(true);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showParentEmail, setShowParentEmail] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -70,6 +72,7 @@ export default function StudentProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>
           <Button variant="outline" onClick={() => setShowPreview(true)}>
             <Eye className="w-4 h-4 mr-1" /> View As Student
           </Button>
@@ -187,6 +190,7 @@ export default function StudentProfile() {
         )}
       </SectionCard>
 
+      <ParentEmailDialog open={showParentEmail} onOpenChange={setShowParentEmail} student={s} user={user} />
       <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} attendance={attendance} schoolCode={s.school_code} />
 
       <StudentPortalPreview open={showPreview} onOpenChange={setShowPreview} student={s} classes={classes} attendance={attendance} attainment={attainment} schoolCode={s.school_code} />

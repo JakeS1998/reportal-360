@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { secrets } from 'base44:runtime';
 import { getAdminCredentials, logStudentAccess } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
@@ -41,6 +42,7 @@ export default async function(req) {
     let callerSystemCode = null;
     let callerSchoolCode = null;
     let callerName = "";
+    let callerSchoolName = "";
     let callerId = null;
 
     if (caller_username === ADMIN_USERNAME && caller_password === ADMIN_PASSWORD) {
@@ -75,7 +77,8 @@ export default async function(req) {
         callerRole = caller.role;
         callerSystemCode = caller.system_code;
         callerSchoolCode = caller.school_code;
-        callerName = caller.username;
+        callerSchoolName = caller.school_name || "";
+        callerName = caller.full_name || caller.username;
         callerId = caller.id;
       }
     } else {
@@ -164,6 +167,28 @@ export default async function(req) {
       if (!(await authorizeSchool(targetSchool))) return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
       const logs = await base44.asServiceRole.entities.AuditLog.filter({ school_code: targetSchool, event_type: "view_student" }, "-created_date", 200);
       return Response.json({ success: true, logs });
+    }
+
+    if (action === "send_parent_email") {
+      if (!["teacher", "manager", "area", "school_admin", "admin"].includes(callerRole)) return Response.json({ success: false, error: "Staff access required" }, { status: 403 });
+      const { student_id, recipient_email, subject, message } = params;
+      if (!student_id || !recipient_email || !subject || !message) return Response.json({ success: false, error: "Recipient, subject, and message are required" }, { status: 400 });
+      if (subject.length > 200 || message.length > 5000 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient_email)) return Response.json({ success: false, error: "Please provide a valid email and a shorter message" }, { status: 400 });
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !(await authorizeSchool(student.school_code))) return Response.json({ success: false, error: "Student unavailable" }, { status: 403 });
+      const contactIsListed = (student.emergency_contacts || []).some((contact) => contact.email?.toLowerCase() === recipient_email.toLowerCase());
+      if (!contactIsListed) return Response.json({ success: false, error: "Choose an email saved on the student profile" }, { status: 400 });
+      if (callerRole === "teacher") {
+        const [assignments, enrollment, homerooms] = await Promise.all([base44.asServiceRole.entities.TeacherClass.filter({ teacher_id: callerId }, undefined, 500), base44.asServiceRole.entities.StudentClass.filter({ student_id, status: "active" }, undefined, 500), base44.asServiceRole.entities.Homeroom.filter({ teacher_id: callerId }, undefined, 50)]);
+        const classIds = new Set(assignments.map((item) => item.class_id));
+        const enrolled = enrollment.some((item) => classIds.has(item.class_id));
+        const homeroomTeacher = homerooms.some((item) => (item.student_ids || []).includes(student_id));
+        if (!enrolled && !homeroomTeacher) return Response.json({ success: false, error: "Not authorized for this student" }, { status: 403 });
+      }
+      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
+      const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${secrets.get("RESEND_API_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `${callerName} at ${callerSchoolName || "ReportAL"} <noreply@reportal.blueridge-group.co.uk>`, to: recipient_email, reply_to: caller_email || undefined, subject, html: `<div style="font-family:Arial,sans-serif;color:#1f2937"><p>${escapeHtml(message).replace(/\n/g, "<br>")}</p><hr style="border:0;border-top:1px solid #e5e7eb;margin:24px 0"><p style="font-size:12px;color:#6b7280">Sent by ${escapeHtml(callerName)} at ${escapeHtml(callerSchoolName || "ReportAL")} regarding ${escapeHtml(student.student_name)}.</p></div>` }) });
+      if (!response.ok) return Response.json({ success: false, error: "Email could not be sent. Confirm the sending domain is verified." }, { status: 502 });
+      return Response.json({ success: true });
     }
 
     // --- GET_PROFILE (student + related FERPA records, all school-scoped) ---
