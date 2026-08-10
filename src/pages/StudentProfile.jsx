@@ -9,7 +9,8 @@ import StudentScheduleDialog from "@/components/student/StudentScheduleDialog";
 import StudentPortalPreview from "@/components/student/StudentPortalPreview";
 import StudentSensitiveProfile from "@/components/student/StudentSensitiveProfile";
 import ParentEmailDialog from "@/components/student/ParentEmailDialog";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail } from "lucide-react";
+import StudentProfileEditDialog from "@/components/student/StudentProfileEditDialog";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -26,12 +27,13 @@ export default function StudentProfile() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, activeSchool } = useSchool();
+  const { user, activeSchool, canManageStaff } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showParentEmail, setShowParentEmail] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -88,6 +90,7 @@ export default function StudentProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" />Edit Profile</Button>}
           {!studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>}
           <Button variant="outline" onClick={() => setShowPreview(true)}>
             <Eye className="w-4 h-4 mr-1" /> View As Student
@@ -206,6 +209,7 @@ export default function StudentProfile() {
         )}
       </SectionCard>
 
+      <StudentProfileEditDialog open={showEdit} onOpenChange={setShowEdit} student={s} user={user} onSaved={(student) => setData((current) => ({ ...current, student }))} />
       <ParentEmailDialog open={showParentEmail} onOpenChange={setShowParentEmail} student={s} user={user} />
       <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} attendance={attendance} schoolCode={s.school_code} />
 

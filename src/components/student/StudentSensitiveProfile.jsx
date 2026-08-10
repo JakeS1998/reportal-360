@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Eye, EyeOff, ShieldAlert } from "lucide-react";
 import SectionCard from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ const listText = (items, formatter) => items?.length ? items.map(formatter).filt
 
 function PrivateSection({ title, fields }) {
   const [revealed, setRevealed] = useState(false);
-  return <SectionCard title={title} icon={ShieldAlert} action={<Button variant="outline" size="sm" onClick={() => setRevealed(!revealed)}>{revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}{revealed ? "Hide" : "Reveal"}</Button>}><div className={`grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 ${revealed ? "" : "blur-md select-none pointer-events-none"}`} aria-hidden={!revealed}>{fields.map(([label, value]) => <div key={label}><p className="text-xs text-slate-400">{label}</p><p className="mt-0.5 text-sm font-medium text-slate-700 whitespace-pre-wrap">{value || "Not recorded"}</p></div>)}</div></SectionCard>;
+  useEffect(() => { if (!revealed) return; const timeout = setTimeout(() => setRevealed(false), 30000); return () => clearTimeout(timeout); }, [revealed]);
+  return <SectionCard title={title} icon={ShieldAlert} action={<Button variant="outline" size="sm" onClick={() => setRevealed(!revealed)}>{revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}{revealed ? "Hide" : "Reveal"}</Button>}><div className={`grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 ${revealed ? "" : "blur-md select-none pointer-events-none"}`} aria-hidden={!revealed}>{fields.map(([label, value]) => <div key={label}><p className="text-xs text-slate-400">{label}</p><p className="mt-0.5 text-sm font-medium text-slate-700 whitespace-pre-wrap">{value || "Not recorded"}</p></div>)}</div>{revealed && <p className="mt-4 text-xs text-slate-400">This information will hide automatically in 30 seconds.</p>}</SectionCard>;
 }
 
 export default function StudentSensitiveProfile({ student }) {
