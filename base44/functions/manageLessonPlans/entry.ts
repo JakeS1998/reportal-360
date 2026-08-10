@@ -41,6 +41,7 @@ export default async function(req) {
       if (id) {
         const existing = await base44.asServiceRole.entities.LessonPlan.get(id);
         if (!existing || existing.school_code !== schoolCode || (!manager && existing.owner_id !== caller.id)) return Response.json({ success: false, error: 'Plan unavailable' }, { status: 403 });
+        if (existing.status === 'approved') return Response.json({ success: false, error: 'Approved lesson plans are locked' }, { status: 403 });
         const updated = await base44.asServiceRole.entities.LessonPlan.update(id, payload);
         return Response.json({ success: true, plan: updated });
       }
