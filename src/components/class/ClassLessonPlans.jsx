@@ -9,7 +9,7 @@ import { getWeekStart, isScheduleActiveInWeek } from "@/lib/scheduleWeeks";
 const dateKey = (date) => date.toLocaleDateString("en-CA");
 const timeLabel = (time) => new Date(`2000-01-01T${time || "00:00"}`).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-export default function ClassLessonPlans({ classInfo }) {
+export default function ClassLessonPlans({ classInfo, selectedLesson }) {
   const { user, school } = useSchool();
   const [schedules, setSchedules] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -28,8 +28,10 @@ export default function ClassLessonPlans({ classInfo }) {
     const day = date.toLocaleDateString("en-US", { weekday: "long" });
     return schedules.filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, getWeekStart(date))).map((s) => ({ ...s, date: dateKey(date) }));
   }).flat().sort((a, b) => `${a.date}${a.start_time}`.localeCompare(`${b.date}${b.start_time}`)), [schedules]);
-  if (!instances.length) return <p className="text-sm text-slate-400">No scheduled class instances yet.</p>;
-  return <div className="space-y-2">{instances.map((session) => {
+  const selectedInstances = selectedLesson ? instances.filter((session) => session.id === selectedLesson.scheduleId && session.date === selectedLesson.lessonDate) : [];
+  if (!selectedLesson) return <p className="text-sm text-slate-400">Open a lesson from My Classes to view its lesson plan.</p>;
+  if (!selectedInstances.length) return <p className="text-sm text-slate-400">This lesson instance is not scheduled.</p>;
+  return <div className="space-y-2">{selectedInstances.map((session) => {
     const plan = plans.find((item) => item.schedule_id === session.id && item.lesson_date === session.date);
     const context = plan || { class_id: classInfo.id, class_name: classInfo.class_name, school_code: classInfo.school_code, schedule_id: session.id, lesson_date: session.date, title: `${classInfo.class_name} lesson` };
     return <div key={`${session.id}-${session.date}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">{new Date(`${session.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} · {timeLabel(session.start_time)}–{timeLabel(session.end_time)}</p><p className="text-xs text-slate-500">{plan ? `${plan.title} · ${plan.status.replaceAll("_", " ")}` : "No lesson plan yet"}</p></div><Button size="sm" variant="outline" onClick={() => setEditing(context)}>{plan ? <Pencil className="mr-1 w-4 h-4" /> : <Plus className="mr-1 w-4 h-4" />}{plan ? (plan.status === "approved" ? "View" : "Edit") : "Create"}</Button></div>;

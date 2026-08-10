@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useSchool } from "@/lib/SchoolContext";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,6 +19,7 @@ const INCIDENT_COLOR = { positive: "text-emerald-600", warning: "text-amber-600"
 export default function ClassDashboard() {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useSchool();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -173,7 +174,7 @@ export default function ClassDashboard() {
       </SectionCard>
 
       <SectionCard title="Scheduled lesson plans" icon={CalendarDays}>
-        <ClassLessonPlans classInfo={cls} />
+        <ClassLessonPlans classInfo={cls} selectedLesson={location.state?.selectedLesson} />
       </SectionCard>
 
       <SectionCard title="Assignments" icon={ClipboardCheck}>

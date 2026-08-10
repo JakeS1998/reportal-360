@@ -290,7 +290,7 @@ export default function MyClasses() {
                         <Link
                           key={s.id}
                           to={`/classes/${s.class_id}`}
-                          state={{ fromClassId: s.class_id }}
+                          state={{ fromClassId: s.class_id, selectedLesson: { scheduleId: s.id, lessonDate: dayDateStr, startTime: s.start_time, endTime: s.end_time } }}
                           onContextMenu={(e) => {
                             if (s._isCover) return;
                             e.preventDefault();
