@@ -84,8 +84,8 @@ export default async function(req) {
         if (system_code !== callerSystemCode || school_code !== callerSchoolCode) {
           return Response.json({ success: false, error: "You can only create users in your school" }, { status: 403 });
         }
-        if (role !== "teacher") {
-          return Response.json({ success: false, error: "Managers can only create teacher accounts" }, { status: 403 });
+        if (!["manager", "teacher"].includes(role)) {
+          return Response.json({ success: false, error: "Managers can only create school manager or teacher accounts" }, { status: 403 });
         }
       } else {
         return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });

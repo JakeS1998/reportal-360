@@ -31,7 +31,7 @@ export default function StaffManagement() {
           <h1 className="text-2xl font-bold text-slate-900">Admin Panel</h1>
           <p className="text-sm text-slate-500 mt-1">
             {isArea && "Create managers and teachers for schools in your system"}
-            {isManager && "Manage teacher accounts for your school"}
+            {isManager && "Create and manage school manager and teacher accounts for your school"}
             {user.role === "admin" && "Create and manage all user accounts"}
           </p>
         </div>
@@ -41,7 +41,7 @@ export default function StaffManagement() {
         <SchoolUserManager
           callerCreds={callerCreds}
           mode={isManager ? "locked" : "select"}
-          roles={isManager ? ["teacher"] : isArea ? ["manager", "teacher"] : ["area", "manager", "teacher"]}
+          roles={isManager ? ["manager", "teacher"] : isArea ? ["manager", "teacher"] : ["area", "manager", "teacher"]}
           systemSchools={systemSchools}
           fixedSchool={
             isManager
