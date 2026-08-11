@@ -83,8 +83,8 @@ export default async function(req) {
       const assignment = submission && await service.Assignment.get(submission.assignment_id);
       const validLetters = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
       if (!submission || !assignment || caller.role === 'student' || !(await canTeach(assignment.class_id))) return Response.json({ success: false, error: 'Not authorized' }, { status: 403 });
-      if (!Number.isFinite(body.grade_percentage) || body.grade_percentage < 0 || body.grade_percentage > 100 || !validLetters.includes(body.letter_grade)) return Response.json({ success: false, error: 'Enter a percentage from 0 to 100 and a valid letter grade' }, { status: 400 });
-      const updated = await service.AssignmentSubmission.update(submission.id, { grade_percentage: body.grade_percentage, letter_grade: body.letter_grade, feedback: body.feedback || '', grade_released: false, grade_released_at: null });
+      if (!Number.isFinite(body.grade_percentage) || body.grade_percentage < 0 || body.grade_percentage > 100 || (body.letter_grade && !validLetters.includes(body.letter_grade))) return Response.json({ success: false, error: 'Enter a percentage from 0 to 100 and, if supplied, a valid letter grade' }, { status: 400 });
+      const updated = await service.AssignmentSubmission.update(submission.id, { grade_percentage: body.grade_percentage, letter_grade: body.letter_grade || '', feedback: body.feedback || '', grade_released: false, grade_released_at: null });
       return Response.json({ success: true, submission: updated });
     }
 
@@ -92,7 +92,7 @@ export default async function(req) {
       const assignment = await service.Assignment.get(body.assignment_id);
       if (!assignment || caller.role === 'student' || !(await canTeach(assignment.class_id))) return Response.json({ success: false, error: 'Not authorized' }, { status: 403 });
       const submissions = await service.AssignmentSubmission.filter({ assignment_id: assignment.id }, undefined, 500);
-      const graded = submissions.filter((item) => Number.isFinite(item.grade_percentage) && item.letter_grade);
+      const graded = submissions.filter((item) => Number.isFinite(item.grade_percentage));
       await Promise.all(graded.map((item) => service.AssignmentSubmission.update(item.id, { grade_released: true, grade_released_at: new Date().toISOString() })));
       return Response.json({ success: true, released: graded.length });
     }
