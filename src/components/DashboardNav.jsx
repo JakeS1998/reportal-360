@@ -44,6 +44,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       heading: "Classroom",
       items: [
         { to: "/my-classes", label: "My Classes", icon: BookOpen },
+        { to: "/assignment-submissions", label: "My Assignments", icon: ClipboardList },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
         { to: "/messages", label: "Messages", icon: MessageSquare },

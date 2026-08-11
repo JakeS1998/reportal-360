@@ -43,6 +43,7 @@ import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
 import StudentDashboard from './pages/StudentDashboard';
 import MyAssignments from './pages/MyAssignments';
+import TeacherAssignmentSubmissions from './pages/TeacherAssignmentSubmissions';
 import ClassCover from './pages/ClassCover';
 import LessonPlans from './pages/LessonPlans';
 import LessonPlanReviews from './pages/LessonPlanReviews';
@@ -108,6 +109,7 @@ const AuthenticatedApp = () => {
         <Route path="/student-assignments" element={<StudentAssignments />} />
         <Route path="/student-access-audit" element={<StudentAccessAudit />} />
         <Route path="/my-classes" element={<MyClasses />} />
+        <Route path="/assignment-submissions" element={<TeacherAssignmentSubmissions />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
         <Route path="/students/:studentId" element={<StudentProfile />} />
         <Route path="/training" element={<TrainingPortal />} />

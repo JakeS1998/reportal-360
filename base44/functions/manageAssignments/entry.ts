@@ -49,6 +49,14 @@ export default async function(req) {
       return Response.json({ success: true, assignments, submissions });
     }
 
+    if (body.action === 'teacher_all') {
+      if (caller.role === 'student') return Response.json({ success: false, error: 'Teacher access required' }, { status: 403 });
+      const assignments = await service.Assignment.filter({ teacher_id: caller.id }, '-created_date', 500);
+      const ids = new Set(assignments.map((item) => item.id));
+      const submissions = (await service.AssignmentSubmission.list('-submitted_at', 500)).filter((item) => ids.has(item.assignment_id));
+      return Response.json({ success: true, assignments, submissions });
+    }
+
     if (body.action === 'create') {
       const assignment = body.assignment || {};
       if (caller.role === 'student' || !assignment.class_id || !assignment.title || !assignment.deadline || !(await canTeach(assignment.class_id))) return Response.json({ success: false, error: 'A class, title, future deadline, and teacher access are required' }, { status: 403 });
