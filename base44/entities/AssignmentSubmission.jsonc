@@ -59,6 +59,43 @@
         }
       }
     },
+    "grade_percentage": {
+      "type": "number",
+      "title": "Grade Percentage"
+    },
+    "letter_grade": {
+      "type": "string",
+      "title": "Letter Grade",
+      "enum": [
+        "A+",
+        "A",
+        "A-",
+        "B+",
+        "B",
+        "B-",
+        "C+",
+        "C",
+        "C-",
+        "D+",
+        "D",
+        "D-",
+        "F"
+      ]
+    },
+    "feedback": {
+      "type": "string",
+      "title": "Teacher Feedback"
+    },
+    "grade_released": {
+      "type": "boolean",
+      "default": false,
+      "title": "Grade Released"
+    },
+    "grade_released_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Grade Released At"
+    },
     "status": {
       "type": "string",
       "enum": [
