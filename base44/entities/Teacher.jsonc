@@ -34,6 +34,26 @@
       "type": "string",
       "title": "Email"
     },
+    "profile_photo_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "Profile Photo URL"
+    },
+    "email_notifications": {
+      "type": "boolean",
+      "title": "Email Notifications",
+      "default": true
+    },
+    "message_notifications": {
+      "type": "boolean",
+      "title": "Message Notifications",
+      "default": true
+    },
+    "training_reminders": {
+      "type": "boolean",
+      "title": "Training Reminders",
+      "default": true
+    },
     "role": {
       "type": "string",
       "title": "Role",

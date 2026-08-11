@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles,
   ClipboardList, BookOpen, Award, ChevronDown, FileText,
-  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck,
+  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck, Settings,
 } from "lucide-react";
 
 const CRIMSON = "#9E1B32";
@@ -38,6 +38,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       items: [
         { to: "/students", label: "Student Roster", icon: ClipboardList },
         { to: "/reports", label: "Report Builder", icon: FileText },
+        { to: "/parent-conversations", label: "Parent Conversations", icon: MessageSquare },
       ],
     },
     {
@@ -47,9 +48,14 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/assignment-submissions", label: "My Assignments", icon: ClipboardList },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
+      ],
+    },
+    {
+      heading: "Account",
+      items: [
         { to: "/messages", label: "Messages", icon: MessageSquare },
-        { to: "/parent-conversations", label: "Parent Conversations", icon: MessageSquare },
         { to: "/training", label: "Training", icon: Award },
+        { to: "/settings", label: "Settings", icon: Settings },
       ],
     },
   ];

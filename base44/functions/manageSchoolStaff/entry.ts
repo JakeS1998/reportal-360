@@ -29,6 +29,7 @@ export default async function(req) {
     const base44 = createClientFromRequest(req);
 
     // --- Authenticate caller ---
+    let caller = null;
     let callerRole = null;
     let callerSystemCode = null;
     let callerSchoolCode = null;
@@ -36,7 +37,7 @@ export default async function(req) {
     if (caller_username === ADMIN_USERNAME && caller_password === ADMIN_PASSWORD) {
       callerRole = "admin";
     } else {
-      const caller = await resolveStaffCaller(base44, {
+      caller = await resolveStaffCaller(base44, {
         callerUsername: caller_username,
         callerPassword: caller_password,
         callerEmail: caller_email,
@@ -46,6 +47,16 @@ export default async function(req) {
       callerRole = caller.role;
       callerSystemCode = caller.system_code;
       callerSchoolCode = caller.school_code;
+    }
+
+    // --- SELF SERVICE SETTINGS ---
+    if (action === "update_self_settings") {
+      if (!caller) return Response.json({ success: false, error: "Staff access required" }, { status: 403 });
+      const allowed = ["profile_photo_url", "email_notifications", "message_notifications", "training_reminders"];
+      const updateData = {};
+      for (const field of allowed) if (params[field] !== undefined) updateData[field] = params[field];
+      const updated = await base44.asServiceRole.entities.Teacher.update(caller.id, updateData);
+      return Response.json({ success: true, user: updated });
     }
 
     // --- CREATE ---
