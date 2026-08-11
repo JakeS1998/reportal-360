@@ -140,8 +140,8 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         : { text: "Not taken", cls: "bg-slate-100 text-slate-500" };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3 shrink-0">
         <div>
           <label className="text-xs font-medium text-slate-500">Date</label>
           <Input type="date" value={date} disabled className="mt-0.5 w-44 opacity-70" />
@@ -179,7 +179,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         </p>
       )}
 
-      <div className="max-h-[calc(85vh-13rem)] overflow-y-auto divide-y divide-slate-50 pr-1">
+      <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-slate-50 pr-1">
         {students.map((sa) => (
           <div key={sa.id} className="flex items-center gap-3 py-2">
             <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">

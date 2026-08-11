@@ -60,7 +60,7 @@ export default function QuickActionsDialog({ open, onOpenChange, mode, classId, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {mode === "attendance" ? "Take Attendance" : "Log Behaviour"} · {className}
