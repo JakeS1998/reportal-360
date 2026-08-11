@@ -31,6 +31,13 @@ const fmtTime = (t) => { if (!t) return ""; const [h, m] = t.split(":"); const h
 const todayName = () => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const canTakeAttendance = (startTime) => {
+  if (!startTime) return true;
+  const [hours, minutes] = startTime.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return true;
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes() >= hours * 60 + minutes;
+};
 
 function layoutBlocks(blocks) {
   const sorted = [...blocks].sort((a, b) => a._startMin - b._startMin);
@@ -355,22 +362,28 @@ export default function MyClasses() {
             >
               <Repeat className="w-4 h-4 text-slate-500" /> Arrange Cover
             </button>
-            <button
-              onClick={() => {
-                setQuickAction({
-                  mode: "attendance",
-                  classId: menu.block.class_id,
-                  scheduleId: menu.block.id,
-                  className: menu.block.class_name,
-                  dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
-                  dateStr: menu.dateStr,
-                });
-                setMenu(null);
-              }}
-              className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+            <span
+              className="block"
+              title={!canTakeAttendance(menu.block.start_time) ? `Attendance can only be taken from ${menu.block.start_time} onwards` : undefined}
             >
-              <ClipboardCheck className="w-4 h-4 text-slate-500" /> Take Attendance
-            </button>
+              <button
+                onClick={() => {
+                  setQuickAction({
+                    mode: "attendance",
+                    classId: menu.block.class_id,
+                    scheduleId: menu.block.id,
+                    className: menu.block.class_name,
+                    dayLabel: `${menu.dayLabel} ${menu.dateStr}`,
+                    dateStr: menu.dateStr,
+                  });
+                  setMenu(null);
+                }}
+                disabled={!canTakeAttendance(menu.block.start_time)}
+                className="w-full text-left text-sm px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+              >
+                <ClipboardCheck className="w-4 h-4 text-slate-500" /> Take Attendance
+              </button>
+            </span>
             <Link
               to={`/lesson-plans?classId=${encodeURIComponent(menu.block.class_id)}&className=${encodeURIComponent(menu.block.class_name)}&scheduleId=${encodeURIComponent(menu.block.id)}&lessonDate=${encodeURIComponent(menu.dateStr)}`}
               onClick={() => setMenu(null)}

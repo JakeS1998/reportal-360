@@ -179,7 +179,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         </p>
       )}
 
-      <div className="divide-y divide-slate-50">
+      <div className="max-h-[calc(85vh-13rem)] overflow-y-auto divide-y divide-slate-50 pr-1">
         {students.map((sa) => (
           <div key={sa.id} className="flex items-center gap-3 py-2">
             <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
