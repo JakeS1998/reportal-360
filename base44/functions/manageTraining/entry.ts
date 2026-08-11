@@ -141,9 +141,20 @@ export default async function(req) {
         staffFilter.school_code = callerSchoolCode;
       }
 
+      const completionFilter: any = {};
+      if (callerRole === "admin") {
+        if (school_code) completionFilter.school_code = school_code;
+        if (system_code) completionFilter.system_code = system_code;
+      } else if (callerRole === "area") {
+        completionFilter.system_code = callerSystemCode;
+        if (school_code) completionFilter.school_code = school_code;
+      } else if (callerRole === "manager") {
+        completionFilter.school_code = callerSchoolCode;
+      }
+
       const [staff, completions, modules] = await Promise.all([
         base44.asServiceRole.entities.Teacher.filter(staffFilter, "full_name", 500),
-        base44.asServiceRole.entities.TrainingCompletion.filter(staffFilter, "-updated_date", 1000),
+        base44.asServiceRole.entities.TrainingCompletion.filter(completionFilter, "-updated_date", 1000),
         base44.asServiceRole.entities.TrainingModule.filter({ active: true }, "order", 50),
       ]);
 
