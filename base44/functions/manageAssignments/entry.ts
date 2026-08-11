@@ -83,6 +83,7 @@ export default async function(req) {
       const assignment = submission && await service.Assignment.get(submission.assignment_id);
       const validLetters = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
       if (!submission || !assignment || caller.role === 'student' || !(await canTeach(assignment.class_id))) return Response.json({ success: false, error: 'Not authorized' }, { status: 403 });
+      if (submission.grade_released) return Response.json({ success: false, error: 'Released grades cannot be changed' }, { status: 403 });
       if (!Number.isFinite(body.grade_percentage) || body.grade_percentage < 0 || body.grade_percentage > 100 || (body.letter_grade && !validLetters.includes(body.letter_grade))) return Response.json({ success: false, error: 'Enter a percentage from 0 to 100 and, if supplied, a valid letter grade' }, { status: 400 });
       const updated = await service.AssignmentSubmission.update(submission.id, { grade_percentage: body.grade_percentage, letter_grade: body.letter_grade || '', feedback: body.feedback || '', grade_released: false, grade_released_at: null });
       return Response.json({ success: true, submission: updated });
