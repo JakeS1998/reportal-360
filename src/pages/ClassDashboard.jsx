@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import ClassAssessmentManager from "@/components/class/ClassAssessmentManager";
 import ClassBehaviourManager from "@/components/class/ClassBehaviourManager";
+import ClassGradesExportButton from "@/components/class/ClassGradesExportButton";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import DetentionDialog from "@/components/class/DetentionDialog";
 import ClassLessonPlans from "@/components/class/ClassLessonPlans";
@@ -201,6 +202,7 @@ export default function ClassDashboard() {
       <div className="flex flex-wrap gap-2">
         <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
+        <ClassGradesExportButton className={cls.class_name} students={students} attainment={attainment} />
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
         <Button onClick={() => setDetentionOpen(true)} variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-1.5" /> Assign Detention</Button>
       </div>
