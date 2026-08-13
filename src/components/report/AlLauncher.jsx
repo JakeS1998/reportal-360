@@ -12,6 +12,7 @@ export default function AlLauncher() {
     setUser(session?.user && !isSessionExpired(session) ? session.user : null);
   }, [location.pathname]);
 
-  if (!user || !["teacher", "manager", "area", "admin"].includes(user.role)) return null;
+  const publicRoutes = ["/", "/login", "/admin-login", "/reset-password", "/sso-callback", "/privacy", "/terms", "/security"];
+  if (publicRoutes.includes(location.pathname) || !user || !["teacher", "manager", "area", "admin"].includes(user.role)) return null;
   return <AskReportAL user={user} />;
 }
