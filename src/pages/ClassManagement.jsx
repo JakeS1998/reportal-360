@@ -911,7 +911,7 @@ export default function ClassManagement() {
                   ? `${assignResult.sectionsCreated} class section${assignResult.sectionsCreated === 1 ? " was" : "s were"} created. Use Auto Assign Core Students to enroll and evenly balance every student in core subjects.`
                   : assignResult?.unassigned
                     ? `${assignResult.unassigned} student${assignResult.unassigned === 1 ? " could" : "s could"} not be assigned because no further section capacity is available. Create more class sections, then run this again.`
-                    : `Enrolled ${assignResult.studentsAssigned} of ${assignResult.totalStudents} students into one section per core subject for their grade, evenly balancing class sizes.`}
+                    : `Enrolled ${assignResult?.studentsAssigned || 0} of ${assignResult?.totalStudents || 0} students into one section per core subject for their grade, evenly balancing class sizes.`}
               </p>
             </div>
           )}
