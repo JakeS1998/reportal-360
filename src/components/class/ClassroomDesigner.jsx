@@ -10,8 +10,9 @@ export default function ClassroomDesigner({ seats, students, selectedSeatId, onS
     const move = (event) => {
       if (!draggingRef.current || !canvasRef.current) return;
       const bounds = canvasRef.current.getBoundingClientRect();
-      const x = Math.max(2, Math.min(86, ((event.clientX - bounds.left) / bounds.width) * 100 - draggingRef.current.offsetX));
-      const y = Math.max(10, Math.min(82, ((event.clientY - bounds.top) / bounds.height) * 100 - draggingRef.current.offsetY));
+      const snap = (value) => Math.round(value / 6) * 6;
+      const x = Math.max(2, Math.min(86, snap(((event.clientX - bounds.left) / bounds.width) * 100 - draggingRef.current.offsetX)));
+      const y = Math.max(10, Math.min(82, snap(((event.clientY - bounds.top) / bounds.height) * 100 - draggingRef.current.offsetY)));
       onMoveSeat(draggingRef.current.id, x, y);
     };
     const end = () => { draggingRef.current = null; };
