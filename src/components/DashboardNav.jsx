@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles,
   ClipboardList, BookOpen, Award, ChevronDown, FileText,
-  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck, Settings,
+  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck, Settings, KeyRound,
 } from "lucide-react";
 
 const CRIMSON = "#9E1B32";
@@ -75,6 +75,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck },
         { to: "/student-assignments", label: "Student Assignments", icon: UserPlus },
         { to: "/student-access-audit", label: "Student Access Audit", icon: ShieldCheck },
+        { to: "/student-logins", label: "Student Login Management", icon: KeyRound },
       ],
     });
   }

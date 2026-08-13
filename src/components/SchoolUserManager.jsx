@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
+import BulkStaffUpload from "@/components/BulkStaffUpload";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -496,6 +497,10 @@ export default function SchoolUserManager({
             </Button>
           </form>
         </SectionCard>
+      )}
+
+      {selectedSchool && (
+        <BulkStaffUpload callerCreds={callerCreds} school={selectedSchool} onImported={loadUsers} />
       )}
 
       {selectedSchool && (

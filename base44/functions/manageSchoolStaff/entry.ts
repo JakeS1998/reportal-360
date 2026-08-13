@@ -59,6 +59,38 @@ export default async function(req) {
       return Response.json({ success: true, user: updated });
     }
 
+    // --- BULK CREATE ---
+    if (action === "bulk_create") {
+      const { records, school_code, system_code, school_name, system_name } = params;
+      if (!Array.isArray(records) || records.length === 0 || records.length > 100) return Response.json({ success: false, error: "Upload between 1 and 100 staff records" }, { status: 400 });
+      if (!school_code || !system_code) return Response.json({ success: false, error: "School details are required" }, { status: 400 });
+      if (callerRole === "area" && system_code !== callerSystemCode) return Response.json({ success: false, error: "You can only create users in your system" }, { status: 403 });
+      if (callerRole === "manager" && (system_code !== callerSystemCode || school_code !== callerSchoolCode)) return Response.json({ success: false, error: "You can only create users in your school" }, { status: 403 });
+      if (!["admin", "area", "manager"].includes(callerRole)) return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
+      const credentials = [];
+      const errors = [];
+      for (let index = 0; index < records.length; index++) {
+        const item = records[index];
+        const full_name = item.full_name?.trim();
+        const email = item.email?.trim();
+        const role = (item.role || "teacher").trim().toLowerCase();
+        if (!full_name || !email || !["area", "manager", "teacher"].includes(role)) { errors.push(`Row ${index + 2}: full_name, email, and a valid role are required`); continue; }
+        if (callerRole === "area" && role === "area") { errors.push(`Row ${index + 2}: only admins can create area users`); continue; }
+        if (callerRole === "manager" && !["manager", "teacher"].includes(role)) { errors.push(`Row ${index + 2}: managers can only create school managers or teachers`); continue; }
+        const username = item.username?.trim() || makeUsername(school_code, full_name);
+        const existing = await base44.asServiceRole.entities.Teacher.filter({ username }, undefined, 1);
+        if (existing.length > 0) { errors.push(`Row ${index + 2}: username ${username} already exists`); continue; }
+        const customPassword = item.password?.trim();
+        const passwordError = customPassword ? validatePasswordComplexity(customPassword) : null;
+        if (passwordError) { errors.push(`Row ${index + 2}: ${passwordError}`); continue; }
+        const temp_password = customPassword || generateRandomPassword();
+        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: item.subject?.trim() || "", subjects: item.subject?.trim() ? [item.subject.trim()] : [], room: item.room?.trim() || "", teacher_id: username, password_reset_required: true });
+        credentials.push({ full_name, username, temp_password });
+      }
+      await logAudit(base44, "staff_bulk_created", caller_username || "", callerRole, `Created ${credentials.length} staff accounts at ${school_code}`, school_code);
+      return Response.json({ success: true, count: credentials.length, credentials, errors });
+    }
+
     // --- CREATE ---
     if (action === "create") {
       const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, room } = params;

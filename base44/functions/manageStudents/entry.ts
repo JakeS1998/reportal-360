@@ -11,6 +11,13 @@ function slugifyName(name) {
   return (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function generateRandomPassword(length = 12) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  let password = "";
+  for (let i = 0; i < length; i++) password += chars[Math.floor(Math.random() * chars.length)];
+  return password;
+}
+
 // Strip sensitive auth fields before returning a student record to the client.
 function sanitizeStudent(s) {
   if (!s) return s;
@@ -280,6 +287,18 @@ export default async function(req) {
         student_id, req
       );
       return Response.json({ success: true, student: sanitizeStudent(student) });
+    }
+
+    // --- RESET PASSWORD ---
+    if (action === "reset_password") {
+      if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
+      const { student_id } = params;
+      if (!student_id) return Response.json({ success: false, error: "student_id required" }, { status: 400 });
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !(await authorizeSchool(student.school_code))) return Response.json({ success: false, error: "Student unavailable" }, { status: 403 });
+      const tempPassword = generateRandomPassword();
+      await base44.asServiceRole.entities.Student.update(student_id, { password: tempPassword, password_reset_required: true, failed_login_attempts: 0, locked_until: null });
+      return Response.json({ success: true, temp_password: tempPassword });
     }
 
     // --- CREATE ---

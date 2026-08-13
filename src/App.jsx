@@ -51,6 +51,7 @@ import Messages from './pages/Messages';
 import ParentConversations from './pages/ParentConversations';
 import AccountSettings from './pages/AccountSettings';
 import StudentAccessAudit from './pages/StudentAccessAudit';
+import StudentLoginManagement from './pages/StudentLoginManagement';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -109,6 +110,7 @@ const AuthenticatedApp = () => {
         <Route path="/teacher-assignments" element={<TeacherAssignments />} />
         <Route path="/student-assignments" element={<StudentAssignments />} />
         <Route path="/student-access-audit" element={<StudentAccessAudit />} />
+        <Route path="/student-logins" element={<StudentLoginManagement />} />
         <Route path="/my-classes" element={<MyClasses />} />
         <Route path="/assignment-submissions" element={<TeacherAssignmentSubmissions />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
