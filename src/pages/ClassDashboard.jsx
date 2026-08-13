@@ -142,6 +142,15 @@ export default function ClassDashboard() {
         <p className="text-sm text-slate-500">{cls.subject || "—"} · Grade {cls.grade_level || "—"} {cls.room ? `· Room ${cls.room}` : ""} {cls.period ? `· Period ${cls.period}` : ""}</p>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm"><Link to={`/classes/${classId}/seating-plan`}><Armchair className="w-4 h-4 mr-1.5" /> Seating plan</Link></Button>
+        <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
+        <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
+        <ClassGradesExportButton className={cls.class_name} students={students} attainment={attainment} />
+        <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
+        <Button onClick={() => setDetentionOpen(true)} variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-1.5" /> Assign Detention</Button>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-2 mb-1"><Users className="w-3.5 h-3.5 text-slate-400" /><p className="text-xs text-slate-400">Enrolled</p></div>
@@ -199,15 +208,6 @@ export default function ClassDashboard() {
           </div>
         )}
       </SectionCard>
-
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant="outline" size="sm"><Link to={`/classes/${classId}/seating-plan`}><Armchair className="w-4 h-4 mr-1.5" /> Seating plan</Link></Button>
-        <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
-        <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
-        <ClassGradesExportButton className={cls.class_name} students={students} attainment={attainment} />
-        <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
-        <Button onClick={() => setDetentionOpen(true)} variant="outline" size="sm"><CalendarDays className="w-4 h-4 mr-1.5" /> Assign Detention</Button>
-      </div>
 
       <QuickActionsDialog
         open={!!attendanceTarget}
