@@ -172,8 +172,12 @@ export default async function(req) {
       if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
       const targetSchool = params.school_code || callerSchoolCode;
       if (!(await authorizeSchool(targetSchool))) return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
-      const logs = await base44.asServiceRole.entities.AuditLog.filter({ school_code: targetSchool, event_type: "view_student" }, "-created_date", 200);
-      return Response.json({ success: true, logs });
+      const [logs, students] = await Promise.all([
+        base44.asServiceRole.entities.AuditLog.filter({ school_code: targetSchool, event_type: "view_student" }, "-created_date", 200),
+        base44.asServiceRole.entities.Student.filter({ school_code: targetSchool }, "student_name", 500),
+      ]);
+      const studentNames = new Map(students.map((student) => [student.id, student.student_name]));
+      return Response.json({ success: true, logs: logs.map((log) => ({ ...log, student_name: studentNames.get(log.student_id) || "Student record unavailable" })) });
     }
 
     if (action === "send_parent_email") {
