@@ -1,0 +1,51 @@
+{
+  "name": "SeatingPlan",
+  "type": "object",
+  "properties": {
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "name": {
+      "type": "string",
+      "title": "Plan Name"
+    },
+    "columns": {
+      "type": "number",
+      "title": "Columns",
+      "default": 6
+    },
+    "seats": {
+      "type": "array",
+      "title": "Seats",
+      "items": {
+        "type": "object",
+        "properties": {
+          "student_id": {
+            "type": "string"
+          },
+          "row": {
+            "type": "number"
+          },
+          "column": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "student_id",
+          "row",
+          "column"
+        ]
+      }
+    }
+  },
+  "required": [
+    "class_id",
+    "school_code",
+    "name"
+  ]
+}

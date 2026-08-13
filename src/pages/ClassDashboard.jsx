@@ -12,7 +12,7 @@ import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import DetentionDialog from "@/components/class/DetentionDialog";
 import ClassLessonPlans from "@/components/class/ClassLessonPlans";
 import TeacherAssignments from "@/components/assignments/TeacherAssignments";
-import { ArrowLeft, Users, UserCheck, Calendar, CalendarDays, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Users, UserCheck, Calendar, CalendarDays, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert, Armchair } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "text-emerald-600", warning: "text-amber-600", minor: "text-orange-600", major: "text-rose-600" };
@@ -200,6 +200,7 @@ export default function ClassDashboard() {
       </SectionCard>
 
       <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm"><Link to={`/classes/${classId}/seating-plan`}><Armchair className="w-4 h-4 mr-1.5" /> Seating plan</Link></Button>
         <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <ClassGradesExportButton className={cls.class_name} students={students} attainment={attainment} />

@@ -56,6 +56,7 @@ import AccountSettings from './pages/AccountSettings';
 import StudentAccessAudit from './pages/StudentAccessAudit';
 import StudentLoginManagement from './pages/StudentLoginManagement';
 import StudentPortalLayout from '@/components/StudentPortalLayout';
+import SeatingPlan from './pages/SeatingPlan';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -123,6 +124,7 @@ const AuthenticatedApp = () => {
         <Route path="/my-classes" element={<MyClasses />} />
         <Route path="/assignment-submissions" element={<TeacherAssignmentSubmissions />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
+        <Route path="/classes/:classId/seating-plan" element={<SeatingPlan />} />
         <Route path="/students/:studentId" element={<StudentProfile />} />
         <Route path="/training" element={<TrainingPortal />} />
         <Route path="/training-dashboard" element={<TrainingDashboard />} />
