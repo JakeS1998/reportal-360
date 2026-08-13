@@ -12,11 +12,12 @@ const SEGMENTS = [
 ];
 
 function toPercents(values, total) {
+  if (!values.length || !total) return [];
   const exact = values.map((v) => (v / total) * 100);
   const floored = exact.map((v) => Math.floor(v));
-  let remainder = 100 - floored.reduce((a, b) => a + b, 0);
+  const remainder = 100 - floored.reduce((a, b) => a + b, 0);
   const fracs = exact.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
-  for (let i = 0; i < remainder; i++) floored[fracs[i].i]++;
+  for (let i = 0; i < remainder && i < fracs.length; i++) floored[fracs[i].i]++;
   return floored;
 }
 
