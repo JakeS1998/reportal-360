@@ -11,6 +11,7 @@ import ClassGradesExportButton from "@/components/class/ClassGradesExportButton"
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import DetentionDialog from "@/components/class/DetentionDialog";
 import ClassLessonPlans from "@/components/class/ClassLessonPlans";
+import AttendanceTrend from "@/components/class/AttendanceTrend";
 import TeacherAssignments from "@/components/assignments/TeacherAssignments";
 import { ArrowLeft, Users, UserCheck, Calendar, CalendarDays, CalendarCheck, GraduationCap, ClipboardCheck, Plus, ShieldAlert, Armchair } from "lucide-react";
 
@@ -247,19 +248,8 @@ export default function ClassDashboard() {
       </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SectionCard title="Recent Attendance" icon={Calendar}>
-          {attendance.length === 0 ? (
-            <p className="text-sm text-slate-400">No attendance records.</p>
-          ) : (
-            <div className="space-y-2 max-h-60 overflow-auto">
-              {attendance.slice(0, 10).map((a) => (
-                <div key={a.id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">{a.date}</span>
-                  <span className={`font-medium ${STATUS_COLOR[a.status] || "text-slate-500"}`}>{a.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <SectionCard title="Attendance Trend" icon={Calendar}>
+          <AttendanceTrend attendance={attendance} />
         </SectionCard>
 
         <SectionCard title="Recent Assessments" icon={GraduationCap}>
