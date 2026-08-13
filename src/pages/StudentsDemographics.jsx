@@ -27,8 +27,9 @@ export default function StudentsDemographics() {
 
   const school = activeSchool;
   const p = school.previous || {};
-  const growth = school.enrollment != null && p.enrollment != null ? Math.round(((school.enrollment - p.enrollment) / p.enrollment) * 1000) / 10 : null;
-  const gained = school.enrollment != null && p.enrollment != null ? school.enrollment - p.enrollment : null;
+  const rosterEnrollment = metrics.total;
+  const growth = null;
+  const gained = null;
   const race = metrics.race;
   const subgroups = metrics.subgroups;
   const econDis = subgroups.find((sg) => sg.label === "Economically Disadvantaged");
@@ -39,7 +40,7 @@ export default function StudentsDemographics() {
     <div className="space-y-8">
       <FadeIn>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Current Enrollment" value={school.enrollment} previous={p.enrollment} accent="#1D4ED8" year="2026" />
+          <KpiCard label="Current Enrollment" value={rosterEnrollment} accent="#1D4ED8" year="2026" tooltip="Active students in the current roster, after any selected filters." />
           <KpiCard label="YoY Growth" value={growth} suffix="%" accent={growth >= 0 ? "#10B981" : "#EF4444"} year="2026" />
           <KpiCard label="Net Population Change" value={gained ?? null} signed accent={gained >= 0 ? "#10B981" : "#EF4444"} year="2026" tooltip="Net change in enrollment compared to the previous report year." />
           <KpiCard label="Free & Reduced Meals" value={freeMealsCount} previous={metrics.prev?.econDisadvantaged} suffix={freeMealsPct != null ? ` (${freeMealsPct}%)` : ""} accent="#F59E0B" year="2026" tooltip={`Students eligible for free or reduced-price meals (Economically Disadvantaged)${freeMealsPct != null ? ` — ${freeMealsPct}% of roster` : ""}`} />
@@ -101,7 +102,7 @@ export default function StudentsDemographics() {
             </div>
             <div>
               <p className="text-xs text-slate-500">Current Year</p>
-              <p className="text-3xl font-bold text-slate-900">{school.enrollment ?? "—"}</p>
+              <p className="text-3xl font-bold text-slate-900">{rosterEnrollment}</p>
             </div>
           </div>
         </SectionCard>

@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { base44 } from "@/api/base44Client";
 import { useSchool } from "@/lib/SchoolContext";
-import { generateStudentRoster } from "@/lib/sampleStudentData";
 
 function applyFilters(rows, filters) {
   return rows.filter((r) => {
@@ -27,29 +27,37 @@ function avgScores(students) {
 }
 
 export function useStudentMetrics() {
-  const { activeSchool, loading, filters } = useSchool();
+  const { activeSchool, loading, filters, user } = useSchool();
+  const [roster, setRoster] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
 
-  const filtered = useMemo(() => {
-    if (!activeSchool) return [];
-    return applyFilters(generateStudentRoster(activeSchool), filters);
-  }, [activeSchool, filters]);
+  useEffect(() => {
+    if (!activeSchool?.school_code) return;
+    let active = true;
+    setRosterLoading(true);
+    base44.functions.invoke("manageStudents", {
+      action: "list",
+      caller_username: user?.username,
+      caller_password: user?.password || localStorage.getItem("userPassword") || "",
+      school_code: activeSchool.school_code,
+    }).then((res) => {
+      if (!active) return;
+      setRoster((res.data?.students || []).map((student) => ({
+        ...student,
+        scores: student.scores || {},
+        grades: student.grades || {},
+        attendanceRate: student.attendanceRate ?? null,
+      })));
+    }).catch(() => {
+      if (active) setRoster([]);
+    }).finally(() => {
+      if (active) setRosterLoading(false);
+    });
+    return () => { active = false; };
+  }, [activeSchool?.school_code, user?.username]);
 
-  const prev = useMemo(() => {
-    if (!activeSchool) return null;
-    const prevSchool = { ...activeSchool, year: String(parseInt(activeSchool.year || "2026") - 1) };
-    const pf = applyFilters(generateStudentRoster(prevSchool), filters);
-    const total = pf.length;
-    const attVals = pf.map((r) => r.attendanceRate).filter((v) => v != null);
-    const chronic = pf.filter((r) => r.attendanceRate < 90).length;
-    return {
-      total,
-      avgAttendance: avg(attVals),
-      chronic,
-      chronicRate: total ? Math.round((chronic / total) * 1000) / 10 : null,
-      econDisadvantaged: pf.filter((r) => r.economically_disadvantaged).length,
-      proficiency: avgScores(pf),
-    };
-  }, [activeSchool, filters]);
+  const filtered = useMemo(() => applyFilters(roster, filters), [roster, filters]);
+  const prev = null;
 
   return useMemo(() => {
     const total = filtered.length;
@@ -127,7 +135,7 @@ export function useStudentMetrics() {
       total, roster: filtered, race, subgroups, proficiency,
       matrixRows, gradeBreakdown,
       avgAttendance: proficiency.attendance, chronic, approaching, onTrack, attendanceByGrade,
-      rankings, prev, loading,
+      rankings, prev, loading: loading || rosterLoading,
     };
-  }, [filtered, prev, loading]);
+  }, [filtered, prev, loading, rosterLoading]);
 }
