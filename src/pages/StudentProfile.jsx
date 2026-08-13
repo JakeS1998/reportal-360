@@ -77,7 +77,7 @@ export default function StudentProfile() {
 
   return (
     <div className="space-y-6">
-      <button onClick={() => (location.state?.fromClassId ? navigate(`/classes/${location.state.fromClassId}`) : navigate(-1))} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+      <button onClick={() => navigate(location.state?.fromClassId ? `/classes/${location.state.fromClassId}` : "/students")} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
