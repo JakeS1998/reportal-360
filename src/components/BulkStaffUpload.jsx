@@ -17,11 +17,16 @@ export default function BulkStaffUpload({ callerCreds, school, onImported }) {
   const upload = async () => {
     if (!file) return;
     setLoading(true); setResult(null);
-    const records = parseCsv(await file.text());
-    const response = await base44.functions.invoke("manageSchoolStaff", { action: "bulk_create", ...callerCreds, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name, system_name: school.system_name, records });
-    setResult(response.data);
-    if (response.data?.success) onImported?.();
-    setLoading(false);
+    try {
+      const records = parseCsv(await file.text());
+      const response = await base44.functions.invoke("manageSchoolStaff", { action: "bulk_create", ...callerCreds, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name, system_name: school.system_name, records });
+      setResult(response.data);
+      if (response.data?.success) onImported?.();
+    } catch (error) {
+      setResult({ success: false, error: error.response?.data?.error || "The staff upload could not be completed." });
+    } finally {
+      setLoading(false);
+    }
   };
   const downloadCredentials = () => {
     const rows = [["Full Name", "Username", "Temporary Password"], ...(result?.credentials || []).map((item) => [item.full_name, item.username, item.temp_password])];
