@@ -7,6 +7,7 @@ import { exportDashboardPdf } from "@/lib/exportPdf";
 export default function FilterBar({ school, contentRef }) {
   const { user, systemSchools, selectSchool, filters, setFilter, isArea } = useSchool();
   const isCommissioner = user?.role === "commissioner" || isArea;
+  const canUseDashboardFilters = isCommissioner || user?.role === "manager" || user?.role === "admin";
   const commissionerSchools = isCommissioner && systemSchools?.length ? systemSchools : null;
   const [exporting, setExporting] = useState(false);
 
@@ -38,9 +39,9 @@ export default function FilterBar({ school, contentRef }) {
         <Divider />
         <FilterSelect
           label="School Year"
-          value={isCommissioner ? filters.year : (school?.year || "2025")}
+          value={canUseDashboardFilters ? filters.year : (school?.year || "2025")}
           options={yearOptions}
-          onChange={isCommissioner ? (val) => setFilter("year", val) : null}
+          onChange={canUseDashboardFilters ? (val) => setFilter("year", val) : null}
         />
         <Divider />
         <FilterSelect
@@ -59,30 +60,30 @@ export default function FilterBar({ school, contentRef }) {
         <Divider />
         <FilterSelect
           label="Grade"
-          value={isCommissioner ? filters.grade : "All Grades"}
+          value={canUseDashboardFilters ? filters.grade : "All Grades"}
           options={["All Grades", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]}
-          onChange={isCommissioner ? (val) => setFilter("grade", val) : null}
+          onChange={canUseDashboardFilters ? (val) => setFilter("grade", val) : null}
         />
         <Divider />
         <FilterSelect
           label="Subject"
-          value={isCommissioner ? filters.subject : "All Subjects"}
+          value={canUseDashboardFilters ? filters.subject : "All Subjects"}
           options={["All Subjects", "Math", "Reading", "Science"]}
-          onChange={isCommissioner ? (val) => setFilter("subject", val) : null}
+          onChange={canUseDashboardFilters ? (val) => setFilter("subject", val) : null}
         />
         <Divider />
         <FilterSelect
           label="Student Group"
-          value={isCommissioner ? filters.studentGroup : "All Students"}
+          value={canUseDashboardFilters ? filters.studentGroup : "All Students"}
           options={["All Students", "Economically Disadvantaged", "Students with Disabilities", "English Learners", "Homeless", "Foster", "Military Family"]}
-          onChange={isCommissioner ? (val) => setFilter("studentGroup", val) : null}
+          onChange={canUseDashboardFilters ? (val) => setFilter("studentGroup", val) : null}
         />
         <Divider />
         <FilterSelect
           label="Gender"
-          value={isCommissioner ? filters.gender : "All Gender"}
+          value={canUseDashboardFilters ? filters.gender : "All Gender"}
           options={["All Gender", "Male", "Female"]}
-          onChange={isCommissioner ? (val) => setFilter("gender", val) : null}
+          onChange={canUseDashboardFilters ? (val) => setFilter("gender", val) : null}
         />
         <div className="ml-auto shrink-0 pl-2.5">
           <ExportPdfButton onClick={handleExport} loading={exporting} />
