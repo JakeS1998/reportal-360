@@ -364,6 +364,16 @@ export default function ClassManagement() {
       const enrolled = new Set(cm.studentAssignments.filter((sa) => sa.status === "active").map((sa) => `${sa.student_id}|${sa.class_id}`));
       const subjectOf = {}; // classId -> subject (for reporting)
       activeClasses.forEach((c) => { subjectOf[c.id] = c.subject; });
+      const classById = Object.fromEntries(activeClasses.map((c) => [c.id, c]));
+      const enrolledSubjects = new Set(
+        cm.studentAssignments
+          .filter((sa) => sa.status === "active")
+          .map((sa) => {
+            const cls = classById[sa.class_id];
+            return cls ? `${sa.student_id}|${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}` : null;
+          })
+          .filter(Boolean)
+      );
 
       const toCreate = [];
       const perStudent = {};
@@ -377,12 +387,16 @@ export default function ClassManagement() {
         for (const [key, classList] of Object.entries(groups)) {
           const [g, subj] = key.split("|");
           if (g !== grade) continue;
-          classList.sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
-          const target = classList[0];
-          if (enrolled.has(`${s.id}|${target.id}`)) continue;
+          const subjectKey = `${s.id}|${grade}|${subj}`;
+          if (enrolledSubjects.has(subjectKey)) continue;
+          const target = [...classList]
+            .filter((cls) => (counts[cls.id] || 0) < 30)
+            .sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0))[0];
+          if (!target || enrolled.has(`${s.id}|${target.id}`)) continue;
           toCreate.push({ student_id: s.id, student_name: s.student_name, class_id: target.id, academic_year_id: cm.currentYear?.id || "", school_code: cm.schoolCode, status: "active" });
           counts[target.id] = (counts[target.id] || 0) + 1;
           enrolled.add(`${s.id}|${target.id}`);
+          enrolledSubjects.add(subjectKey);
           (perStudent[s.id] ||= new Set()).add(subj);
         }
       }
