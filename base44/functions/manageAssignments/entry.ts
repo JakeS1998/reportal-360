@@ -13,10 +13,10 @@ async function getCaller(base44, body) {
   return resolveStaffCaller(base44, { callerUsername: body.caller_username, callerPassword: body.caller_password, callerEmail: body.caller_email, callerSso: body.caller_sso });
 }
 
-async function similarityCheck(base44, text) {
-  if (!text?.trim()) return { score: null, note: 'No typed response was supplied for the AI similarity check.' };
+async function similarityCheck(base44, fileUrl) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: `Review this student assignment response for signs of copied, templated, or unusually generic phrasing. Do not claim to search the internet or detect plagiarism conclusively. Return a cautious similarity-risk estimate from 0 to 100 and a short student-friendly explanation. Response:\n${text.slice(0, 12000)}`,
+    prompt: 'Review the attached student assignment document for signs of copied, templated, or unusually generic phrasing. Do not claim to search the internet or detect plagiarism conclusively. Return a cautious similarity-risk estimate from 0 to 100 and a short student-friendly explanation.',
+    file_urls: [fileUrl],
     response_json_schema: { type: 'object', properties: { score: { type: 'number' }, note: { type: 'string' } }, required: ['score', 'note'] }
   });
   return { score: Math.max(0, Math.min(100, Math.round(result.score))), note: result.note };
@@ -70,10 +70,10 @@ export default async function(req) {
       const assignment = await service.Assignment.get(body.assignment_id);
       if (!assignment || assignment.school_code !== caller.school_code || assignment.status !== 'open' || new Date(assignment.deadline).getTime() < Date.now()) return Response.json({ success: false, error: 'This assignment is no longer accepting submissions' }, { status: 403 });
       const enrolled = await service.StudentClass.filter({ student_id: caller.id, class_id: assignment.class_id, status: 'active' }, undefined, 1);
-      if (!enrolled.length || (!body.file_url && !body.submission_text?.trim())) return Response.json({ success: false, error: 'Upload a file or include a typed response' }, { status: 400 });
+      if (!enrolled.length || !body.file_url) return Response.json({ success: false, error: 'Upload an assignment document' }, { status: 400 });
       const existing = await service.AssignmentSubmission.filter({ assignment_id: assignment.id, student_id: caller.id }, undefined, 1);
-      const ai = await similarityCheck(base44, body.submission_text || '').catch(() => ({ score: null, note: 'AI similarity check is temporarily unavailable.' }));
-      const payload = { assignment_id: assignment.id, student_id: caller.id, student_name: caller.student_name, file_url: body.file_url || '', file_name: body.file_name || '', submission_text: body.submission_text || '', submitted_at: new Date().toISOString(), plagiarism_score: ai.score, plagiarism_note: ai.note, teacher_viewed_by: [], status: 'submitted' };
+      const ai = await similarityCheck(base44, body.file_url).catch(() => ({ score: null, note: 'AI similarity check is temporarily unavailable.' }));
+      const payload = { assignment_id: assignment.id, student_id: caller.id, student_name: caller.student_name, file_url: body.file_url, file_name: body.file_name || '', submission_text: '', submitted_at: new Date().toISOString(), plagiarism_score: ai.score, plagiarism_note: ai.note, teacher_viewed_by: [], status: 'submitted' };
       const submission = existing.length ? await service.AssignmentSubmission.update(existing[0].id, payload) : await service.AssignmentSubmission.create(payload);
       return Response.json({ success: true, submission });
     }

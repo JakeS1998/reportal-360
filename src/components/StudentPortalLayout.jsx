@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, LayoutDashboard, LogOut } from "lucide-react";
+import { BookOpen, Calendar, ClipboardCheck, LayoutDashboard, LogOut } from "lucide-react";
 import AlabamaOutline from "@/components/AlabamaOutline";
 import LogoMono from "@/components/LogoMono";
 
@@ -25,7 +25,10 @@ export default function StudentPortalLayout() {
   const school = session.school;
   const links = [
     { to: "/my-student", label: "My Dashboard", icon: LayoutDashboard },
-    { to: "/my-assignments", label: "My Assignments", icon: BookOpen },
+    { to: "/student-performance", label: "Performance", icon: BookOpen },
+    { to: "/student-schedule", label: "Schedule", icon: Calendar },
+    { to: "/student-attendance", label: "Attendance", icon: ClipboardCheck },
+    { to: "/my-assignments", label: "Assignments", icon: BookOpen },
   ];
   const signOut = () => { localStorage.removeItem("userSession"); navigate("/login", { replace: true }); };
 

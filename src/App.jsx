@@ -42,6 +42,9 @@ import AccessReview from './pages/AccessReview';
 import Homeroom from './pages/Homeroom';
 import ReportBuilder from './pages/ReportBuilder';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentPerformance from './pages/StudentPerformance';
+import StudentSchedule from './pages/StudentSchedule';
+import StudentAttendance from './pages/StudentAttendance';
 import MyAssignments from './pages/MyAssignments';
 import TeacherAssignmentSubmissions from './pages/TeacherAssignmentSubmissions';
 import ClassCover from './pages/ClassCover';
@@ -95,6 +98,9 @@ const AuthenticatedApp = () => {
       <Route path="/sso-callback" element={<SsoCallback />} />
       <Route element={<StudentPortalLayout />}>
         <Route path="/my-student" element={<StudentDashboard />} />
+        <Route path="/student-performance" element={<StudentPerformance />} />
+        <Route path="/student-schedule" element={<StudentSchedule />} />
+        <Route path="/student-attendance" element={<StudentAttendance />} />
         <Route path="/my-assignments" element={<MyAssignments />} />
       </Route>
       <Route path="/admin/policies" element={<PolicyManagement />} />
