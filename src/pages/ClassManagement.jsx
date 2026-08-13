@@ -756,104 +756,20 @@ export default function ClassManagement() {
 
       {/* Auto-Schedule Result */}
       <Dialog open={!!autoResult} onOpenChange={(v) => !v && setAutoResult(null)}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Auto-Schedule Result</DialogTitle>
           </DialogHeader>
-          {autoResult?.error ? (
-            <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{autoResult.error}</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-lg bg-emerald-50 p-3">
-                  <p className="text-2xl font-bold text-emerald-600">{autoResult?.scheduled || 0}</p>
-                  <p className="text-xs text-slate-500">Sessions placed</p>
-                </div>
-                <div className="rounded-lg bg-blue-50 p-3">
-                  <p className="text-2xl font-bold text-blue-600">{autoResult?.assigned?.length || 0}</p>
-                  <p className="text-xs text-slate-500">Teachers auto-assigned</p>
-                </div>
-                <div className="rounded-lg bg-amber-50 p-3">
-                  <p className="text-2xl font-bold text-amber-600">{autoResult?.failed?.length || 0}</p>
-                  <p className="text-xs text-slate-500">Flagged</p>
-                </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {autoResult?.error ? (
+              <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{autoResult.error}</p>
+            ) : (
+              <div className="space-y-4">
+...
               </div>
-              {autoResult?.assigned?.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-slate-600">Auto-assigned teachers</p>
-                  {autoResult.assigned.map((a, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                      <span className="font-medium text-slate-700">{a.class}</span>
-                      <span className="text-blue-600">→ {a.teacher}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {autoResult?.failed?.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Could not schedule:</p>
-                  <div className="max-h-52 overflow-y-auto space-y-1.5">
-                    {autoResult.failed.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                        <span className="font-medium text-slate-700">{f.name}</span>
-                        <span className="text-amber-600">{f.reason}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {autoResult?.suggestions?.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Student conflicts — alternative class suggestions:</p>
-                    <div className="flex items-center gap-1.5">
-                      <Button size="sm" variant="outline" className="h-7 text-xs border-slate-200" disabled={accepting} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, i) => i))}>
-                        Accept All
-                      </Button>
-                      <Button size="sm" className="h-7 text-xs bg-slate-900 hover:bg-slate-800" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>
-                        {accepting ? "Moving…" : `Accept Selected (${selectedSuggestions.size})`}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="max-h-52 overflow-y-auto space-y-1.5">
-                    {autoResult.suggestions.map((s, i) => {
-                      const canAccept = !!s.alt?.id;
-                      const checked = selectedSuggestions.has(i);
-                      return (
-                        <div key={i} className="text-xs bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-start gap-2">
-                          <Checkbox
-                            checked={checked}
-                            disabled={!canAccept || accepting}
-                            onCheckedChange={(v) => {
-                              const next = new Set(selectedSuggestions);
-                              if (v) next.add(i); else next.delete(i);
-                              setSelectedSuggestions(next);
-                            }}
-                            className="mt-0.5 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-700">{s.student}</span>
-                              <span className="text-amber-600">{s.fromClass} · {s.day} {s.time}</span>
-                            </div>
-                            {s.alt ? (
-                              <p className="text-slate-500 mt-1">→ Suggested alternative: <span className="font-medium text-slate-700">{s.alt.name}</span>{s.alt.meets ? ` (${s.alt.meets}${s.alt.clashes ? ", has clashes" : ""})` : ""}</p>
-                            ) : (
-                              <p className="text-slate-500 mt-1">→ No alternative class of the same subject available.</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {autoResult?.scheduled > 0 && autoResult?.failed?.length === 0 && (
-                <p className="text-sm text-emerald-600 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> All unscheduled classes were placed.</p>
-              )}
-            </div>
-          )}
-          <DialogFooter>
+            )}
+          </div>
+          <DialogFooter className="shrink-0">
             <Button onClick={() => setAutoResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
           </DialogFooter>
         </DialogContent>
