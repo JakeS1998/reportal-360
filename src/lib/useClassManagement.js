@@ -30,7 +30,7 @@ export function useClassManagement() {
         base44.entities.AcademicYear.filter({ school_code: schoolCode }, "-start_date", 100),
         base44.entities.Class.filter({ school_code: schoolCode }, "-created_date", 500),
         base44.entities.TeacherClass.filter({ school_code: schoolCode }, undefined, 500),
-        base44.entities.StudentClass.filter({ school_code: schoolCode }, undefined, 500),
+        base44.entities.StudentClass.filter({ school_code: schoolCode }, undefined, 5000),
       ]);
       setAcademicYears(yearsRes);
       setClasses(classesRes);
