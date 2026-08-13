@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Armchair, GripVertical } from "lucide-react";
 
-export default function ClassroomDesigner({ seats, students, selectedSeatId, onSelectSeat, onMoveSeat }) {
+export default function ClassroomDesigner({ seats, students, selectedSeatId, gridlines, onSelectSeat, onMoveSeat }) {
   const canvasRef = useRef(null);
   const draggingRef = useRef(null);
   const studentById = new Map(students.map((student) => [student.student_id, student]));
@@ -27,7 +27,7 @@ export default function ClassroomDesigner({ seats, students, selectedSeatId, onS
     onSelectSeat(seat.seat_id);
   };
 
-  return <div ref={canvasRef} className="relative min-h-[620px] overflow-hidden rounded-2xl border border-sky-100 bg-slate-50 shadow-inner">
+  return <div ref={canvasRef} className="relative min-h-[620px] overflow-hidden rounded-2xl border border-sky-100 bg-slate-50 shadow-inner" style={gridlines ? { backgroundImage: "linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)", backgroundSize: "48px 48px" } : undefined}>
     <div className="absolute left-1/2 top-6 -translate-x-1/2 rounded-lg bg-sky-500 px-12 py-3 text-center text-sm font-bold text-white shadow-sm">Teacher desk</div>
     <p className="absolute left-1/2 top-24 -translate-x-1/2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Front of classroom</p>
     {seats.map((seat) => {
