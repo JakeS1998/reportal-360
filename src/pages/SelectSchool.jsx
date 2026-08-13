@@ -10,6 +10,7 @@ import DormantUnlockInput from "@/components/DormantUnlockInput";
 import { completeLogin, setTempSession } from "@/lib/authFlow";
 import LogoTransparent from "@/components/LogoTransparent";
 import GoogleIcon from "@/components/GoogleIcon";
+import { Image } from "@/components/ui/image";
 
 const SCENES = [
   { time: "morning", url: "https://images.unsplash.com/photo-1440582096070-fa5961d9d682?auto=format&fit=crop&w=1920&q=80", title: "Birmingham Skyline", location: "Birmingham, Alabama", fact: "Founded in 1871, Birmingham grew so fast it earned the nickname 'The Magic City.'" },
@@ -27,6 +28,10 @@ const SCENES = [
   { time: "evening", url: "https://images.unsplash.com/photo-1644578843995-b2cc1acbdf33?auto=format&fit=crop&w=1920&q=80", title: "Gulf Coast Sunset", location: "Gulf Shores, Alabama", fact: "Alabama's Gulf Coast boasts 32 miles of sugar-white sand beaches along the Gulf of Mexico." },
   { time: "evening", url: "https://images.unsplash.com/photo-1622409408503-f3ff61cc631b?auto=format&fit=crop&w=1920&q=80", title: "Huntsville Skyline", location: "Huntsville, Alabama", fact: "Huntsville is nicknamed 'The Rocket City' for its pivotal role in developing the Saturn V moon rocket." },
   { time: "evening", url: "https://images.unsplash.com/photo-1605813640975-0ef0ad36826a?auto=format&fit=crop&w=1920&q=80", title: "Saturn V Rocket", location: "Huntsville, Alabama", fact: "The Saturn V at the Space & Rocket Center is one of only three remaining and stands 363 feet tall." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/a05c80435_generated_image.png", title: "Cheaha State Park", location: "Clay County, Alabama", fact: "Cheaha Mountain is Alabama's highest point, rising 2,407 feet above sea level." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/61a1762cd_generated_image.png", title: "Little River Canyon", location: "Northeast Alabama", fact: "Little River is one of the few rivers in the country that flows for most of its length atop a mountain." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d53c05b7b_generated_image.png", title: "Mobile Bay", location: "Mobile, Alabama", fact: "Mobile Bay has played a central role in Alabama's maritime history for more than 300 years." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/16d380734_generated_image.png", title: "Alabama School Community", location: "Alabama", fact: "Alabama's public schools serve students across communities from the foothills to the Gulf Coast." },
 ];
 
 function timeOfDay(h) {
@@ -59,8 +64,12 @@ export default function SelectSchool() {
   const [emailHint, setEmailHint] = useState("");
   const [emailFailed, setEmailFailed] = useState(false);
   const navigate = useNavigate();
-  const [scene] = useState(() => pickScene());
+  const [scene, setScene] = useState(() => pickScene());
   const { greeting, greetingSub, periodLabel } = getGreeting();
+  useEffect(() => {
+    const rotation = setInterval(() => setScene(pickScene()), 30000);
+    return () => clearInterval(rotation);
+  }, []);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -248,10 +257,11 @@ export default function SelectSchool() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-10">
-      <img
+      <Image
         src={scene.url}
         alt={scene.title}
-        className="fixed inset-0 w-full h-full object-cover"
+        className="fixed inset-0 w-full h-full"
+        fittingType="fill"
       />
       <div className="fixed inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
 
