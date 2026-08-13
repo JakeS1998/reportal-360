@@ -52,6 +52,7 @@ import ParentConversations from './pages/ParentConversations';
 import AccountSettings from './pages/AccountSettings';
 import StudentAccessAudit from './pages/StudentAccessAudit';
 import StudentLoginManagement from './pages/StudentLoginManagement';
+import StudentPortalLayout from '@/components/StudentPortalLayout';
 import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
@@ -92,8 +93,10 @@ const AuthenticatedApp = () => {
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route path="/sso-callback" element={<SsoCallback />} />
-      <Route path="/my-student" element={<StudentDashboard />} />
-      <Route path="/my-assignments" element={<MyAssignments />} />
+      <Route element={<StudentPortalLayout />}>
+        <Route path="/my-student" element={<StudentDashboard />} />
+        <Route path="/my-assignments" element={<MyAssignments />} />
+      </Route>
       <Route path="/admin/policies" element={<PolicyManagement />} />
       <Route element={<DashboardLayout />}>
         <Route path="/overview" element={<ExecutiveOverview />} />

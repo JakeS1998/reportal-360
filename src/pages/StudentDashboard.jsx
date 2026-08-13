@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
 import SectionCard from "@/components/SectionCard";
 import Skeleton from "@/components/Skeleton";
 import StudentScheduleGrid from "@/components/student/StudentScheduleGrid";
 import { getWeekStart, addWeeks, formatWeekRange } from "@/lib/scheduleWeeks";
-import { LogOut, GraduationCap, Calendar, BookOpen, ClipboardCheck } from "lucide-react";
+import { Calendar, BookOpen, ClipboardCheck } from "lucide-react";
 
 const callerCreds = (user) => ({
   caller_username: user?.username,
@@ -83,43 +82,12 @@ export default function StudentDashboard() {
     return { rate: Math.round((present / records.length) * 100), present, total: records.length };
   }, [profile]);
 
-  const signOut = () => {
-    localStorage.removeItem("userSession");
-    navigate("/login", { replace: true });
-  };
-
   if (!user) return null;
 
   const student = profile?.student;
-  const school = JSON.parse(localStorage.getItem("userSession") || "{}")?.school;
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <header className="px-4 md:px-8 py-4 flex items-center justify-between gap-3 border-b border-slate-200 bg-white sticky top-0 z-50">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">ReportAL 360 · Student Portal</p>
-            <h1 className="text-base md:text-lg font-bold text-slate-900 truncate">{student?.student_name || user.full_name}</h1>
-            <p className="text-xs text-slate-500 truncate">
-              {school?.school_name || "—"}{student?.grade_level ? ` · Grade ${student.grade_level}` : ""}{student?.homeroom ? ` · ${student.homeroom}` : ""}
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" onClick={signOut} className="border-slate-200">
-          <LogOut className="w-4 h-4 mr-1" /> Sign Out
-        </Button>
-      </header>
-
-      <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-          <div className="flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-amber-600 shrink-0" /><p className="text-xs text-amber-700">Review your grades, schedule, and assignment work in one place.</p></div>
-          <Button size="sm" variant="outline" onClick={() => navigate("/my-assignments")}>My Assignments</Button>
-        </div>
-
-        {loading ? (
+    <div className="max-w-5xl mx-auto space-y-6">
+      {loading ? (
           <div className="space-y-4">
             <Skeleton className="h-32" />
             <Skeleton className="h-64" />
@@ -200,8 +168,7 @@ export default function StudentDashboard() {
               />
             </SectionCard>
           </>
-        )}
-      </main>
+      )}
     </div>
   );
 }
