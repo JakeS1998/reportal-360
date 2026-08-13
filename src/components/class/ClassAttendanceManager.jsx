@@ -16,7 +16,7 @@ const STATUSES = [
 
 const INACTIVE = "bg-white text-slate-400 border-slate-200 hover:bg-slate-50";
 
-export default function ClassAttendanceManager({ classId, scheduleId, dateStr, students, user, onSaved }) {
+export default function ClassAttendanceManager({ classId, scheduleId, dateStr, students, user, individual = false, onSaved }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayName = DAY_NAMES[new Date().getDay()];
   const [date] = useState(dateStr || today);
@@ -57,7 +57,10 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const loadExisting = async () => {
     setLoadingExisting(true);
     try {
-      const recs = await base44.entities.AttendanceRecord.filter({ class_id: classId, schedule_id: scheduleId, date }, undefined, 500);
+      const filters = individual
+        ? { class_id: classId, schedule_id: scheduleId, date, student_id: students[0]?.student_id }
+        : { class_id: classId, schedule_id: scheduleId, date };
+      const recs = await base44.entities.AttendanceRecord.filter(filters, undefined, 500);
       if (recs.length > 0) {
         const m = {};
         recs.forEach((r) => { m[r.student_id] = r.status; });
@@ -83,17 +86,18 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const persist = async (submitted) => {
     setSaving(true);
     try {
-      await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, schedule_id: scheduleId, date });
-      await base44.entities.AttendanceRecord.bulkCreate(
-        students.map((s) => ({
-          student_id: s.student_id,
-          class_id: classId,
-          schedule_id: scheduleId,
-          date,
-          status: marks[s.student_id] || "present",
-          submitted,
-        }))
-      );
+      if (individual) {
+        const student = students[0];
+        const existing = await base44.entities.AttendanceRecord.filter({ class_id: classId, schedule_id: scheduleId, date, student_id: student.student_id }, undefined, 1);
+        const record = { status: marks[student.student_id] || "present", submitted };
+        if (existing[0]) await base44.entities.AttendanceRecord.update(existing[0].id, record);
+        else await base44.entities.AttendanceRecord.create({ student_id: student.student_id, class_id: classId, schedule_id: scheduleId, date, ...record });
+      } else {
+        await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, schedule_id: scheduleId, date });
+        await base44.entities.AttendanceRecord.bulkCreate(
+          students.map((s) => ({ student_id: s.student_id, class_id: classId, schedule_id: scheduleId, date, status: marks[s.student_id] || "present", submitted }))
+        );
+      }
       if (submitted) {
         const absentStudents = students.filter((student) => marks[student.student_id] === "absent");
         await Promise.allSettled(absentStudents.map((student) => base44.functions.invoke("manageParentConversations", {
