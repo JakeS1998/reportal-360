@@ -14,46 +14,29 @@
       "type": "string",
       "title": "Plan Name"
     },
-    "layout_type": {
-      "type": "string",
-      "title": "Classroom Layout",
-      "enum": [
-        "rows",
-        "clusters",
-        "individual"
-      ],
-      "default": "rows"
-    },
-    "columns": {
-      "type": "number",
-      "title": "Columns",
-      "default": 6
-    },
-    "cluster_size": {
-      "type": "number",
-      "title": "Seats Per Cluster",
-      "default": 4
-    },
     "seats": {
       "type": "array",
       "title": "Seats",
       "items": {
         "type": "object",
         "properties": {
+          "seat_id": {
+            "type": "string"
+          },
           "student_id": {
             "type": "string"
           },
-          "row": {
+          "x": {
             "type": "number"
           },
-          "column": {
+          "y": {
             "type": "number"
           }
         },
         "required": [
-          "student_id",
-          "row",
-          "column"
+          "seat_id",
+          "x",
+          "y"
         ]
       }
     }
