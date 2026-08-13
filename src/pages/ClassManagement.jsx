@@ -765,7 +765,52 @@ export default function ClassManagement() {
               <p className="text-sm text-rose-600 flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />{autoResult.error}</p>
             ) : (
               <div className="space-y-4">
-...
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-lg bg-emerald-50 p-3">
+                    <p className="text-2xl font-bold text-emerald-600">{autoResult?.scheduled || 0}</p>
+                    <p className="text-xs text-slate-500">Sessions scheduled</p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 p-3">
+                    <p className="text-2xl font-bold text-amber-600">{autoResult?.failed?.length || 0}</p>
+                    <p className="text-xs text-slate-500">Classes needing attention</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 p-3">
+                    <p className="text-2xl font-bold text-blue-600">{autoResult?.assigned?.length || 0}</p>
+                    <p className="text-xs text-slate-500">Teachers assigned</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600">The scheduler has finished processing the current class list.</p>
+                {(autoResult?.assigned?.length || 0) > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Teacher assignments</h4>
+                    <div className="space-y-2">
+                      {autoResult.assigned.map((item, index) => <div key={`${item.class}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600"><span className="font-medium text-slate-800">{item.class}</span> — {item.teacher}</div>)}
+                    </div>
+                  </div>
+                )}
+                {(autoResult?.failed?.length || 0) > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Classes needing attention</h4>
+                    <div className="space-y-2">
+                      {autoResult.failed.map((item, index) => <div key={`${item.name}-${index}`} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800"><span className="font-medium">{item.name}:</span> {item.reason}</div>)}
+                    </div>
+                  </div>
+                )}
+                {(autoResult?.suggestions?.length || 0) > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-semibold text-slate-800">Suggested student moves</h4>
+                    <div className="space-y-2">
+                      {autoResult.suggestions.map((item, index) => (
+                        <label key={`${item.student_id}-${index}`} className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-600">
+                          <Checkbox checked={selectedSuggestions.has(index)} onCheckedChange={(checked) => setSelectedSuggestions((current) => { const next = new Set(current); checked ? next.add(index) : next.delete(index); return next; })} disabled={!item.alt?.id} />
+                          <span><span className="font-medium text-slate-800">{item.student}</span>: {item.fromClass} conflicts on {item.day} at {item.time}.{item.alt ? ` Move to ${item.alt.name} (${item.alt.meets}).` : " No alternative section is available."}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <Button className="mt-3" variant="outline" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>{accepting ? "Moving students…" : `Apply selected moves (${selectedSuggestions.size})`}</Button>
+                  </div>
+                )}
+                {(autoResult?.scheduled || 0) === 0 && (autoResult?.failed?.length || 0) === 0 && (autoResult?.assigned?.length || 0) === 0 && <p className="text-sm text-slate-500">No new sessions were needed because all active classes are already scheduled.</p>}
               </div>
             )}
           </div>
