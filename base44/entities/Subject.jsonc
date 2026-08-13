@@ -16,6 +16,11 @@
     "color": {
       "type": "string",
       "title": "Color (hex)"
+    },
+    "is_elective": {
+      "type": "boolean",
+      "title": "Elective Subject",
+      "default": false
     }
   },
   "required": [

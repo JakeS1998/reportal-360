@@ -50,6 +50,7 @@ export default function ClassManagement() {
   const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [clearAssignmentsOpen, setClearAssignmentsOpen] = useState(false);
   const [clearingAssignments, setClearingAssignments] = useState(false);
+  const [creatingSections, setCreatingSections] = useState(false);
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -351,69 +352,73 @@ export default function ClassManagement() {
     }
   };
 
-  // Auto-assign students to classes: each student is enrolled into one section
-  // per subject for their grade, balancing enrollment across sections. Only
-  // unassigned (student, subject) pairs are created — existing enrollments stay.
+  const createClassSections = async () => {
+    const activeStudents = cm.students.filter((student) => student.status !== "inactive" && student.grade_level);
+    const managedSubjects = subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom");
+    if (!activeStudents.length || !managedSubjects.length) return;
+    if (!confirm("Create the required class sections for every core and elective subject? Sections are calculated per grade with a maximum of 30 students.")) return;
+    setCreatingSections(true);
+    try {
+      const newClasses = [];
+      const currentYearId = cm.currentYear?.id || "";
+      for (const grade of [...new Set(activeStudents.map((student) => student.grade_level))]) {
+        const enrollment = activeStudents.filter((student) => student.grade_level === grade).length;
+        const sectionsNeeded = Math.ceil(enrollment / 30);
+        for (const subject of managedSubjects) {
+          const existing = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level === grade && cls.subject === subject.name && (!currentYearId || cls.academic_year_id === currentYearId));
+          for (let section = existing.length + 1; section <= sectionsNeeded; section++) {
+            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.rooms?.[0] || "", status: "active", sessions_per_week: 1 });
+          }
+        }
+      }
+      if (newClasses.length > 0) await base44.entities.Class.bulkCreate(newClasses);
+      await cm.loadData();
+      setAssignResult({ sectionsCreated: newClasses.length, created: 0, studentsAssigned: 0, totalStudents: activeStudents.length });
+    } finally {
+      setCreatingSections(false);
+    }
+  };
+
+  // Core subjects are assigned to every student and fully rebalanced across
+  // available sections. Electives remain available for manual enrollment.
   const autoAssignStudents = async () => {
     if (cm.students.length === 0) { setAssignResult({ error: "No students to assign." }); return; }
-    if (!confirm("Auto-assign students to classes by grade and subject? Each student is enrolled into one section per subject for their grade, balancing class sizes. Existing enrollments are kept.")) return;
+    if (!confirm("Rebalance core classes by grade and subject? Existing core enrollments will be replaced so each section stays as even as possible and never exceeds 30 students.")) return;
     setAssignRunning(true);
     setAssignResult(null);
     setAssignProgress({ current: 0, total: cm.students.length, label: "Starting…" });
     try {
-      const activeClasses = cm.classes.filter((c) => c.status === "active" && (c.subject || "").toLowerCase() !== "homeroom" && c.grade_level);
-      // group by grade|subject
+      const electiveSubjects = new Set(subjectDefs.filter((subject) => subject.is_elective).map((subject) => subject.name.trim().toLowerCase()));
+      const currentYearId = cm.currentYear?.id || "";
+      const activeClasses = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level && (cls.subject || "").toLowerCase() !== "homeroom" && !electiveSubjects.has((cls.subject || "").trim().toLowerCase()) && (!currentYearId || cls.academic_year_id === currentYearId));
+      const classById = Object.fromEntries(activeClasses.map((cls) => [cls.id, cls]));
       const groups = {};
-      activeClasses.forEach((c) => {
-        const key = `${c.grade_level}|${(c.subject || "").trim().toLowerCase()}`;
-        (groups[key] ||= []).push(c);
+      activeClasses.forEach((cls) => {
+        const key = `${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`;
+        (groups[key] ||= []).push(cls);
       });
-      const counts = {};
-      cm.studentAssignments.filter((sa) => sa.status === "active").forEach((sa) => { counts[sa.class_id] = (counts[sa.class_id] || 0) + 1; });
-      const enrolled = new Set(cm.studentAssignments.filter((sa) => sa.status === "active").map((sa) => `${sa.student_id}|${sa.class_id}`));
-      const subjectOf = {}; // classId -> subject (for reporting)
-      activeClasses.forEach((c) => { subjectOf[c.id] = c.subject; });
-      const classById = Object.fromEntries(activeClasses.map((c) => [c.id, c]));
-      const enrolledSubjects = new Set(
-        cm.studentAssignments
-          .filter((sa) => sa.status === "active")
-          .map((sa) => {
-            const cls = classById[sa.class_id];
-            return cls ? `${sa.student_id}|${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}` : null;
-          })
-          .filter(Boolean)
-      );
-
+      const existingCoreEnrollments = cm.studentAssignments.filter((assignment) => assignment.status === "active" && classById[assignment.class_id]);
+      if (existingCoreEnrollments.length > 0) await base44.entities.StudentClass.bulkUpdate(existingCoreEnrollments.map((assignment) => ({ id: assignment.id, status: "withdrawn" })));
       const toCreate = [];
-      const perStudent = {};
-      let si = 0;
-      for (const s of cm.students) {
-        si++;
-        if (si % 10 === 0) setAssignProgress({ current: si, total: cm.students.length, label: s.student_name || "" });
-        if (s.status && s.status !== "active") continue;
-        const grade = s.grade_level || "";
-        if (!grade) continue;
+      const unassigned = new Set();
+      const activeStudents = cm.students.filter((student) => student.status !== "inactive" && student.grade_level);
+      let processed = 0;
+      for (const student of activeStudents) {
+        processed++;
+        if (processed % 10 === 0) setAssignProgress({ current: processed, total: activeStudents.length, label: student.student_name || "" });
         for (const [key, classList] of Object.entries(groups)) {
-          const [g, subj] = key.split("|");
-          if (g !== grade) continue;
-          const subjectKey = `${s.id}|${grade}|${subj}`;
-          if (enrolledSubjects.has(subjectKey)) continue;
-          const target = [...classList]
-            .filter((cls) => (counts[cls.id] || 0) < 30)
-            .sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0))[0];
-          if (!target || enrolled.has(`${s.id}|${target.id}`)) continue;
-          toCreate.push({ student_id: s.id, student_name: s.student_name, class_id: target.id, academic_year_id: cm.currentYear?.id || "", school_code: cm.schoolCode, status: "active" });
-          counts[target.id] = (counts[target.id] || 0) + 1;
-          enrolled.add(`${s.id}|${target.id}`);
-          enrolledSubjects.add(subjectKey);
-          (perStudent[s.id] ||= new Set()).add(subj);
+          const [grade] = key.split("|");
+          if (grade !== student.grade_level) continue;
+          const assignedCount = toCreate.filter((assignment) => classList.some((cls) => cls.id === assignment.class_id)).length;
+          const target = classList[assignedCount % classList.length];
+          if (Math.floor(assignedCount / classList.length) >= 30) { unassigned.add(student.id); continue; }
+          toCreate.push({ student_id: student.id, student_name: student.student_name, class_id: target.id, academic_year_id: currentYearId, school_code: cm.schoolCode, status: "active" });
         }
       }
       if (toCreate.length > 0) await base44.entities.StudentClass.bulkCreate(toCreate);
-      const studentsAssigned = Object.keys(perStudent).length;
-      setAssignProgress({ current: cm.students.length, total: cm.students.length, label: "Done" });
-      setAssignResult({ created: toCreate.length, studentsAssigned, totalStudents: cm.students.length });
-      cm.loadData();
+      setAssignProgress({ current: activeStudents.length, total: activeStudents.length, label: "Done" });
+      setAssignResult({ created: toCreate.length, studentsAssigned: activeStudents.length - unassigned.size, totalStudents: activeStudents.length, unassigned: unassigned.size });
+      await cm.loadData();
     } catch (err) {
       console.error(err);
       setAssignResult({ error: err.message || "Failed to auto-assign students" });
@@ -530,8 +535,11 @@ export default function ClassManagement() {
           <Button onClick={() => setClearAssignmentsOpen(true)} disabled={cm.teacherAssignments.length === 0} variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800">
             <UserMinus className="w-4 h-4 mr-1" /> Clear Teacher Assignments
           </Button>
+          <Button onClick={createClassSections} disabled={creatingSections || cm.students.length === 0 || subjectDefs.length === 0} variant="outline" className="border-slate-200">
+            <Plus className="w-4 h-4 mr-1" /> {creatingSections ? "Creating…" : "Create Class Sections"}
+          </Button>
           <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
-            <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Students"}
+            <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Core Students"}
           </Button>
           <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} disabled={autoRunning} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2" title="How often the schedule repeats">
             <option value="weekly">Weekly</option>
@@ -899,9 +907,11 @@ export default function ClassManagement() {
                 </div>
               </div>
               <p className="text-sm text-slate-600">
-                {assignResult?.created > 0
-                  ? `Enrolled ${assignResult.studentsAssigned} of ${assignResult.totalStudents} students into one section per subject for their grade, balancing class sizes.`
-                  : "All students are already enrolled in a section for every subject offered at their grade."}
+                {assignResult?.sectionsCreated !== undefined
+                  ? `${assignResult.sectionsCreated} class section${assignResult.sectionsCreated === 1 ? " was" : "s were"} created. Use Auto Assign Core Students to enroll and evenly balance every student in core subjects.`
+                  : assignResult?.unassigned
+                    ? `${assignResult.unassigned} student${assignResult.unassigned === 1 ? " could" : "s could"} not be assigned because no further section capacity is available. Create more class sections, then run this again.`
+                    : `Enrolled ${assignResult.studentsAssigned} of ${assignResult.totalStudents} students into one section per core subject for their grade, evenly balancing class sizes.`}
               </p>
             </div>
           )}

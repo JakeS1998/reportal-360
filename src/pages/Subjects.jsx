@@ -19,7 +19,7 @@ export default function Subjects() {
 
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: "", color: COLORS[0], rooms: [] });
+  const [form, setForm] = useState({ name: "", color: COLORS[0], rooms: [], is_elective: false });
   const [newRoom, setNewRoom] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -49,14 +49,14 @@ export default function Subjects() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", color: COLORS[0], rooms: [] });
+    setForm({ name: "", color: COLORS[0], rooms: [], is_elective: false });
     setNewRoom("");
     setShowDialog(true);
   };
 
   const openEdit = (subj) => {
     setEditing(subj);
-    setForm({ name: subj.name || "", color: subj.color || COLORS[0], rooms: subj.rooms || [] });
+    setForm({ name: subj.name || "", color: subj.color || COLORS[0], rooms: subj.rooms || [], is_elective: Boolean(subj.is_elective) });
     setNewRoom("");
     setShowDialog(true);
   };
@@ -76,7 +76,7 @@ export default function Subjects() {
     setSaving(true);
     setError("");
     try {
-      const payload = { name: form.name.trim(), color: form.color, rooms: form.rooms };
+      const payload = { name: form.name.trim(), color: form.color, rooms: form.rooms, is_elective: form.is_elective };
       if (editing) await base44.entities.Subject.update(editing.id, payload);
       else await base44.entities.Subject.create(payload);
       setShowDialog(false);
@@ -128,6 +128,7 @@ export default function Subjects() {
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color || "#1D4ED8" }} />
                       <h3 className="text-sm font-semibold text-slate-800">{s.name}</h3>
+                      <span className={`text-[10px] font-semibold rounded px-1.5 py-0.5 ${s.is_elective ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700"}`}>{s.is_elective ? "Elective" : "Core"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
@@ -175,6 +176,11 @@ export default function Subjects() {
                 ))}
               </div>
             </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input type="checkbox" checked={form.is_elective} onChange={(e) => setForm({ ...form, is_elective: e.target.checked })} className="h-4 w-4 rounded border-slate-300" />
+              This is an elective subject
+            </label>
+            <p className="-mt-2 text-xs text-slate-500">Core subjects automatically enroll every student; electives are created for manual enrollment.</p>
             <div>
               <Label className="text-sm font-medium text-slate-700">Rooms</Label>
               <div className="flex gap-2 mt-1">
