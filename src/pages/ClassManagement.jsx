@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import SectionCard from "@/components/SectionCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, Wand2, AlertTriangle, CheckCircle2, CalendarCheck } from "lucide-react";
+import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, UserMinus, Wand2, AlertTriangle, CheckCircle2, CalendarCheck } from "lucide-react";
 import { buildTeachingSlots } from "@/lib/teachingSlots";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
@@ -48,6 +48,8 @@ export default function ClassManagement() {
   const [timetable, setTimetable] = useState(null);
   const [recurrence, setRecurrence] = useState("weekly");
   const [attendanceTarget, setAttendanceTarget] = useState(null);
+  const [clearAssignmentsOpen, setClearAssignmentsOpen] = useState(false);
+  const [clearingAssignments, setClearingAssignments] = useState(false);
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -491,6 +493,21 @@ export default function ClassManagement() {
     }
   };
 
+  const clearTeacherAssignments = async () => {
+    setClearingAssignments(true);
+    try {
+      await Promise.all([
+        base44.entities.TeacherClass.deleteMany({ school_code: cm.schoolCode }),
+        base44.entities.ClassSchedule.updateMany({ school_code: cm.schoolCode }, { $set: { teacher_id: "", teacher_name: "" } }),
+        base44.entities.Class.updateMany({ school_code: cm.schoolCode }, { $set: { teacher_name: "" } }),
+      ]);
+      setClearAssignmentsOpen(false);
+      await cm.loadData();
+    } finally {
+      setClearingAssignments(false);
+    }
+  };
+
   if (cm.loading) {
     return (
       <div className="space-y-4">
@@ -509,7 +526,10 @@ export default function ClassManagement() {
           <h2 className="text-lg font-bold text-slate-900">Classes</h2>
           <p className="text-sm text-slate-500">{filtered.length} class{filtered.length === 1 ? "" : "es"} at {cm.schoolName}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button onClick={() => setClearAssignmentsOpen(true)} disabled={cm.teacherAssignments.length === 0} variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800">
+            <UserMinus className="w-4 h-4 mr-1" /> Clear Teacher Assignments
+          </Button>
           <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
             <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Students"}
           </Button>
@@ -645,6 +665,23 @@ export default function ClassManagement() {
         dateStr={attendanceTarget?.dateStr}
         user={cm.user}
       />
+
+      <Dialog open={clearAssignmentsOpen} onOpenChange={setClearAssignmentsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear teacher assignments?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            This will remove {cm.teacherAssignments.length} teacher assignment{cm.teacherAssignments.length === 1 ? "" : "s"} from classes and clear the linked teacher details from class schedules. Teachers, classes, and student enrollments will not be deleted.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearAssignmentsOpen(false)} disabled={clearingAssignments}>Cancel</Button>
+            <Button variant="destructive" onClick={clearTeacherAssignments} disabled={clearingAssignments}>
+              <UserMinus className="w-4 h-4 mr-1" /> {clearingAssignments ? "Clearing…" : "Clear Assignments"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create / Edit Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
