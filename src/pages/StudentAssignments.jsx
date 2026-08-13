@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
 import { useClassManagement } from "@/lib/useClassManagement";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Users, Upload } from "lucide-react";
+import { Search, ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Users, Upload, AlertTriangle } from "lucide-react";
 import StudentImportDialog from "@/components/StudentImportDialog";
 
 export default function StudentAssignments() {
@@ -14,6 +15,11 @@ export default function StudentAssignments() {
   const [showImport, setShowImport] = useState(false);
   const [selAvail, setSelAvail] = useState(() => new Set());
   const [selAssigned, setSelAssigned] = useState(() => new Set());
+  const [subjectDefs, setSubjectDefs] = useState([]);
+
+  useEffect(() => {
+    base44.entities.Subject.list("name", 200).then(setSubjectDefs);
+  }, []);
 
   useEffect(() => {
     if (selectedClass?.grade_level) setFGrade(selectedClass.grade_level);
@@ -53,6 +59,35 @@ export default function StudentAssignments() {
         return true;
       });
   }, [cm.studentAssignments, cm.students, selectedClassId, search, fGrade, fHomeroom]);
+
+  const coreEnrollmentGaps = useMemo(() => {
+    if (subjectDefs.length === 0) return [];
+    const currentYearId = cm.currentYear?.id;
+    const electiveSubjects = new Set(subjectDefs.filter((subject) => subject.is_elective).map((subject) => subject.name?.trim().toLowerCase()));
+    const coreClasses = activeClasses.filter((cls) => {
+      const subject = cls.subject?.trim().toLowerCase();
+      return cls.status === "active" && cls.grade_level && subject && subject !== "homeroom" && !electiveSubjects.has(subject) && (!currentYearId || cls.academic_year_id === currentYearId);
+    });
+    const requiredSubjectsByGrade = coreClasses.reduce((groups, cls) => {
+      (groups[cls.grade_level] ||= new Set()).add(cls.subject.trim());
+      return groups;
+    }, {});
+    const enrolledSubjectsByStudent = {};
+    cm.studentAssignments.filter((assignment) => assignment.status === "active").forEach((assignment) => {
+      const cls = coreClasses.find((item) => item.id === assignment.class_id);
+      if (!cls) return;
+      (enrolledSubjectsByStudent[assignment.student_id] ||= new Set()).add(cls.subject.trim());
+    });
+    return cm.students
+      .filter((student) => student.status === "active" && student.grade_level && requiredSubjectsByGrade[student.grade_level])
+      .map((student) => {
+        const enrolled = enrolledSubjectsByStudent[student.id] || new Set();
+        const missingSubjects = [...requiredSubjectsByGrade[student.grade_level]].filter((subject) => !enrolled.has(subject));
+        return { ...student, missingSubjects };
+      })
+      .filter((student) => student.missingSubjects.length > 0)
+      .sort((a, b) => String(a.grade_level).localeCompare(String(b.grade_level), undefined, { numeric: true }) || a.student_name.localeCompare(b.student_name));
+  }, [activeClasses, cm.currentYear?.id, cm.studentAssignments, cm.students, subjectDefs]);
 
   const grades = useMemo(() => [...new Set(cm.students.map((s) => s.grade_level).filter(Boolean))].sort(), [cm.students]);
   const homerooms = useMemo(() => [...new Set(cm.students.map((s) => s.homeroom).filter(Boolean))].sort(), [cm.students]);
@@ -110,6 +145,34 @@ export default function StudentAssignments() {
         <Button onClick={() => setShowImport(true)} variant="outline">
           <Upload className="w-4 h-4 mr-1" /> Import Students
         </Button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className={`h-4 w-4 ${coreEnrollmentGaps.length ? "text-amber-500" : "text-emerald-500"}`} />
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Core enrollment gaps</h3>
+              <p className="text-xs text-slate-400">Students missing one or more core subjects for their grade</p>
+            </div>
+          </div>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${coreEnrollmentGaps.length ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{coreEnrollmentGaps.length} student{coreEnrollmentGaps.length === 1 ? "" : "s"}</span>
+        </div>
+        {coreEnrollmentGaps.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-slate-500">All active students are enrolled in every available core subject for their grade.</p>
+        ) : (
+          <div className="max-h-56 divide-y divide-slate-50 overflow-auto">
+            {coreEnrollmentGaps.map((student) => (
+              <div key={student.id} className="flex items-center justify-between gap-4 px-5 py-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{student.student_name}</p>
+                  <p className="text-xs text-slate-400">Grade {student.grade_level}{student.homeroom ? ` · ${student.homeroom}` : ""}</p>
+                </div>
+                <p className="text-right text-xs text-amber-700">Missing: {student.missingSubjects.join(", ")}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
