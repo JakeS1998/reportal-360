@@ -51,6 +51,8 @@ export default function ClassManagement() {
   const [clearAssignmentsOpen, setClearAssignmentsOpen] = useState(false);
   const [clearingAssignments, setClearingAssignments] = useState(false);
   const [creatingSections, setCreatingSections] = useState(false);
+  const [sectionPlannerOpen, setSectionPlannerOpen] = useState(false);
+  const [sectionFrequencies, setSectionFrequencies] = useState({});
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -352,11 +354,17 @@ export default function ClassManagement() {
     }
   };
 
+  const openSectionPlanner = () => {
+    const managedSubjects = subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom");
+    setSectionFrequencies(Object.fromEntries(managedSubjects.map((subject) => [subject.name, 1])));
+    setSectionPlannerOpen(true);
+  };
+
   const createClassSections = async () => {
     const activeStudents = cm.students.filter((student) => student.status !== "inactive" && student.grade_level);
     const managedSubjects = subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom");
     if (!activeStudents.length || !managedSubjects.length) return;
-    if (!confirm("Create the required class sections for every core and elective subject? Sections are calculated per grade with a maximum of 30 students.")) return;
+    setSectionPlannerOpen(false);
     setCreatingSections(true);
     try {
       const newClasses = [];
@@ -367,7 +375,7 @@ export default function ClassManagement() {
         for (const subject of managedSubjects) {
           const existing = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level === grade && cls.subject === subject.name && (!currentYearId || cls.academic_year_id === currentYearId));
           for (let section = existing.length + 1; section <= sectionsNeeded; section++) {
-            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.rooms?.[0] || "", status: "active", sessions_per_week: 1 });
+            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.rooms?.[0] || "", status: "active", sessions_per_week: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1) });
           }
         }
       }
@@ -535,7 +543,7 @@ export default function ClassManagement() {
           <Button onClick={() => setClearAssignmentsOpen(true)} disabled={cm.teacherAssignments.length === 0} variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800">
             <UserMinus className="w-4 h-4 mr-1" /> Clear Teacher Assignments
           </Button>
-          <Button onClick={createClassSections} disabled={creatingSections || cm.students.length === 0 || subjectDefs.length === 0} variant="outline" className="border-slate-200">
+          <Button onClick={openSectionPlanner} disabled={creatingSections || cm.students.length === 0 || subjectDefs.length === 0} variant="outline" className="border-slate-200">
             <Plus className="w-4 h-4 mr-1" /> {creatingSections ? "Creating…" : "Create Class Sections"}
           </Button>
           <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
@@ -673,6 +681,30 @@ export default function ClassManagement() {
         dateStr={attendanceTarget?.dateStr}
         user={cm.user}
       />
+
+      <Dialog open={sectionPlannerOpen} onOpenChange={setSectionPlannerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set weekly class meetings</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">Set how often each identified subject should meet each week. This applies to every section created for that subject.</p>
+          <div className="space-y-3">
+            {subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom").map((subject) => (
+              <div key={subject.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{subject.name}</p>
+                  <p className="text-xs text-slate-500">{subject.is_elective ? "Elective" : "Core"}</p>
+                </div>
+                <Input type="number" min={1} max={5} value={sectionFrequencies[subject.name] || 1} onChange={(e) => setSectionFrequencies({ ...sectionFrequencies, [subject.name]: e.target.value })} className="w-20" aria-label={`${subject.name} meetings per week`} />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSectionPlannerOpen(false)}>Cancel</Button>
+            <Button onClick={createClassSections} disabled={creatingSections} className="bg-slate-900 hover:bg-slate-800">Create Sections</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={clearAssignmentsOpen} onOpenChange={setClearAssignmentsOpen}>
         <DialogContent>
