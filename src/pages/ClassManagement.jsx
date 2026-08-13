@@ -66,6 +66,12 @@ export default function ClassManagement() {
   }, [cm.schoolCode]);
 
   const teachingSlots = useMemo(() => buildTeachingSlots(timetable), [timetable]);
+  const plannedWeeklyBlocks = useMemo(
+    () => subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom")
+      .reduce((total, subject) => total + (Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1)), 0),
+    [subjectDefs, sectionFrequencies]
+  );
+  const weeklyBlocksAvailable = timetable ? teachingSlots.length * SCHED_DAYS.length : 0;
 
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
@@ -688,6 +694,16 @@ export default function ClassManagement() {
             <DialogTitle>Set weekly class meetings</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600">Set how often each identified subject should meet each week. This applies to every section created for that subject.</p>
+          <div className={`rounded-lg border p-3 ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
+            <p className="text-sm font-semibold text-slate-800">Student weekly blocks: {plannedWeeklyBlocks} of {weeklyBlocksAvailable || "—"}</p>
+            <p className={`mt-1 text-xs ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "text-rose-700" : "text-slate-600"}`}>
+              {timetable
+                ? plannedWeeklyBlocks > weeklyBlocksAvailable
+                  ? `This exceeds your timetable by ${plannedWeeklyBlocks - weeklyBlocksAvailable} block${plannedWeeklyBlocks - weeklyBlocksAvailable === 1 ? "" : "s"}.`
+                  : `${weeklyBlocksAvailable - plannedWeeklyBlocks} block${weeklyBlocksAvailable - plannedWeeklyBlocks === 1 ? " remains" : "s remain"} available each week.`
+                : "Set up school hours first to see the weekly block limit."}
+            </p>
+          </div>
           <div className="space-y-3">
             {subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom").map((subject) => (
               <div key={subject.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3">
