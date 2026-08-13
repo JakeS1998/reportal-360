@@ -9,7 +9,6 @@ import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import KpiCard from "@/components/KpiCard";
 import TeacherStudents from "@/components/TeacherStudents";
-import { generateStudentRoster } from "@/lib/sampleStudentData";
 import { Users } from "lucide-react";
 
 export default function Students() {
@@ -19,14 +18,22 @@ export default function Students() {
   const [homerooms, setHomerooms] = useState([]);
   const [homeroomByStudentNumber, setHomeroomByStudentNumber] = useState({});
   const [studentIdsByNumber, setStudentIdsByNumber] = useState({});
+  const [students, setStudents] = useState([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
 
-  const rows = useMemo(() => activeSchool ? generateStudentRoster(activeSchool) : [], [activeSchool]);
+  const rows = useMemo(() => students.map((student) => ({
+    ...student,
+    scores: student.scores || {},
+    grades: student.grades || {},
+    attendanceRate: student.attendanceRate ?? null,
+  })), [students]);
 
   // Merge real homeroom assignments (stored on the Homeroom entity's student_ids)
   // into the roster rows by matching the real Student record's student_number.
   useEffect(() => {
     if (!activeSchool?.school_code) return;
     let active = true;
+    setRosterLoading(true);
     (async () => {
       try {
         const [hrRes, studentsRes] = await Promise.all([
@@ -40,6 +47,7 @@ export default function Students() {
         ]);
         if (!active) return;
         setHomerooms(hrRes);
+        setStudents(studentsRes.data?.students || []);
         const idToNumber = {};
         const profileIds = {};
         (studentsRes.data?.students || []).forEach((s) => {
@@ -59,6 +67,8 @@ export default function Students() {
         setHomeroomByStudentNumber(map);
       } catch (err) {
         console.error(err);
+      } finally {
+        if (active) setRosterLoading(false);
       }
     })();
     return () => { active = false; };
@@ -103,7 +113,7 @@ export default function Students() {
     return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : null;
   };
 
-  if (loading || !activeSchool) {
+  if (loading || rosterLoading || !activeSchool) {
     return (
       <div className="space-y-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
