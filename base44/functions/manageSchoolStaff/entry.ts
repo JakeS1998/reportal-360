@@ -69,6 +69,10 @@ export default async function(req) {
       if (!["admin", "area", "manager"].includes(callerRole)) return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
       const credentials = [];
       const errors = [];
+      const subjectRecords = await base44.asServiceRole.entities.Subject.list("name", 500);
+      const subjectsByName = new Map(subjectRecords.map((subject) => [subject.name.trim().toLowerCase(), subject]));
+      const importedSubjectRooms = new Map();
+
       for (let index = 0; index < records.length; index++) {
         const item = records[index];
         const full_name = item.full_name?.trim();
@@ -83,12 +87,40 @@ export default async function(req) {
         const customPassword = item.password?.trim();
         const passwordError = customPassword ? validatePasswordComplexity(customPassword) : null;
         if (passwordError) { errors.push(`Row ${index + 2}: ${passwordError}`); continue; }
+        const subjectName = item.subject?.trim() || "";
+        const roomName = item.room?.trim() || "";
         const temp_password = customPassword || generateRandomPassword();
-        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: item.subject?.trim() || "", subjects: item.subject?.trim() ? [item.subject.trim()] : [], room: item.room?.trim() || "", teacher_id: username, password_reset_required: true });
+        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectName, subjects: subjectName ? [subjectName] : [], room: roomName, teacher_id: username, password_reset_required: true });
         credentials.push({ full_name, username, temp_password });
+        if (subjectName) {
+          const key = subjectName.toLowerCase();
+          const imported = importedSubjectRooms.get(key) || { name: subjectName, rooms: new Set() };
+          if (roomName) imported.rooms.add(roomName);
+          importedSubjectRooms.set(key, imported);
+        }
       }
-      await logAudit(base44, "staff_bulk_created", caller_username || "", callerRole, `Created ${credentials.length} staff accounts at ${school_code}`, school_code);
-      return Response.json({ success: true, count: credentials.length, credentials, errors });
+
+      let subjectsCreated = 0;
+      let roomsAdded = 0;
+      for (const [key, imported] of importedSubjectRooms) {
+        const existingSubject = subjectsByName.get(key);
+        if (!existingSubject) {
+          await base44.asServiceRole.entities.Subject.create({ name: imported.name, rooms: [...imported.rooms] });
+          subjectsCreated++;
+          roomsAdded += imported.rooms.size;
+          continue;
+        }
+        const existingRooms = existingSubject.rooms || [];
+        const knownRooms = new Set(existingRooms.map((room) => room.toLowerCase()));
+        const newRooms = [...imported.rooms].filter((room) => !knownRooms.has(room.toLowerCase()));
+        if (newRooms.length > 0) {
+          await base44.asServiceRole.entities.Subject.update(existingSubject.id, { rooms: [...existingRooms, ...newRooms] });
+          roomsAdded += newRooms.length;
+        }
+      }
+
+      await logAudit(base44, "staff_bulk_created", caller_username || "", callerRole, `Created ${credentials.length} staff accounts, ${subjectsCreated} subjects, and ${roomsAdded} room assignments at ${school_code}`, school_code);
+      return Response.json({ success: true, count: credentials.length, credentials, errors, subjects_created: subjectsCreated, rooms_added: roomsAdded });
     }
 
     // --- CREATE ---
