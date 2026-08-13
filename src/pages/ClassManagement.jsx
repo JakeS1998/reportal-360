@@ -242,13 +242,20 @@ export default function ClassManagement() {
         if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
         const classSlots = isHomeroom ? [homeroomSlot] : slots;
         let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
-        // Auto-assign a teacher by subject if none assigned
+        // Homerooms can use any active staff member; other classes match staff by subject.
         if (!tAssign) {
           const subj = (cls.subject || "").trim().toLowerCase();
           if (!subj) { failed.push({ name: cls.class_name, reason: "No teacher and no subject to match" }); continue; }
-          const candidates = activeTeachers.filter((t) => (t.subject || "").toLowerCase().includes(subj) && t.active !== false);
+          const candidates = activeTeachers.filter((t) => isHomeroom || (t.subject || "").toLowerCase().includes(subj));
           if (candidates.length === 0) { failed.push({ name: cls.class_name, reason: `No teacher found for ${cls.subject}` }); continue; }
-          candidates.sort((a, b) => countFree(b.id) - countFree(a.id));
+          candidates.sort((a, b) => {
+            if (isHomeroom) {
+              const aFree = SCHED_DAYS.filter((day) => teacherFree(a.id, day, homeroomSlot)).length;
+              const bFree = SCHED_DAYS.filter((day) => teacherFree(b.id, day, homeroomSlot)).length;
+              return bFree - aFree;
+            }
+            return countFree(b.id) - countFree(a.id);
+          });
           const pick = candidates[0];
           await base44.entities.TeacherClass.create({ teacher_id: pick.id, teacher_name: pick.full_name || "", class_id: cls.id, role: "Primary Teacher", school_code: cm.schoolCode });
           tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
@@ -770,7 +777,7 @@ export default function ClassManagement() {
 
       {/* Auto-Schedule Result */}
       <Dialog open={!!autoResult} onOpenChange={(v) => !v && setAutoResult(null)}>
-        <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden">
+        <DialogContent className="!flex h-[90vh] max-h-[calc(100vh-2rem)] flex-col overflow-hidden">
           <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Auto-Schedule Result</DialogTitle>
           </DialogHeader>
