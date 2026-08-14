@@ -47,6 +47,7 @@ export default function ClassManagement() {
   const [assignProgress, setAssignProgress] = useState({ current: 0, total: 0, label: "" });
   const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
   const [accepting, setAccepting] = useState(false);
+  const [moveConfirmation, setMoveConfirmation] = useState("");
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
   const [scheduleStyle, setScheduleStyle] = useState("traditional");
@@ -223,6 +224,7 @@ export default function ClassManagement() {
     setAutoResult(null);
     setAutoProgress({ current: 0, total: 0, label: "Preparing…" });
     setSelectedSuggestions(new Set());
+    setMoveConfirmation("");
     try {
       const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5);
       const timetable = ttRes[0];
@@ -697,6 +699,7 @@ export default function ClassManagement() {
       const remaining = list.filter((_, i) => !done.has(i));
       setAutoResult({ ...autoResult, suggestions: remaining });
       setSelectedSuggestions(new Set());
+      setMoveConfirmation(`${targets.length} student${targets.length === 1 ? " was" : "s were"} moved successfully.`);
       cm.loadData();
     } catch (err) {
       console.error(err);
@@ -1126,6 +1129,7 @@ export default function ClassManagement() {
                       <Button variant="outline" disabled={accepting || !autoResult.suggestions.some((item) => item.alt?.id)} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, index) => index))}>{accepting ? "Moving students…" : "Accept all recommendations"}</Button>
                       <Button variant="outline" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>{accepting ? "Moving students…" : `Apply selected moves (${selectedSuggestions.size})`}</Button>
                     </div>
+                    {moveConfirmation && <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" />{moveConfirmation}</p>}
                   </div>
                 )}
                 {(autoResult?.scheduled || 0) === 0 && (autoResult?.failed?.length || 0) === 0 && (autoResult?.assigned?.length || 0) === 0 && <p className="text-sm text-slate-500">No new sessions were needed because all active classes are already scheduled.</p>}
