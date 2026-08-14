@@ -13,7 +13,7 @@ import TeacherWorkload from "@/components/schedule/TeacherWorkload";
 import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
 import { useSubjectColors } from "@/lib/useSubjectColors";
-import { getCycleDayType } from "@/lib/schedulingModels";
+import { getCycleDayType, getSchoolDays } from "@/lib/schedulingModels";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
@@ -141,7 +141,7 @@ export default function Schedule() {
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager").sort((a, b) => (a.full_name || a.username || "").localeCompare(b.full_name || b.username || ""));
   const activeClasses = cm.classes.filter((c) => c.status === "active");
   const gradeLevels = [...new Set(cm.classes.map((item) => item.grade_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
-  const scheduleDays = timetable?.scheduling_model === "rotating_block" ? (timetable.cycle_day_types?.length ? timetable.cycle_day_types : ["A", "B"]) : DAYS;
+  const scheduleDays = timetable?.scheduling_model === "rotating_block" ? (timetable.cycle_day_types?.length ? timetable.cycle_day_types : ["A", "B"]) : getSchoolDays(timetable);
 
   const openCreate = (overrides = {}) => {
     setEditing(null);
@@ -167,30 +167,18 @@ export default function Schedule() {
     setShowForm(true);
   };
 
-  const hasConflict = (teacherId, day, start, end, excludeId) => {
+  const hasConflict = (teacherId, day, start, end, excludedIds = new Set()) => {
     const sMin = toMin(start);
     const eMin = toMin(end);
-    return schedules.some((s) =>
-      s.teacher_id === teacherId &&
-      (s.day_type || s.day_of_week) === day &&
-      s.id !== excludeId &&
-      sMin < toMin(s.end_time) &&
-      eMin > toMin(s.start_time)
-    );
+    return schedules.some((s) => s.teacher_id === teacherId && (s.day_type || s.day_of_week) === day && !excludedIds.has(s.id) && sMin < toMin(s.end_time) && eMin > toMin(s.start_time));
   };
 
-  const hasStudentConflict = (classId, day, start, end, excludeId) => {
+  const hasStudentConflict = (classId, day, start, end, excludedIds = new Set()) => {
     const studentIds = new Set(cm.studentAssignments.filter((assignment) => assignment.class_id === classId && assignment.status === "active").map((assignment) => assignment.student_id));
     if (studentIds.size === 0) return false;
     const sMin = toMin(start);
     const eMin = toMin(end);
-    return schedules.some((schedule) =>
-      (schedule.day_type || schedule.day_of_week) === day &&
-      schedule.id !== excludeId &&
-      sMin < toMin(schedule.end_time) &&
-      eMin > toMin(schedule.start_time) &&
-      cm.studentAssignments.some((assignment) => assignment.class_id === schedule.class_id && assignment.status === "active" && studentIds.has(assignment.student_id))
-    );
+    return schedules.some((schedule) => (schedule.day_type || schedule.day_of_week) === day && !excludedIds.has(schedule.id) && sMin < toMin(schedule.end_time) && eMin > toMin(schedule.start_time) && cm.studentAssignments.some((assignment) => assignment.class_id === schedule.class_id && assignment.status === "active" && studentIds.has(assignment.student_id)));
   };
 
   const handleSave = async (e) => {
@@ -198,45 +186,44 @@ export default function Schedule() {
     setFormError("");
     if (!form.class_id || !form.teacher_id) { setFormError("Select a class and a teacher."); return; }
     if (toMin(form.end_time) <= toMin(form.start_time)) { setFormError("End time must be after start time."); return; }
-    if (hasConflict(form.teacher_id, form.day_of_week, form.start_time, form.end_time, editing?.id)) {
-      setFormError("That teacher already has a class overlapping this time on " + form.day_of_week + ".");
-      return;
-    }
-    if (hasStudentConflict(form.class_id, form.day_of_week, form.start_time, form.end_time, editing?.id)) {
-      setFormError("One or more students already have a class overlapping this time on " + form.day_of_week + ".");
-      return;
-    }
     const cls = cm.classes.find((c) => c.id === form.class_id);
     const teacher = cm.teachers.find((t) => t.id === form.teacher_id);
-    if (DAYS.includes(form.day_of_week) && teacher?.working_days?.length && !teacher.working_days.includes(form.day_of_week)) {
-      setFormError(`${teacher.full_name || "This teacher"} does not work on ${form.day_of_week}.`);
-      return;
+    const isTraditional = (timetable?.scheduling_model || "traditional") === "traditional";
+    const meetingDays = isTraditional ? getSchoolDays(timetable).filter((day) => !teacher?.working_days?.length || teacher.working_days.includes(day)) : [form.day_of_week];
+    if (!meetingDays.length) { setFormError(`${teacher?.full_name || "This teacher"} has no working days in this school timetable.`); return; }
+    const linkedSchedules = editing && isTraditional ? schedules.filter((schedule) => schedule.class_id === editing.class_id && schedule.schedule_type === "traditional") : editing ? [editing] : [];
+    const excludedIds = new Set(linkedSchedules.map((schedule) => schedule.id));
+    for (const day of meetingDays) {
+      if (hasConflict(form.teacher_id, day, form.start_time, form.end_time, excludedIds)) { setFormError(`That teacher already has a class overlapping this time on ${day}.`); return; }
+      if (hasStudentConflict(form.class_id, day, form.start_time, form.end_time, excludedIds)) { setFormError(`One or more students already have a class overlapping this time on ${day}.`); return; }
+      if (!isTraditional && DAYS.includes(day) && teacher?.working_days?.length && !teacher.working_days.includes(day)) { setFormError(`${teacher.full_name || "This teacher"} does not work on ${day}.`); return; }
     }
-    const payload = {
+    const sharedPayload = {
       class_id: form.class_id,
       class_name: cls?.class_name || "",
       school_code: cm.schoolCode,
       teacher_id: form.teacher_id,
       teacher_name: teacher?.full_name || "",
       room: form.room,
-      day_of_week: form.day_of_week,
       start_time: form.start_time,
       end_time: form.end_time,
       schedule_type: timetable?.scheduling_model || "traditional",
-      day_type: timetable?.scheduling_model === "rotating_block" ? form.day_of_week : "",
       recurrence_type: form.recurrence_type || "weekly",
       recurrence_weeks: form.recurrence_type === "biweekly" ? 2 : 1,
       start_date: weekStart.toISOString().slice(0, 10),
       locked: form.locked,
     };
-    if (editing) {
-      await base44.entities.ClassSchedule.update(editing.id, payload);
+    const payloadForDay = (day) => ({ ...sharedPayload, day_of_week: day, day_type: timetable?.scheduling_model === "rotating_block" ? day : "" });
+    if (editing && isTraditional) {
+      const currentByDay = new Map(linkedSchedules.map((schedule) => [schedule.day_of_week, schedule]));
+      await Promise.all(meetingDays.map((day) => currentByDay.has(day) ? base44.entities.ClassSchedule.update(currentByDay.get(day).id, payloadForDay(day)) : base44.entities.ClassSchedule.create(payloadForDay(day))));
+      await Promise.all(linkedSchedules.filter((schedule) => !meetingDays.includes(schedule.day_of_week)).map((schedule) => base44.entities.ClassSchedule.delete(schedule.id)));
+    } else if (editing) {
+      await base44.entities.ClassSchedule.update(editing.id, payloadForDay(form.day_of_week));
     } else {
-      await base44.entities.ClassSchedule.create(payload);
+      await base44.entities.ClassSchedule.bulkCreate(meetingDays.map(payloadForDay));
       const exists = cm.teacherAssignments.find((ta) => ta.teacher_id === form.teacher_id && ta.class_id === form.class_id);
-      if (!exists && teacher) {
-        await base44.entities.TeacherClass.create({ teacher_id: form.teacher_id, teacher_name: teacher.full_name || "", class_id: form.class_id, role: "Primary Teacher", school_code: cm.schoolCode });
-      }
+      if (!exists && teacher) await base44.entities.TeacherClass.create({ teacher_id: form.teacher_id, teacher_name: teacher.full_name || "", class_id: form.class_id, role: "Primary Teacher", school_code: cm.schoolCode });
     }
     setShowForm(false);
     setEditing(null);
@@ -504,10 +491,10 @@ export default function Schedule() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-sm font-medium text-slate-700">{timetable?.scheduling_model === "rotating_block" ? "Cycle day" : "Day"}</Label>
-                <select value={form.day_of_week} onChange={(e) => setForm({ ...form, day_of_week: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                <Label className="text-sm font-medium text-slate-700">{timetable?.scheduling_model === "traditional" ? "Meeting days" : timetable?.scheduling_model === "rotating_block" ? "Cycle day" : "Day"}</Label>
+                {timetable?.scheduling_model === "traditional" ? <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">Every selected school day</div> : <select value={form.day_of_week} onChange={(e) => setForm({ ...form, day_of_week: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                   {scheduleDays.map((d) => <option key={d} value={d}>{timetable?.scheduling_model === "rotating_block" ? `${d} Day` : d}</option>)}
-                </select>
+                </select>}
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Start</Label>

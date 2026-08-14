@@ -396,10 +396,9 @@ export default function ClassManagement() {
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
-        // Secondary schedules use the exact configured weekly frequency. Daily
-        // repetition is reserved for the elementary classroom blocks handled below.
+        // Traditional schedules use one consistent time pattern across every school day.
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
-        const dailyPattern = false;
+        const dailyPattern = classTimetable?.scheduling_model === "traditional";
         const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
         const target = dailyPattern
           ? Math.max(1, Math.ceil((parseInt(cls.sessions_per_week, 10) || 1) / getSchoolDays(classTimetable).length))
