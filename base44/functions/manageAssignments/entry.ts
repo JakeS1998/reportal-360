@@ -5,9 +5,9 @@ import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 async function getCaller(base44, body) {
   const admin = getAdminCredentials();
   if (body.caller_username === admin.username && body.caller_password === admin.password) return { role: 'admin', id: 'admin', full_name: 'Administrator' };
-  if (body.caller_username?.endsWith('.student')) {
-    const students = await base44.asServiceRole.entities.Student.filter({ username: body.caller_username, password: body.caller_password }, undefined, 1);
-    if (!students.length || students[0].status !== 'active') return null;
+  const students = await base44.asServiceRole.entities.Student.filter({ username: body.caller_username, password: body.caller_password }, undefined, 1);
+  if (students.length) {
+    if (students[0].status !== 'active') return null;
     return { ...students[0], role: 'student', full_name: students[0].student_name };
   }
   return resolveStaffCaller(base44, { callerUsername: body.caller_username, callerPassword: body.caller_password, callerEmail: body.caller_email, callerSso: body.caller_sso });
