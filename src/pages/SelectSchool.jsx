@@ -73,10 +73,6 @@ export default function SelectSchool() {
   const navigate = useNavigate();
   const [scene, setScene] = useState(() => pickScene());
   const { greeting, greetingSub, periodLabel } = getGreeting();
-  useEffect(() => {
-    const rotation = setInterval(() => setScene(pickScene()), 30000);
-    return () => clearInterval(rotation);
-  }, []);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
