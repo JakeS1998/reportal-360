@@ -20,6 +20,7 @@ import LeaderboardCard from "@/components/LeaderboardCard";
 import RadarComparison from "@/components/RadarComparison";
 import SectionHeader from "@/components/SectionHeader";
 import AccessReviewBanner from "@/components/AccessReviewBanner";
+import DashboardMetricGrid from "@/components/insights/DashboardMetricGrid";
 
 export default function ExecutiveOverview() {
   const { school, activeSchool, loading, filters, isManager, user } = useSchool();
@@ -84,12 +85,14 @@ export default function ExecutiveOverview() {
       <SectionHeader title="Academic Performance" subtitle="Proficiency and engagement metrics from the 2026 student roster" icon={GraduationCap} />
 
       <FadeIn delay={40}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <KpiCard label="Math Proficiency" value={metrics.proficiency.math} previous={metrics.prev?.proficiency.math} accent="#1D4ED8" year="2026" tooltip="Average math score across all students in the 2026 roster. Trend compares against the previous year." onClick={() => navigate("/academics")} />
-          <KpiCard label="Reading Proficiency" value={metrics.proficiency.reading} previous={metrics.prev?.proficiency.reading} accent="#7C3AED" year="2026" tooltip="Average reading score across all students in the 2026 roster. Trend compares against the previous year." onClick={() => navigate("/academics")} />
-          <KpiCard label="Chronic Absenteeism" value={chronicRate} previous={metrics.prev?.chronicRate} suffix="%" lowerIsBetter accent="#F59E0B" year="2026" tooltip="Percentage of students with attendance below 90% (missing 15+ school days). Lower values are better." onClick={() => navigate("/attendance")} />
-          <KpiCard label="Avg Attendance" value={metrics.avgAttendance} previous={metrics.prev?.avgAttendance} suffix="%" accent="#10B981" year="2026" tooltip="Average daily attendance rate across all students in the 2026 roster." onClick={() => navigate("/attendance")} />
-        </div>
+        <DashboardMetricGrid
+          user={user}
+          isTeacher={user?.role === "teacher"}
+          canManage={isManager || user?.role === "admin" || user?.role === "area"}
+          metrics={metrics}
+          chronicRate={chronicRate}
+          onNavigate={navigate}
+        />
       </FadeIn>
 
       <FadeIn delay={80}>

@@ -1,0 +1,20 @@
+{
+  "name": "InsightAccessConfig",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "allowed_teacher_metrics": {
+      "type": "array",
+      "title": "Teacher Insight Metrics",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "school_code"
+  ]
+}
