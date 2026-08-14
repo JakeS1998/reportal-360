@@ -57,7 +57,6 @@ import StudentAccessAudit from './pages/StudentAccessAudit';
 import StudentLoginManagement from './pages/StudentLoginManagement';
 import StudentPortalLayout from '@/components/StudentPortalLayout';
 import SeatingPlan from './pages/SeatingPlan';
-import AlLauncher from '@/components/report/AlLauncher';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -152,7 +151,6 @@ function App() {
         <Router>
           <ScrollToTop />
           <AuthenticatedApp />
-          <AlLauncher />
         </Router>
         <Toaster />
       </QueryClientProvider>
