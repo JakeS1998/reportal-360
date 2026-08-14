@@ -479,7 +479,7 @@ export default function ClassManagement() {
         const elementaryGroups = elementary ? elementaryTeacherGroups(grade) : [];
         const sectionsNeeded = elementary ? elementaryGroups.length : Math.ceil(activeStudents.filter((student) => student.grade_level === grade).length / 30);
         const subjectsToCreate = elementary
-          ? [{ name: "PE", sessions: 1 }, { name: "Music", sessions: 1 }]
+          ? [{ name: "Physical Education", sessions: 1 }, { name: "Music", sessions: 1 }]
           : managedSubjects.map((subject) => ({ name: subject.name, sessions: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1), room: subject.rooms?.[0] || "" }));
         for (const subject of subjectsToCreate) {
           const existing = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level === grade && cls.subject === subject.name && (!currentYearId || cls.academic_year_id === currentYearId));
@@ -508,7 +508,7 @@ export default function ClassManagement() {
     try {
       const electiveSubjects = new Set(subjectDefs.filter((subject) => subject.is_elective).map((subject) => subject.name.trim().toLowerCase()));
       const currentYearId = cm.currentYear?.id || "";
-      const elementarySubjects = new Set(["pe", "music"]);
+      const elementarySubjects = new Set(["physical education", "music"]);
       const activeClasses = cm.classes.filter((cls) => {
         const subject = (cls.subject || "").trim().toLowerCase();
         const included = isElementaryGrade(cls.grade_level) ? elementarySubjects.has(subject) : subject !== "homeroom" && !electiveSubjects.has(subject);
