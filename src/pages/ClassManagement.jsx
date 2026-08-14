@@ -355,6 +355,31 @@ export default function ClassManagement() {
         return { name: pick.alt.class_name, meets: pick.meets, clashes: pick.clashes, id: pick.alt.id };
       };
 
+      // In a flexible-weekly timetable, distribute enough subject meetings to cover
+      // every available teaching block for students enrolled in each grade's core classes.
+      const flexibleSessionTargets = {};
+      if (timetable?.scheduling_model === "flexible_weekly") {
+        const groupsByGrade = {};
+        cm.classes.filter((cls) => cls.status === "active" && !isElementaryClassroom(cls) && (classStudents[cls.id]?.size || 0) > 0)
+          .forEach((cls) => {
+            const key = `${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`;
+            if (!cls.grade_level || !cls.subject || (cls.subject || "").toLowerCase() === "homeroom") return;
+            groupsByGrade[cls.grade_level] ||= {};
+            groupsByGrade[cls.grade_level][key] ||= [];
+            groupsByGrade[cls.grade_level][key].push(cls);
+          });
+        Object.entries(groupsByGrade).forEach(([grade, subjectGroups]) => {
+          const gradeTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === grade) || timetable;
+          const requiredBlocks = buildScheduleSlots(gradeTimetable).length;
+          const targets = Object.fromEntries(Object.entries(subjectGroups).map(([key, classes]) => [key, Math.max(...classes.map((cls) => parseInt(cls.sessions_per_week, 10) || 1))]));
+          while (Object.values(targets).reduce((sum, count) => sum + count, 0) < requiredBlocks) {
+            const next = Object.keys(targets).sort((a, b) => targets[a] - targets[b] || a.localeCompare(b))[0];
+            targets[next]++;
+          }
+          Object.entries(targets).forEach(([key, target]) => { flexibleSessionTargets[key] = target; });
+        });
+      }
+
       // Schedule the most-constrained classes first (most enrolled students), so
       // shared students get a consistent timetable before less-shared classes fill slots.
       const queue = cm.classes
@@ -371,9 +396,10 @@ export default function ClassManagement() {
         // times weekly therefore occupies one matching slot on every school day.
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
         const dailyPattern = classTimetable?.scheduling_model === "traditional" && !isHomeroom;
+        const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
         const target = dailyPattern
           ? Math.max(1, Math.ceil((parseInt(cls.sessions_per_week, 10) || 1) / getSchoolDays(classTimetable).length))
-          : Math.max(1, Math.min(modelSlots.length, parseInt(cls.sessions_per_week, 10) || 1));
+          : Math.max(1, Math.min(modelSlots.length, flexibleTarget || parseInt(cls.sessions_per_week, 10) || 1));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
         const homeroomSlot = classTimetable?.homeroom_start && classTimetable?.homeroom_end
