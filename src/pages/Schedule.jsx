@@ -95,8 +95,17 @@ export default function Schedule() {
     if (!cm.schoolCode) return;
     setLoading(true);
     try {
-      const res = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, "start_time", 500);
-      setSchedules(res);
+      const timetableRows = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode });
+      const schoolTimetable = timetableRows.find((row) => row.scope === "school") || timetableRows[0];
+      const startTimes = [...new Set([
+        schoolTimetable?.school_start,
+        schoolTimetable?.homeroom_start,
+        ...(schoolTimetable?.periods || []).map((period) => period.start),
+      ].filter(Boolean))];
+      const batches = await Promise.all(startTimes.map((startTime) =>
+        base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode, start_time: startTime }, "start_time", 500)
+      ));
+      setSchedules(batches.flat());
     } catch (err) {
       console.error(err);
     } finally {
