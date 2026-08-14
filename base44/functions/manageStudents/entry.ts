@@ -226,6 +226,32 @@ export default async function(req) {
       return Response.json({ success: true });
     }
 
+    // --- CLASS_DETAILS ---
+    if (action === "class_details") {
+      const { class_id } = params;
+      if (!class_id) return Response.json({ success: false, error: "class_id required" }, { status: 400 });
+      if (callerRole === "student") return Response.json({ success: false, error: "Not authorized" }, { status: 403 });
+      const classRecord = await base44.asServiceRole.entities.Class.get(class_id);
+      if (!classRecord || !(await authorizeSchool(classRecord.school_code))) {
+        return Response.json({ success: false, error: "Class unavailable" }, { status: 403 });
+      }
+      if (callerRole === "teacher") {
+        const assignments = await base44.asServiceRole.entities.TeacherClass.filter({ teacher_id: callerId, class_id }, undefined, 1);
+        if (assignments.length === 0) return Response.json({ success: false, error: "Not authorized for this class" }, { status: 403 });
+      }
+      const [enrollments, schedules, students] = await Promise.all([
+        base44.asServiceRole.entities.StudentClass.filter({ class_id, status: "active" }, "student_name", 100),
+        base44.asServiceRole.entities.ClassSchedule.filter({ class_id }, undefined, 100),
+        base44.asServiceRole.entities.Student.filter({ school_code: classRecord.school_code }, "student_name", 500),
+      ]);
+      const studentNames = new Map(students.map((student) => [student.id, student.student_name]));
+      return Response.json({
+        success: true,
+        students: enrollments.map((enrollment) => ({ id: enrollment.student_id, student_name: studentNames.get(enrollment.student_id) || enrollment.student_name || "Student" })),
+        schedules: schedules.map((schedule) => ({ id: schedule.id, day_of_week: schedule.day_of_week, start_time: schedule.start_time, end_time: schedule.end_time, room: schedule.room || "" })),
+      });
+    }
+
     // --- GET_PROFILE (student + related FERPA records, all school-scoped) ---
     if (action === "get_profile") {
       const { student_id } = params;

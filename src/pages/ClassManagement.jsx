@@ -97,13 +97,22 @@ export default function ClassManagement() {
   const getYearName = (yearId) => cm.academicYears.find((y) => y.id === yearId)?.name || "—";
 
   const openClassDetail = async (cls) => {
-    const students = cm.studentAssignments
-      .filter((assignment) => assignment.class_id === cls.id && assignment.status === "active")
-      .map((assignment) => cm.students.find((student) => student.id === assignment.student_id) || assignment)
-      .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""));
-    setClassDetail({ className: cls.class_name, students, schedules: [], loading: true });
-    const schedules = await base44.entities.ClassSchedule.filter({ class_id: cls.id }, undefined, 100);
-    setClassDetail({ className: cls.class_name, students, schedules, loading: false });
+    setClassDetail({ className: cls.class_name, students: [], schedules: [], loading: true });
+    try {
+      const response = await base44.functions.invoke("manageStudents", {
+        action: "class_details",
+        class_id: cls.id,
+        school_code: cm.schoolCode,
+        caller_username: cm.user?.username,
+        caller_password: cm.user?.password || localStorage.getItem("userPassword") || "",
+        caller_email: cm.user?.email || "",
+        caller_sso: Boolean(cm.user?.sso || cm.user?.email),
+      });
+      if (!response.data?.success) throw new Error(response.data?.error || "Unable to load class details");
+      setClassDetail({ className: cls.class_name, students: response.data.students || [], schedules: response.data.schedules || [], loading: false });
+    } catch (error) {
+      setClassDetail({ className: cls.class_name, students: [], schedules: [], loading: false, error: error.response?.data?.error || error.message || "Unable to load class details" });
+    }
   };
 
   const teacherInitials = (teacherId) => {
