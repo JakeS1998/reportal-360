@@ -78,6 +78,8 @@ export default function Schedule() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teacherFilter, setTeacherFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formError, setFormError] = useState("");
@@ -262,7 +264,14 @@ export default function Schedule() {
     openCreate({ day_of_week: timetable?.scheduling_model === "rotating_block" ? getCycleDayType(date, timetable) : day, start_time: mmToHHMM(min), end_time: mmToHHMM(Math.min(DAY_END_MIN, min + 60)) });
   };
 
-  const filtered = useMemo(() => schedules.filter((s) => !teacherFilter || s.teacher_id === teacherFilter), [schedules, teacherFilter]);
+  const subjectOptions = useMemo(() => [...new Set(activeClasses.map((item) => item.subject).filter(Boolean))].sort(), [activeClasses]);
+  const hasScheduleFilter = Boolean(teacherFilter || subjectFilter || gradeFilter);
+  const filtered = useMemo(() => schedules.filter((schedule) => {
+    const cls = activeClasses.find((item) => item.id === schedule.class_id);
+    return (!teacherFilter || schedule.teacher_id === teacherFilter)
+      && (!subjectFilter || cls?.subject === subjectFilter)
+      && (!gradeFilter || cls?.grade_level === gradeFilter);
+  }), [schedules, activeClasses, teacherFilter, subjectFilter, gradeFilter]);
   const byDay = (day) => {
     const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day));
     const cycleDay = timetable?.scheduling_model === "rotating_block" ? getCycleDayType(date, timetable) : "";
@@ -289,8 +298,16 @@ export default function Schedule() {
         </div>
         <div className="flex items-center gap-2">
           <select value={teacherFilter} onChange={(e) => setTeacherFilter(e.target.value)} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2">
-            <option value="">All teachers</option>
+            <option value="">Filter by teacher</option>
             {activeTeachers.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+          </select>
+          <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2">
+            <option value="">Filter by subject</option>
+            {subjectOptions.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
+          </select>
+          <select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2">
+            <option value="">Filter by grade</option>
+            {gradeLevels.map((grade) => <option key={grade} value={grade}>Grade {grade}</option>)}
           </select>
           <Button variant="outline" onClick={handleClearSchedule} disabled={clearing || schedules.length === 0} className="border-rose-200 text-rose-600 hover:bg-rose-50">
             <Trash2 className="w-4 h-4 mr-1" /> {clearing ? "Clearing…" : "Clear Schedule"}
@@ -323,6 +340,11 @@ export default function Schedule() {
         <div className="text-center py-16">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <p className="text-sm text-slate-400">Create a class first, then schedule it here.</p>
+        </div>
+      ) : !hasScheduleFilter ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
+          <CalendarDays className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+          <p className="text-sm text-slate-500">Choose a teacher, subject, or grade to view its weekly schedule.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-4 overflow-x-auto">
