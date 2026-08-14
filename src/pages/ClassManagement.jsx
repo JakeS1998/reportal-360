@@ -469,6 +469,21 @@ export default function ClassManagement() {
         }
       }
       const elementaryBlocks = cm.classes.filter((cls) => cls.status === "active" && isElementaryClassroom(cls));
+      const elementarySpecialistOccupied = (classId, day, slot) => {
+        const classroomStudents = classStudents[classId] || new Set();
+        if (!classroomStudents.size) return false;
+        return cm.classes.some((candidate) => {
+          const subject = (candidate.subject || "").toLowerCase();
+          if (!['physical education', 'music'].includes(subject)) return false;
+          const specialistStudents = classStudents[candidate.id] || new Set();
+          const sharesStudents = [...classroomStudents].some((studentId) => specialistStudents.has(studentId));
+          if (!sharesStudents) return false;
+          return (byClass[candidate.id] || []).some((session) => {
+            const sessionDay = session.day_type || session.day_of_week;
+            return sessionDay === day && overlaps([{ start: toMin(session.start_time), end: toMin(session.end_time) }], slot);
+          });
+        });
+      };
       for (const cls of elementaryBlocks) {
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const primaryAssignment = cm.teacherAssignments.find((assignment) => assignment.class_id === cls.id && assignment.role === "Primary Teacher");
@@ -483,8 +498,7 @@ export default function ClassManagement() {
         for (const slot of blockSlots) {
           const day = slot.day_type || slot.day_of_week;
           if (!teacherWorksOn(teacher, day) || !teacherFree(teacher.id, day, slot)) continue;
-          const classStudentsForSchedule = classStudents[cls.id] || new Set();
-          if ([...classStudentsForSchedule].some((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot))) continue;
+          if (elementarySpecialistOccupied(cls.id, day, slot)) continue;
           const createdSchedule = await base44.entities.ClassSchedule.create({
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
             schedule_type: classTimetable?.scheduling_model || "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
