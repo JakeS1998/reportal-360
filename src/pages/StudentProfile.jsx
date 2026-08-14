@@ -56,11 +56,11 @@ export default function StudentProfile() {
           student_id: studentId,
         });
         if (!res.data?.success) { setLoading(false); return; }
-        const { student, classes, attendance, attainment, behaviour } = res.data;
+        const { student, classes, schedules = [], attendance, attainment, behaviour } = res.data;
         const present = attendance.filter((a) => a.status === "present").length;
         const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
         const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
-        setData({ student, classes, attendance, attainment, behaviour, attendanceRate, avgScore });
+        setData({ student, classes, schedules, attendance, attainment, behaviour, attendanceRate, avgScore });
       } catch (err) {
         console.error(err);
       } finally {
@@ -77,7 +77,7 @@ export default function StudentProfile() {
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Student not found.</p>;
 
-  const { student: s, classes, attendance, attainment, behaviour, attendanceRate, avgScore } = data;
+  const { student: s, classes, schedules = [], attendance, attainment, behaviour, attendanceRate, avgScore } = data;
 
   return (
     <div className="space-y-6">
@@ -219,7 +219,7 @@ export default function StudentProfile() {
       <StudentContactDialog open={showContacts} onOpenChange={setShowContacts} student={s} user={user} onSaved={(student) => setData((current) => ({ ...current, student }))} />
       <StudentProfileEditDialog open={showEdit} onOpenChange={setShowEdit} student={s} user={user} onSaved={(student) => setData((current) => ({ ...current, student }))} />
       <ParentEmailDialog open={showParentEmail} onOpenChange={setShowParentEmail} student={s} user={user} />
-      <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} attendance={attendance} schoolCode={s.school_code} />
+      <StudentScheduleDialog open={showSchedule} onOpenChange={setShowSchedule} student={s} classes={classes} schedules={schedules} attendance={attendance} schoolCode={s.school_code} />
 
       <StudentPortalPreview open={showPreview} onOpenChange={setShowPreview} student={s} classes={classes} attendance={attendance} attainment={attainment} schoolCode={s.school_code} />
     </div>

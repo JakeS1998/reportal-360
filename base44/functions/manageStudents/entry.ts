@@ -315,12 +315,15 @@ export default async function(req) {
         );
         classes = allClasses.filter((c) => classIds.includes(c.id));
       }
+      const schedules = (await Promise.all(
+        classIds.map((classId) => base44.asServiceRole.entities.ClassSchedule.filter({ class_id: classId }, undefined, 100))
+      )).flat();
       await logStudentAccess(
         base44, "view_student",
         { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode },
         student_id, req
       );
-      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, attendance, attainment, behaviour });
+      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, schedules, attendance, attainment, behaviour });
     }
 
     // --- GET ---

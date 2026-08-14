@@ -65,7 +65,7 @@ const LEGEND = [
   { ...STATUS_STYLE.none },
 ];
 
-export default function StudentScheduleDialog({ open, onOpenChange, student, classes, attendance, schoolCode }) {
+export default function StudentScheduleDialog({ open, onOpenChange, student, classes, schedules: scheduleRecords = [], attendance, schoolCode }) {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -74,15 +74,19 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
   const classIds = useMemo(() => new Set(classes.map((c) => c.id)), [classes]);
 
   useEffect(() => {
-    if (!open || !schoolCode) return;
+    if (!open) return;
+    if (scheduleRecords.length > 0) {
+      setSchedules(scheduleRecords);
+      setLoading(false);
+      return;
+    }
+    if (!schoolCode) return;
     let active = true;
     (async () => {
       setLoading(true);
       try {
-        const classSchedules = await Promise.all(
-          Array.from(classIds).map((classId) => base44.entities.ClassSchedule.filter({ class_id: classId }, "start_time", 100))
-        );
-        if (active) setSchedules(classSchedules.flat());
+        const rows = await base44.entities.ClassSchedule.filter({ school_code: schoolCode }, "start_time", 500);
+        if (active) setSchedules(rows.filter((s) => classIds.has(s.class_id)));
       } catch (err) {
         console.error(err);
       } finally {
