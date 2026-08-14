@@ -457,8 +457,9 @@ export default function ClassManagement() {
             availableTeachers.sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id]);
             const teacher = availableTeachers[0];
             const teacherDayLoad = ((busy[teacher.id] || {})[day] || []).length;
+            const sameTimeCount = (byClass[cls.id] || []).filter((session) => toMin(session.start_time) === slot.start && toMin(session.end_time) === slot.end).length;
             const score = isFlexibleWeekly
-              ? (globalDayLoad[day] || 0) * 100 + teacherDayLoad * 10 + dayLoad[day] * 5 + (usedDays.has(day) ? 50 : 0)
+              ? (globalDayLoad[day] || 0) * 100 + teacherDayLoad * 10 + dayLoad[day] * 5 + sameTimeCount * 25 + (usedDays.has(day) ? 50 : 0)
               : studentGapScore(cls.id, day, slot) + dayLoad[day] * 3;
             candidates.push({ day, ...slot, slots: patternSlots, teacher, room: roomForTeacher(teacher), score });
           }
