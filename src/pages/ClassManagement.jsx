@@ -145,11 +145,12 @@ export default function ClassManagement() {
     setAutoProgress({ current: 0, total: 0, label: "Preparing…" });
     setSelectedSuggestions(new Set());
     try {
-      const [existing, ttRes] = await Promise.all([
-        base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode }, undefined, 500),
-        base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5),
-      ]);
+      const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5);
       const timetable = ttRes[0];
+      // Auto Schedule is a full rebuild: stale periods are removed before placing a
+      // conflict-free timetable, so prior overlaps cannot survive a new run.
+      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode });
+      const existing = [];
 
       // Build teaching-period slots from the school timetable (excludes homeroom, break & lunch).
       // Falls back to hourly 8 AM–3 PM when no timetable is configured.
@@ -193,6 +194,21 @@ export default function ClassManagement() {
         const studs = classStudents[classId];
         if (!studs) return;
         studs.forEach((sid) => { (studentBusy[sid] ||= {})[day] ||= []; studentBusy[sid][day].push({ start: slot.start, end: slot.end }); });
+      };
+      // Prefer a period beside a student's existing period on that day. This packs
+      // each student's lessons together instead of scattering them across gaps.
+      const studentGapScore = (classId, day, slot) => {
+        const studs = classStudents[classId];
+        if (!studs?.size) return 0;
+        let score = 0;
+        studs.forEach((sid) => {
+          const blocks = [...((studentBusy[sid] || {})[day] || [])].sort((a, b) => a.start - b.start);
+          if (!blocks.length) return;
+          if (blocks.some((block) => slot.end === block.start || slot.start === block.end)) { score -= 10; return; }
+          const first = blocks[0]; const last = blocks[blocks.length - 1];
+          score += slot.end <= first.start ? first.start - slot.end : slot.start - last.end;
+        });
+        return score;
       };
 
       const countFree = (tid) => {
@@ -286,37 +302,15 @@ export default function ClassManagement() {
         for (let i = 0; i < need; i++) {
           let placed = null;
           let conflictStudents = [];
-          // Spread sessions across unused days first so a class meets on
-          // different days of the week rather than clustering on one day.
-          const dayOrder = [...SCHED_DAYS].sort((a, b) => (usedDays.has(a) ? 1 : 0) - (usedDays.has(b) ? 1 : 0));
-          // Shuffle the slot order per session so a class lands on varied
-          // time slots across the week (e.g. English Mon 10am, Tue 2pm, Wed
-          // 10am, off Thu, Fri 9am) — variety without a predictable pattern.
-          const slotOrder = [...classSlots].sort(() => Math.random() - 0.5);
-          // Pass 1: teacher free AND all enrolled students free (no conflict).
-          for (const day of dayOrder) {
-            for (const slot of slotOrder) {
-              if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
-              if (studentsFree(cls.id, day, slot)) { placed = { day, ...slot }; break; }
-            }
-            if (placed) break;
-          }
-          // Pass 2: teacher free only — schedule anyway and flag conflicting students
-          // with a suggested alternative class of the same subject.
-          if (!placed) {
-            for (const day of dayOrder) {
-              for (const slot of slotOrder) {
-                if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
-                const studs = classStudents[cls.id];
-                const conflicts = [];
-                if (studs) studs.forEach((sid) => { if (overlaps((studentBusy[sid] || {})[day] || [], slot)) conflicts.push(sid); });
-                placed = { day, ...slot };
-                conflictStudents = conflicts;
-                break;
-              }
-              if (placed) break;
+          const candidates = [];
+          for (const day of SCHED_DAYS) {
+            for (const slot of classSlots) {
+              if (!teacherFree(tAssign.teacher_id, day, slot) || !studentsFree(cls.id, day, slot)) continue;
+              candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + (usedDays.has(day) ? 0 : 1) });
             }
           }
+          candidates.sort((a, b) => a.score - b.score || a.start - b.start || SCHED_DAYS.indexOf(a.day) - SCHED_DAYS.indexOf(b.day));
+          placed = candidates[0] || null;
           if (!placed) break;
           await base44.entities.ClassSchedule.create({
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
@@ -560,7 +554,7 @@ export default function ClassManagement() {
             <option value="biweekly">Biweekly (2-weekly)</option>
           </select>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
-            <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Auto Schedule"}
+            <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Rebuild Schedule"}
           </Button>
           <Button onClick={openCreate} className="bg-slate-900 hover:bg-slate-800">
             <Plus className="w-4 h-4 mr-1" /> Create Class
