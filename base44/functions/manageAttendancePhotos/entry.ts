@@ -21,10 +21,12 @@ export default async function(req: Request): Promise<Response> {
     const caller = await resolveStaffCaller(base44, { callerUsername: caller_username, callerPassword: caller_password, callerEmail: caller_email, callerSso: caller_sso });
     if (!caller) return Response.json({ success: false, error: 'Unauthorized' }, { status: 403 });
     if (action !== 'create') return Response.json({ success: false, error: 'Not authorized' }, { status: 403 });
-    const targetClass = (await base44.asServiceRole.entities.Class.filter({ id: params.class_id }, undefined, 1))[0];
+    const classId = params.class_id || params.classId;
+    const scheduleId = params.schedule_id || params.scheduleId;
+    const targetClass = (await base44.asServiceRole.entities.Class.filter({ id: classId }, undefined, 1))[0];
     if (!targetClass || targetClass.school_code !== caller.school_code) return Response.json({ success: false, error: 'Not authorized for this class' }, { status: 403 });
     const tokenValue = crypto.randomUUID();
-    const request = await base44.asServiceRole.entities.AttendancePhotoRequest.create({ token: tokenValue, student_id: params.student_id, class_id: params.class_id, schedule_id: params.schedule_id, date: params.date, excused_reason: params.excused_reason || '', status: 'pending', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
+    const request = await base44.asServiceRole.entities.AttendancePhotoRequest.create({ token: tokenValue, student_id: params.student_id, class_id: classId, schedule_id: scheduleId, date: params.date, excused_reason: params.excused_reason || '', status: 'pending', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
     return Response.json({ success: true, token: request.token });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
