@@ -470,10 +470,18 @@ export default function ClassManagement() {
           const placed = candidates[0];
           if (!placed) {
             const blocked = blockedSlots.sort((a, b) => a.conflicts.length - b.conflicts.length)[0];
-            if (blocked) blocked.conflicts.forEach((studentId) => suggestions.push({
-              student: studentName(studentId), student_id: studentId, fromClass: cls.class_name, from_class_id: cls.id,
-              day: blocked.day, time: fmtTime(mmToHHMM(blocked.start)), alt: suggestAlternative(cls, studentId),
-            }));
+            // If this section cannot be placed at all, offer every enrolled student
+            // another section of the same grade and subject. This also covers teacher
+            // or room capacity failures, not only direct student timetable clashes.
+            const studentsToMove = blocked?.conflicts || [...classStudentsForSchedule];
+            studentsToMove.forEach((studentId) => {
+              const alt = suggestAlternative(cls, studentId);
+              if (!alt) return;
+              suggestions.push({
+                student: studentName(studentId), student_id: studentId, fromClass: cls.class_name, from_class_id: cls.id,
+                day: blocked?.day || "the available timetable", time: blocked ? fmtTime(mmToHHMM(blocked.start)) : "", alt,
+              });
+            });
             break;
           }
           const placementSlots = placed.slots || [placed];
@@ -1170,7 +1178,7 @@ export default function ClassManagement() {
                       {autoResult.suggestions.map((item, index) => (
                         <label key={`${item.student_id}-${index}`} className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-600">
                           <Checkbox checked={selectedSuggestions.has(index)} onCheckedChange={(checked) => setSelectedSuggestions((current) => { const next = new Set(current); checked ? next.add(index) : next.delete(index); return next; })} disabled={!item.alt?.id} />
-                          <span><span className="font-medium text-slate-800">{item.student}</span>: {item.fromClass} conflicts on {item.day} at {item.time}.{item.alt ? ` Move to ${item.alt.name} (${item.alt.meets}).` : " No alternative section is available."}</span>
+                          <span><span className="font-medium text-slate-800">{item.student}</span>: {item.day === "the available timetable" ? `${item.fromClass} could not be placed.` : `${item.fromClass} conflicts on ${item.day} at ${item.time}.`}{item.alt ? ` Move to ${item.alt.name} (${item.alt.meets}).` : " No alternative section is available."}</span>
                         </label>
                       ))}
                     </div>
