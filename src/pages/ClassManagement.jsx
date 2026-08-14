@@ -319,6 +319,7 @@ export default function ClassManagement() {
       const countFree = (tid) => slots.filter((slot) => teacherFree(tid, slot.day_type || slot.day_of_week, slot)).length;
 
       const scheduled = [];
+      const pendingScheduleRecords = [];
       const failed = [];
       const assigned = [];
       const suggestions = [];
@@ -391,7 +392,7 @@ export default function ClassManagement() {
         const cls = queue[qi];
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const modelSlots = buildScheduleSlots(classTimetable);
-        setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
+        setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
         // A traditional timetable repeats one daily pattern. A subject taught five
         // times weekly therefore occupies one matching slot on every school day.
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
@@ -481,10 +482,10 @@ export default function ClassManagement() {
             day_of_week: placement.day_of_week, start_time: mmToHHMM(placement.start), end_time: mmToHHMM(placement.end),
             recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
           }));
-          const createdSchedules = await base44.entities.ClassSchedule.bulkCreate(scheduleRecords);
+          pendingScheduleRecords.push(...scheduleRecords);
           placementSlots.forEach((placement, index) => {
             const placementDay = placement.day_type || placement.day_of_week;
-            (byClass[cls.id] ||= []).push(createdSchedules[index] || scheduleRecords[index]);
+            (byClass[cls.id] ||= []).push(scheduleRecords[index]);
             (busy[placed.teacher.id] ||= {})[placementDay] ||= [];
             busy[placed.teacher.id][placementDay].push({ start: placement.start, end: placement.end });
             if (placed.room) { (roomBusy[placed.room] ||= {})[placementDay] ||= []; roomBusy[placed.room][placementDay].push({ start: placement.start, end: placement.end }); }
@@ -541,13 +542,14 @@ export default function ClassManagement() {
           const day = slot.day_type || slot.day_of_week;
           if (!teacherWorksOn(teacher, day) || !teacherFree(teacher.id, day, slot)) continue;
           if (elementarySpecialistOccupied(cls.id, day, slot)) continue;
-          const createdSchedule = await base44.entities.ClassSchedule.create({
+          const createdSchedule = {
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
             schedule_type: classTimetable?.scheduling_model || "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
             teacher_id: teacher.id, teacher_name: teacher.full_name || "", room: teacher.room || "",
             day_of_week: slot.day_of_week, start_time: mmToHHMM(slot.start), end_time: mmToHHMM(slot.end),
             recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
-          });
+          };
+          pendingScheduleRecords.push(createdSchedule);
           (byClass[cls.id] ||= []).push(createdSchedule);
           (busy[teacher.id] ||= {})[day] ||= [];
           busy[teacher.id][day].push({ start: slot.start, end: slot.end });
@@ -556,6 +558,11 @@ export default function ClassManagement() {
           scheduled.push({ name: cls.class_name, day, time: fmtTime(mmToHHMM(slot.start)) });
         }
         if (placedThis < blockSlots.length) failed.push({ name: cls.class_name, reason: `Only ${placedThis}/${blockSlots.length} classroom slots fit around specialist lessons.` });
+      }
+      if (pendingScheduleRecords.length) {
+        for (let offset = 0; offset < pendingScheduleRecords.length; offset += 500) {
+          await base44.entities.ClassSchedule.bulkCreate(pendingScheduleRecords.slice(offset, offset + 500));
+        }
       }
       setAutoProgress({ current: queue.length, total: queue.length, label: "Done" });
       setAutoResult({ scheduled: scheduled.length, failed, assigned, suggestions });
