@@ -13,6 +13,7 @@ import TeacherWorkload from "@/components/schedule/TeacherWorkload";
 import LessonPlanDialog from "@/components/lesson-plans/LessonPlanDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween } from "@/lib/scheduleWeeks";
 import { useSubjectColors } from "@/lib/useSubjectColors";
+import { getCycleDayType } from "@/lib/schedulingModels";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const CRIMSON = "#9E1B32";
@@ -80,7 +81,7 @@ export default function Schedule() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formError, setFormError] = useState("");
-  const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "", recurrence_type: "weekly" });
+  const [form, setForm] = useState({ class_id: "", teacher_id: "", day_of_week: "Monday", start_time: "08:00", end_time: "09:00", room: "", recurrence_type: "weekly", locked: false });
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [timetable, setTimetable] = useState(null);
   const [showHours, setShowHours] = useState(false);
@@ -129,6 +130,7 @@ export default function Schedule() {
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
   const activeClasses = cm.classes.filter((c) => c.status === "active");
   const gradeLevels = [...new Set(cm.classes.map((item) => item.grade_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+  const scheduleDays = timetable?.scheduling_model === "rotating_block" ? (timetable.cycle_day_types?.length ? timetable.cycle_day_types : ["A", "B"]) : DAYS;
 
   const openCreate = (overrides = {}) => {
     setEditing(null);
@@ -140,7 +142,8 @@ export default function Schedule() {
       start_time: "08:00",
       end_time: "09:00",
       room: "",
-      recurrence_type: "weekly",
+      recurrence_type: timetable?.scheduling_model === "rotating_block" ? "cycle" : "weekly",
+      locked: false,
       ...overrides,
     });
     setShowForm(true);
@@ -149,7 +152,7 @@ export default function Schedule() {
   const openEdit = (s) => {
     setEditing(s);
     setFormError("");
-    setForm({ class_id: s.class_id, teacher_id: s.teacher_id, day_of_week: s.day_of_week, start_time: s.start_time || "08:00", end_time: s.end_time || "09:00", room: s.room || "", recurrence_type: s.recurrence_type || "weekly" });
+    setForm({ class_id: s.class_id, teacher_id: s.teacher_id, day_of_week: s.day_type || s.day_of_week, start_time: s.start_time || "08:00", end_time: s.end_time || "09:00", room: s.room || "", recurrence_type: s.recurrence_type || "weekly", locked: Boolean(s.locked) });
     setShowForm(true);
   };
 
@@ -158,7 +161,7 @@ export default function Schedule() {
     const eMin = toMin(end);
     return schedules.some((s) =>
       s.teacher_id === teacherId &&
-      s.day_of_week === day &&
+      (s.day_type || s.day_of_week) === day &&
       s.id !== excludeId &&
       sMin < toMin(s.end_time) &&
       eMin > toMin(s.start_time)
@@ -186,9 +189,12 @@ export default function Schedule() {
       day_of_week: form.day_of_week,
       start_time: form.start_time,
       end_time: form.end_time,
+      schedule_type: timetable?.scheduling_model || "traditional",
+      day_type: timetable?.scheduling_model === "rotating_block" ? form.day_of_week : "",
       recurrence_type: form.recurrence_type || "weekly",
       recurrence_weeks: form.recurrence_type === "biweekly" ? 2 : 1,
       start_date: weekStart.toISOString().slice(0, 10),
+      locked: form.locked,
     };
     if (editing) {
       await base44.entities.ClassSchedule.update(editing.id, payload);
@@ -243,15 +249,19 @@ export default function Schedule() {
     let min = DAY_START_MIN + Math.round(offsetY / PX_PER_MIN);
     min = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - 30, min));
     min = Math.round(min / 15) * 15; // snap to 15 min
-    openCreate({ day_of_week: day, start_time: mmToHHMM(min), end_time: mmToHHMM(Math.min(DAY_END_MIN, min + 60)) });
+    const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day));
+    openCreate({ day_of_week: timetable?.scheduling_model === "rotating_block" ? getCycleDayType(date, timetable) : day, start_time: mmToHHMM(min), end_time: mmToHHMM(Math.min(DAY_END_MIN, min + 60)) });
   };
 
   const filtered = useMemo(() => schedules.filter((s) => !teacherFilter || s.teacher_id === teacherFilter), [schedules, teacherFilter]);
-  const byDay = (day) => filtered
-    .filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart))
+  const byDay = (day) => {
+    const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day));
+    const cycleDay = timetable?.scheduling_model === "rotating_block" ? getCycleDayType(date, timetable) : "";
+    return filtered
+    .filter((s) => (cycleDay ? s.day_type === cycleDay : s.day_of_week === day) && isScheduleActiveInWeek(s, weekStart))
     .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
     .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
-
+  };
   if (!canManageStaff) {
     return (
       <div className="text-center py-16">
@@ -441,9 +451,9 @@ export default function Schedule() {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-sm font-medium text-slate-700">Day</Label>
+                <Label className="text-sm font-medium text-slate-700">{timetable?.scheduling_model === "rotating_block" ? "Cycle day" : "Day"}</Label>
                 <select value={form.day_of_week} onChange={(e) => setForm({ ...form, day_of_week: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  {scheduleDays.map((d) => <option key={d} value={d}>{timetable?.scheduling_model === "rotating_block" ? `${d} Day` : d}</option>)}
                 </select>
               </div>
               <div>
@@ -459,11 +469,13 @@ export default function Schedule() {
               <Label className="text-sm font-medium text-slate-700">Room (optional)</Label>
               <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="e.g. 204" className="mt-1" />
             </div>
+            <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.locked} onChange={(event) => setForm({ ...form, locked: event.target.checked })} /> Lock this slot against auto-scheduling</label>
             <div>
               <Label className="text-sm font-medium text-slate-700">Repeat</Label>
               <select value={form.recurrence_type} onChange={(e) => setForm({ ...form, recurrence_type: e.target.value })} className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                 <option value="weekly">Every week</option>
                 <option value="biweekly">Every 2 weeks</option>
+                {timetable?.scheduling_model === "rotating_block" && <option value="cycle">Every matching cycle day</option>}
                 <option value="none">This week only</option>
               </select>
               <p className="text-[11px] text-slate-400 mt-1">The schedule starts in the week of {weekStart.toLocaleDateString()} and repeats from there.</p>

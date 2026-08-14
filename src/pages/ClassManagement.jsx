@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, UserMinus, Wand2, AlertTriangle, CheckCircle2, CalendarCheck } from "lucide-react";
 import { buildTeachingSlots } from "@/lib/teachingSlots";
+import { buildScheduleSlots, getSchoolDays } from "@/lib/schedulingModels";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import ClassDetailsDialog from "@/components/class/ClassDetailsDialog";
@@ -190,12 +191,12 @@ export default function ClassManagement() {
       const timetable = ttRes[0];
       // Auto Schedule is a full rebuild: stale periods are removed before placing a
       // conflict-free timetable, so prior overlaps cannot survive a new run.
-      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode });
-      const existing = [];
+      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode, locked: { $ne: true } });
+      const existing = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode, locked: true }, undefined, 500);
 
-      // Build teaching-period slots from the school timetable (excludes homeroom, break & lunch).
-      // Falls back to hourly 8 AM–3 PM when no timetable is configured.
-      const slots = buildTeachingSlots(timetable).map((s) => ({ start: s.start, end: s.end }));
+      // Each model generates the same schedule-slot structure. Periods are only
+      // one way of creating slots; flexible models provide their own day/times.
+      const slots = buildScheduleSlots(timetable);
 
       const byClass = {};
       existing.forEach((s) => { (byClass[s.class_id] ||= []).push(s); });
@@ -214,8 +215,17 @@ export default function ClassManagement() {
       const busy = {};
       existing.forEach((s) => {
         if (!s.teacher_id) return;
-        (busy[s.teacher_id] ||= {})[s.day_of_week] ||= [];
-        busy[s.teacher_id][s.day_of_week].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
+        const slotDay = s.day_type || s.day_of_week;
+        (busy[s.teacher_id] ||= {})[slotDay] ||= [];
+        busy[s.teacher_id][slotDay].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
+      });
+
+      const roomBusy = {};
+      existing.forEach((schedule) => {
+        if (!schedule.room) return;
+        const slotDay = schedule.day_type || schedule.day_of_week;
+        (roomBusy[schedule.room] ||= {})[slotDay] ||= [];
+        roomBusy[schedule.room][slotDay].push({ start: toMin(schedule.start_time), end: toMin(schedule.end_time) });
       });
 
       // Student rosters per class + student busy map (so a student is never double-booked)
@@ -228,13 +238,15 @@ export default function ClassManagement() {
         const studs = classStudents[s.class_id];
         if (!studs) return;
         studs.forEach((sid) => {
-          (studentBusy[sid] ||= {})[s.day_of_week] ||= [];
-          studentBusy[sid][s.day_of_week].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
+          const slotDay = s.day_type || s.day_of_week;
+          (studentBusy[sid] ||= {})[slotDay] ||= [];
+          studentBusy[sid][slotDay].push({ start: toMin(s.start_time), end: toMin(s.end_time) });
         });
       });
 
       const overlaps = (list, slot) => list.some((b) => slot.start < b.end && slot.end > b.start);
       const teacherFree = (tid, day, slot) => !overlaps((busy[tid] || {})[day] || [], slot);
+      const roomFree = (room, day, slot) => !room || !overlaps((roomBusy[room] || {})[day] || [], slot);
       const studentsFree = (classId, day, slot) => {
         const studs = classStudents[classId];
         if (!studs || studs.size === 0) return true;
@@ -262,11 +274,7 @@ export default function ClassManagement() {
         return score;
       };
 
-      const countFree = (tid) => {
-        let n = 0;
-        for (const day of SCHED_DAYS) for (const slot of slots) if (teacherFree(tid, day, slot)) n++;
-        return n;
-      };
+      const countFree = (tid) => slots.filter((slot) => teacherFree(tid, slot.day_type || slot.day_of_week, slot)).length;
 
       const scheduled = [];
       const failed = [];
@@ -309,16 +317,18 @@ export default function ClassManagement() {
       setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
       for (let qi = 0; qi < queue.length; qi++) {
         const cls = queue[qi];
+        const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
-        const target = Math.max(1, Math.min(slots.length * SCHED_DAYS.length, parseInt(cls.sessions_per_week, 10) || 1));
+        const target = Math.max(1, Math.min(modelSlots.length, parseInt(cls.sessions_per_week, 10) || 1));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
-        const homeroomSlot = timetable?.homeroom_start && timetable?.homeroom_end
-          ? { start: toMin(timetable.homeroom_start), end: toMin(timetable.homeroom_end) }
+        const homeroomSlot = classTimetable?.homeroom_start && classTimetable?.homeroom_end
+          ? { start: toMin(classTimetable.homeroom_start), end: toMin(classTimetable.homeroom_end) }
           : null;
         if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
-        const classSlots = isHomeroom ? [homeroomSlot] : slots;
+        const classSlots = isHomeroom ? getSchoolDays(classTimetable).map((day) => ({ ...homeroomSlot, day_of_week: day, day_type: "", label: "Homeroom" })) : modelSlots;
         let tAssign = validTeacherAssignments[cls.id];
         if (!tAssign) {
           const candidates = activeTeachers.filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject));
@@ -334,7 +344,7 @@ export default function ClassManagement() {
           }
           candidates.sort((a, b) => {
             const availableSlots = (teacher) => isHomeroom
-              ? SCHED_DAYS.filter((day) => teacherFree(teacher.id, day, homeroomSlot)).length
+              ? classSlots.filter((slot) => teacherFree(teacher.id, slot.day_of_week, slot)).length
               : countFree(teacher.id);
             return availableSlots(b) - availableSlots(a);
           });
@@ -355,25 +365,25 @@ export default function ClassManagement() {
         const have = (byClass[cls.id] || []).length;
         const need = Math.max(0, target - have);
         if (need === 0) continue;
-        const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_of_week));
-        const dayLoad = Object.fromEntries(SCHED_DAYS.map((day) => [day, (byClass[cls.id] || []).filter((session) => session.day_of_week === day).length]));
+        const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_type || s.day_of_week));
+        const slotDays = [...new Set(classSlots.map((slot) => slot.day_type || slot.day_of_week))];
+        const dayLoad = Object.fromEntries(slotDays.map((day) => [day, (byClass[cls.id] || []).filter((session) => (session.day_type || session.day_of_week) === day).length]));
         let placedThis = 0;
         for (let i = 0; i < need; i++) {
           const candidates = [];
           const blockedSlots = [];
           const classStudentsForSchedule = classStudents[cls.id] || new Set();
-          for (const day of SCHED_DAYS) {
-            for (const slot of classSlots) {
-              if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
-              const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
-              if (conflicts.length) {
-                blockedSlots.push({ day, ...slot, conflicts });
-                continue;
-              }
-              candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
+          for (const slot of classSlots) {
+            const day = slot.day_type || slot.day_of_week;
+            if (!teacherFree(tAssign.teacher_id, day, slot) || !roomFree(scheduleRoom, day, slot)) continue;
+            const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
+            if (conflicts.length) {
+              blockedSlots.push({ day, ...slot, conflicts });
+              continue;
             }
+            candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
           }
-          candidates.sort((a, b) => a.score - b.score || a.start - b.start || SCHED_DAYS.indexOf(a.day) - SCHED_DAYS.indexOf(b.day));
+          candidates.sort((a, b) => a.score - b.score || a.start - b.start || a.day.localeCompare(b.day));
           const placed = candidates[0];
           if (!placed) {
             const blocked = blockedSlots.sort((a, b) => a.conflicts.length - b.conflicts.length)[0];
@@ -384,14 +394,16 @@ export default function ClassManagement() {
             break;
           }
           const createdSchedule = await base44.entities.ClassSchedule.create({
-            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
+            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
+            schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placed.day_type || "", period_label: placed.label || "",
             teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: scheduleRoom,
-            day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
-            recurrence_type: recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10),
+            day_of_week: placed.day_of_week, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
+            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
           });
           (byClass[cls.id] ||= []).push(createdSchedule);
           (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
           busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
+          if (scheduleRoom) { (roomBusy[scheduleRoom] ||= {})[placed.day] ||= []; roomBusy[scheduleRoom][placed.day].push({ start: placed.start, end: placed.end }); }
           markStudentsBusy(cls.id, placed.day, placed);
           usedDays.add(placed.day);
           dayLoad[placed.day]++;
@@ -500,7 +512,8 @@ export default function ClassManagement() {
     const dayLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
     const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
     const schedules = await base44.entities.ClassSchedule.filter({ class_id: cls.id }, undefined, 200);
-    const schedule = schedules.find((item) => item.day_of_week === dayName);
+    const cycleDay = timetable?.scheduling_model === "rotating_block" ? timetable.cycle_day_types?.[Math.floor((new Date(today.toDateString()) - new Date(`${timetable.cycle_start_date}T00:00:00`)) / 86400000) % timetable.cycle_day_types.length] : "";
+    const schedule = schedules.find((item) => cycleDay ? item.day_type === cycleDay : item.day_of_week === dayName);
     setAttendanceTarget({
       classId: cls.id,
       className: cls.class_name,

@@ -14,6 +14,27 @@
       "type": "string",
       "title": "School Code"
     },
+    "academic_year_id": {
+      "type": "string",
+      "title": "Academic Year ID"
+    },
+    "schedule_type": {
+      "type": "string",
+      "title": "Scheduling Model",
+      "enum": [
+        "traditional",
+        "rotating_block",
+        "flexible_weekly"
+      ]
+    },
+    "day_type": {
+      "type": "string",
+      "title": "Cycle Day Type"
+    },
+    "period_label": {
+      "type": "string",
+      "title": "Slot or Period Label"
+    },
     "teacher_id": {
       "type": "string",
       "title": "Teacher ID"
@@ -28,16 +49,7 @@
     },
     "day_of_week": {
       "type": "string",
-      "title": "Day of Week",
-      "enum": [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday"
-      ]
+      "title": "Day of Week or Cycle Day"
     },
     "start_time": {
       "type": "string",
@@ -53,7 +65,8 @@
       "enum": [
         "none",
         "weekly",
-        "biweekly"
+        "biweekly",
+        "cycle"
       ],
       "default": "none"
     },
@@ -66,6 +79,11 @@
       "type": "string",
       "format": "date",
       "title": "Start Date"
+    },
+    "locked": {
+      "type": "boolean",
+      "title": "Locked Slot",
+      "default": false
     }
   },
   "required": [
