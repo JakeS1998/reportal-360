@@ -322,6 +322,11 @@ export default function ClassManagement() {
       const failed = [];
       const assigned = [];
       const suggestions = [];
+      const globalDayLoad = {};
+      existing.forEach((schedule) => {
+        const day = schedule.day_type || schedule.day_of_week;
+        globalDayLoad[day] = (globalDayLoad[day] || 0) + 1;
+      });
 
       const studentName = (sid) =>
         cm.students.find((s) => s.id === sid)?.student_name
@@ -397,6 +402,7 @@ export default function ClassManagement() {
         const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_type || s.day_of_week));
         const slotDays = [...new Set(classSlots.map((slot) => slot.day_type || slot.day_of_week))];
         const dayLoad = Object.fromEntries(slotDays.map((day) => [day, (byClass[cls.id] || []).filter((session) => (session.day_type || session.day_of_week) === day).length]));
+        const isFlexibleWeekly = classTimetable?.scheduling_model === "flexible_weekly";
         let placedThis = 0;
         for (let i = 0; i < need; i++) {
           const candidates = [];
@@ -424,7 +430,11 @@ export default function ClassManagement() {
             }
             availableTeachers.sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id]);
             const teacher = availableTeachers[0];
-            candidates.push({ day, ...slot, slots: patternSlots, teacher, room: roomForTeacher(teacher), score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
+            const teacherDayLoad = ((busy[teacher.id] || {})[day] || []).length;
+            const score = isFlexibleWeekly
+              ? (globalDayLoad[day] || 0) * 100 + teacherDayLoad * 10 + dayLoad[day] * 5 + (usedDays.has(day) ? 50 : 0)
+              : studentGapScore(cls.id, day, slot) + dayLoad[day] * 3;
+            candidates.push({ day, ...slot, slots: patternSlots, teacher, room: roomForTeacher(teacher), score });
           }
           candidates.sort((a, b) => a.score - b.score || a.start - b.start || a.day.localeCompare(b.day));
           const placed = candidates[0];
@@ -452,6 +462,7 @@ export default function ClassManagement() {
             markStudentsBusy(cls.id, placementDay, placement);
             usedDays.add(placementDay);
             dayLoad[placementDay]++;
+            globalDayLoad[placementDay] = (globalDayLoad[placementDay] || 0) + 1;
             scheduled.push({ name: cls.class_name, day: placementDay, time: fmtTime(mmToHHMM(placement.start)) });
           }
           teacherSessions[placed.teacher.id] += (placed.slots || [placed]).length;
