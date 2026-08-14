@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 const ROLE_LABELS = { area: "Area", manager: "Manager", teacher: "Teacher", school_admin: "School Admin" };
+const GRADE_OPTIONS = ["Pre-K", "K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const ROLE_BADGE = {
   area: "bg-indigo-50 text-indigo-600",
   manager: "bg-blue-50 text-blue-600",
@@ -49,11 +50,12 @@ export default function SchoolUserManager({
   const [creating, setCreating] = useState(false);
   const [subject, setSubject] = useState("");
   const [subjectList, setSubjectList] = useState([]);
+  const [gradeLevels, setGradeLevels] = useState([]);
   const [room, setRoom] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
-    full_name: "", email: "", subject: "", subjects: [], room: "", department: "", job_title: "", role: "teacher", active: true,
+    full_name: "", email: "", subject: "", subjects: [], grade_levels: [], room: "", department: "", job_title: "", role: "teacher", active: true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -150,6 +152,7 @@ export default function SchoolUserManager({
         email,
         subject: subjectList[0] || subject,
         subjects: subjectList,
+        grade_levels: gradeLevels,
         room,
         username: username || undefined,
         password: password || undefined,
@@ -162,6 +165,7 @@ export default function SchoolUserManager({
         setPassword("");
         setSubject("");
         setSubjectList([]);
+        setGradeLevels([]);
         setRoom("");
         loadUsers();
       } else {
@@ -474,6 +478,13 @@ export default function SchoolUserManager({
                   <p className="text-xs text-slate-400 mt-1">Select every subject this teacher can teach.</p>
                 </div>
                 <div>
+                  <Label className="text-sm font-medium text-slate-700">Grades they can teach</Label>
+                  <select multiple value={gradeLevels} onChange={(e) => setGradeLevels(Array.from(e.target.selectedOptions, (option) => option.value))} className="mt-1 h-28 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    {GRADE_OPTIONS.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Leave empty only if this teacher can teach every grade.</p>
+                </div>
+                <div>
                   <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
                   <select
                     value={room}
@@ -548,6 +559,7 @@ export default function SchoolUserManager({
                           email: u.email || "",
                           subject: u.subject || "",
                           subjects: u.subjects || (u.subject ? [u.subject] : []),
+                          grade_levels: u.grade_levels || [],
                           room: u.room || "",
                           department: u.department || "",
                           job_title: u.job_title || "",
@@ -617,6 +629,13 @@ export default function SchoolUserManager({
                 {subjects.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
               <p className="text-xs text-slate-400 mt-1">Select every subject this teacher can teach.</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Grades they can teach</Label>
+              <select multiple value={editForm.grade_levels} onChange={(e) => setEditForm({ ...editForm, grade_levels: Array.from(e.target.selectedOptions, (option) => option.value) })} className="mt-1 h-28 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+                {GRADE_OPTIONS.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+              </select>
+              <p className="text-xs text-slate-400 mt-1">Leave empty only if this teacher can teach every grade.</p>
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>

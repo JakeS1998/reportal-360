@@ -83,6 +83,13 @@
         "type": "string"
       }
     },
+    "grade_levels": {
+      "type": "array",
+      "title": "Grades This Teacher Can Teach",
+      "items": {
+        "type": "string"
+      }
+    },
     "room": {
       "type": "string",
       "title": "Assigned Room"

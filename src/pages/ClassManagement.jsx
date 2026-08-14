@@ -81,10 +81,11 @@ export default function ClassManagement() {
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
-  const teacherCanTeach = (teacher, subject) => {
+  const teacherCanTeach = (teacher, subject, gradeLevel) => {
     const target = (subject || "").trim().toLowerCase();
     const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
-    return subjects.some((value) => value === target || value.split(/[,/]/).map((part) => part.trim()).includes(target));
+    const gradeAllowed = !(teacher?.grade_levels?.length) || teacher.grade_levels.includes(String(gradeLevel));
+    return gradeAllowed && subjects.some((value) => value === target || value.split(/[,/]/).map((part) => part.trim()).includes(target));
   };
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
@@ -170,7 +171,7 @@ export default function ClassManagement() {
 
   const assignQualifiedTeacher = async (item, teacherId) => {
     const teacher = activeTeachers.find((record) => record.id === teacherId);
-    if (!teacher || !teacherCanTeach(teacher, item.subject)) return;
+    if (!teacher || !teacherCanTeach(teacher, item.subject, item.grade_level)) return;
     setAssigningTeacherClassId(item.classId);
     try {
       await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: item.classId, role: "Primary Teacher", school_code: cm.schoolCode });
@@ -204,7 +205,7 @@ export default function ClassManagement() {
       for (const assignment of cm.teacherAssignments) {
         const cls = cm.classes.find((record) => record.id === assignment.class_id);
         const teacher = activeTeachers.find((record) => record.id === assignment.teacher_id);
-        if (!cls || !teacherCanTeach(teacher, cls.subject)) {
+        if (!cls || !teacherCanTeach(teacher, cls.subject, cls.grade_level)) {
           await base44.entities.TeacherClass.delete(assignment.id);
           continue;
         }
@@ -331,7 +332,7 @@ export default function ClassManagement() {
         const classSlots = isHomeroom ? getSchoolDays(classTimetable).map((day) => ({ ...homeroomSlot, day_of_week: day, day_type: "", label: "Homeroom" })) : modelSlots;
         const classAssignments = cm.teacherAssignments.filter((assignment) => assignment.class_id === cls.id);
         const qualifiedTeachers = activeTeachers
-          .filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject))
+          .filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject, cls.grade_level))
           .sort((a, b) => {
             const aPrimary = classAssignments.some((assignment) => assignment.teacher_id === a.id && assignment.role === "Primary Teacher") ? 1 : 0;
             const bPrimary = classAssignments.some((assignment) => assignment.teacher_id === b.id && assignment.role === "Primary Teacher") ? 1 : 0;
