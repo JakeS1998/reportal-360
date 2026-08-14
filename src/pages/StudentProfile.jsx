@@ -11,7 +11,7 @@ import StudentSensitiveProfile from "@/components/student/StudentSensitiveProfil
 import ParentEmailDialog from "@/components/student/ParentEmailDialog";
 import StudentProfileEditDialog from "@/components/student/StudentProfileEditDialog";
 import StudentContactDialog from "@/components/student/StudentContactDialog";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact } from "lucide-react";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -172,7 +172,7 @@ export default function StudentProfile() {
               {attendance.slice(0, 15).map((a) => (
                 <div key={a.id} className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">{a.date}</span>
-                  <span className={`font-medium ${STATUS_COLOR[a.status] || "text-slate-500"}`}>{a.status}</span>
+                  <div className="flex items-center gap-2"><span className={`font-medium ${STATUS_COLOR[a.status] || "text-slate-500"}`}>{a.status}{a.excused_reason ? ` · ${a.excused_reason}` : ""}</span>{a.attachment_file_url && <a href={a.attachment_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"><Paperclip className="h-3.5 w-3.5" />{a.attachment_file_name || "View note"}</a>}</div>
                 </div>
               ))}
             </div>

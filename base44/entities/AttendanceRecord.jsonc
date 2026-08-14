@@ -30,6 +30,24 @@
       "title": "Status",
       "default": "present"
     },
+    "excused_reason": {
+      "type": "string",
+      "enum": [
+        "Parent Note",
+        "Medical Note",
+        "Professional Note"
+      ],
+      "title": "Excused Absence Reason"
+    },
+    "attachment_file_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "Excused Absence Attachment URL"
+    },
+    "attachment_file_name": {
+      "type": "string",
+      "title": "Excused Absence Attachment Name"
+    },
     "submitted": {
       "type": "boolean",
       "title": "Submitted",

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, X, Clock, MinusCircle, Save, Send, BadgeCheck, Lock, CalendarOff } from "lucide-react";
 import { getWeekStart, isScheduleActiveInWeek } from "@/lib/scheduleWeeks";
+import ExcusedAbsenceFields from "@/components/class/ExcusedAbsenceFields";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -21,14 +22,21 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const todayName = DAY_NAMES[new Date().getDay()];
   const [date] = useState(dateStr || today);
   const [marks, setMarks] = useState(() => Object.fromEntries(students.map((s) => [s.student_id, "present"])));
+  const [excuseDetails, setExcuseDetails] = useState({});
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(true);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [meetsToday, setMeetsToday] = useState(false);
   const [state, setState] = useState(null); // null | { submitted: bool }
 
-  const set = (id, status) => setMarks((m) => ({ ...m, [id]: status }));
-  const markAll = (status) => setMarks(Object.fromEntries(students.map((s) => [s.student_id, status])));
+  const set = (id, status) => {
+    setMarks((current) => ({ ...current, [id]: status }));
+    if (status !== "excused") setExcuseDetails((current) => { const next = { ...current }; delete next[id]; return next; });
+  };
+  const markAll = (status) => {
+    setMarks(Object.fromEntries(students.map((s) => [s.student_id, status])));
+    if (status !== "excused") setExcuseDetails({});
+  };
 
   // Determine whether this class is scheduled to meet today.
   useEffect(() => {
@@ -66,9 +74,11 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         recs.forEach((r) => { m[r.student_id] = r.status; });
         students.forEach((s) => { if (!(s.student_id in m)) m[s.student_id] = "present"; });
         setMarks(m);
+        setExcuseDetails(Object.fromEntries(recs.filter((r) => r.status === "excused").map((r) => [r.student_id, { reason: r.excused_reason || "", fileUrl: r.attachment_file_url || "", fileName: r.attachment_file_name || "" }])));
         setState({ submitted: recs.every((r) => r.submitted) });
       } else {
         setMarks(Object.fromEntries(students.map((s) => [s.student_id, "present"])));
+        setExcuseDetails({});
         setState(null);
       }
     } catch (err) {
@@ -86,17 +96,27 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const persist = async (submitted) => {
     setSaving(true);
     try {
+      const buildRecord = async (student) => {
+        const status = marks[student.student_id] || "present";
+        const detail = excuseDetails[student.student_id] || {};
+        const upload = detail.file ? await base44.integrations.Core.UploadFile({ file: detail.file }) : null;
+        return {
+          student_id: student.student_id, class_id: classId, schedule_id: scheduleId, date, status, submitted,
+          excused_reason: status === "excused" ? detail.reason || "" : "",
+          attachment_file_url: status === "excused" ? upload?.file_url || detail.fileUrl || "" : "",
+          attachment_file_name: status === "excused" ? detail.file?.name || detail.fileName || "" : "",
+        };
+      };
       if (individual) {
         const student = students[0];
         const existing = await base44.entities.AttendanceRecord.filter({ class_id: classId, schedule_id: scheduleId, date, student_id: student.student_id }, undefined, 1);
-        const record = { status: marks[student.student_id] || "present", submitted };
+        const record = await buildRecord(student);
         if (existing[0]) await base44.entities.AttendanceRecord.update(existing[0].id, record);
-        else await base44.entities.AttendanceRecord.create({ student_id: student.student_id, class_id: classId, schedule_id: scheduleId, date, ...record });
+        else await base44.entities.AttendanceRecord.create(record);
       } else {
+        const records = await Promise.all(students.map(buildRecord));
         await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, schedule_id: scheduleId, date });
-        await base44.entities.AttendanceRecord.bulkCreate(
-          students.map((s) => ({ student_id: s.student_id, class_id: classId, schedule_id: scheduleId, date, status: marks[s.student_id] || "present", submitted }))
-        );
+        await base44.entities.AttendanceRecord.bulkCreate(records);
       }
       if (submitted) {
         const absentStudents = students.filter((student) => marks[student.student_id] === "absent");
@@ -190,7 +210,8 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
               <span className="text-xs font-bold text-slate-500">{(sa.student_name || "?").charAt(0).toUpperCase()}</span>
             </div>
             <p className="text-sm font-medium text-slate-800 flex-1 truncate">{sa.student_name}</p>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex items-center gap-1.5">
               {STATUSES.map((st) => {
                 const active = marks[sa.student_id] === st.key;
                 return (
@@ -206,6 +227,8 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
                   </button>
                 );
               })}
+              </div>
+              {marks[sa.student_id] === "excused" && <ExcusedAbsenceFields detail={excuseDetails[sa.student_id]} disabled={locked} onChange={(detail) => setExcuseDetails((current) => ({ ...current, [sa.student_id]: detail }))} />}
             </div>
           </div>
         ))}
