@@ -12,6 +12,7 @@ import { buildTeachingSlots } from "@/lib/teachingSlots";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import ClassDetailsDialog from "@/components/class/ClassDetailsDialog";
+import UnassignedTeacherList from "@/components/class/UnassignedTeacherList";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
 const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
@@ -55,6 +56,7 @@ export default function ClassManagement() {
   const [sectionPlannerOpen, setSectionPlannerOpen] = useState(false);
   const [sectionFrequencies, setSectionFrequencies] = useState({});
   const [classDetail, setClassDetail] = useState(null);
+  const [assigningTeacherClassId, setAssigningTeacherClassId] = useState("");
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -78,6 +80,11 @@ export default function ClassManagement() {
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
+  const teacherCanTeach = (teacher, subject) => {
+    const target = (subject || "").trim().toLowerCase();
+    const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
+    return subjects.some((value) => value === target || value.split(/[,/]/).map((part) => part.trim()).includes(target));
+  };
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
   const subjects = useMemo(() => [...new Set(cm.classes.map((c) => c.subject).filter(Boolean))].sort(), [cm.classes]);
@@ -160,6 +167,19 @@ export default function ClassManagement() {
     setEditing(null);
   };
 
+  const assignQualifiedTeacher = async (item, teacherId) => {
+    const teacher = activeTeachers.find((record) => record.id === teacherId);
+    if (!teacher || !teacherCanTeach(teacher, item.subject)) return;
+    setAssigningTeacherClassId(item.classId);
+    try {
+      await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: item.classId, role: "Primary Teacher", school_code: cm.schoolCode });
+      setAutoResult((current) => ({ ...current, failed: current.failed.filter((failure) => failure.classId !== item.classId) }));
+      await cm.loadData();
+    } finally {
+      setAssigningTeacherClassId("");
+    }
+  };
+
   const runAutoSchedule = async () => {
     setAutoRunning(true);
     setAutoResult(null);
@@ -179,6 +199,16 @@ export default function ClassManagement() {
 
       const byClass = {};
       existing.forEach((s) => { (byClass[s.class_id] ||= []).push(s); });
+      const validTeacherAssignments = {};
+      for (const assignment of cm.teacherAssignments) {
+        const cls = cm.classes.find((record) => record.id === assignment.class_id);
+        const teacher = activeTeachers.find((record) => record.id === assignment.teacher_id);
+        if (!cls || !teacherCanTeach(teacher, cls.subject)) {
+          await base44.entities.TeacherClass.delete(assignment.id);
+          continue;
+        }
+        validTeacherAssignments[assignment.class_id] ||= assignment;
+      }
 
       // Teacher busy map
       const busy = {};
@@ -280,7 +310,7 @@ export default function ClassManagement() {
       for (let qi = 0; qi < queue.length; qi++) {
         const cls = queue[qi];
         setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
-        const target = Math.max(1, Math.min(5, parseInt(cls.sessions_per_week, 10) || 1));
+        const target = Math.max(1, Math.min(slots.length * SCHED_DAYS.length, parseInt(cls.sessions_per_week, 10) || 1));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
@@ -289,25 +319,17 @@ export default function ClassManagement() {
           : null;
         if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
         const classSlots = isHomeroom ? [homeroomSlot] : slots;
-        let tAssign = cm.teacherAssignments.find((ta) => ta.class_id === cls.id);
-        // Homerooms can use any active staff member; other classes match staff by subject.
+        const tAssign = validTeacherAssignments[cls.id];
         if (!tAssign) {
-          const subj = (cls.subject || "").trim().toLowerCase();
-          if (!subj) { failed.push({ name: cls.class_name, reason: "No teacher and no subject to match" }); continue; }
-          const candidates = activeTeachers.filter((t) => isHomeroom || (t.subject || "").toLowerCase().includes(subj));
-          if (candidates.length === 0) { failed.push({ name: cls.class_name, reason: `No teacher found for ${cls.subject}` }); continue; }
-          candidates.sort((a, b) => {
-            if (isHomeroom) {
-              const aFree = SCHED_DAYS.filter((day) => teacherFree(a.id, day, homeroomSlot)).length;
-              const bFree = SCHED_DAYS.filter((day) => teacherFree(b.id, day, homeroomSlot)).length;
-              return bFree - aFree;
-            }
-            return countFree(b.id) - countFree(a.id);
+          const candidates = activeTeachers.filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject));
+          failed.push({
+            name: cls.class_name,
+            reason: candidates.length ? "Select a qualified teacher before scheduling this class." : `No active teacher is assigned to ${cls.subject || "this subject"}.`,
+            classId: cls.id,
+            subject: cls.subject || "",
+            candidates: candidates.map((teacher) => ({ id: teacher.id, name: teacher.full_name || teacher.username || "Teacher" })),
           });
-          const pick = candidates[0];
-          await base44.entities.TeacherClass.create({ teacher_id: pick.id, teacher_name: pick.full_name || "", class_id: cls.id, role: "Primary Teacher", school_code: cm.schoolCode });
-          tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
-          assigned.push({ class: cls.class_name, teacher: pick.full_name || pick.username });
+          continue;
         }
         const teacherRecord = cm.teachers.find((t) => t.id === tAssign.teacher_id);
         let scheduleRoom = teacherRecord?.room || "";
@@ -319,46 +341,47 @@ export default function ClassManagement() {
         const need = Math.max(0, target - have);
         if (need === 0) continue;
         const usedDays = new Set((byClass[cls.id] || []).map((s) => s.day_of_week));
+        const dayLoad = Object.fromEntries(SCHED_DAYS.map((day) => [day, (byClass[cls.id] || []).filter((session) => session.day_of_week === day).length]));
         let placedThis = 0;
         for (let i = 0; i < need; i++) {
-          let placed = null;
-          let conflictStudents = [];
           const candidates = [];
+          const blockedSlots = [];
+          const classStudentsForSchedule = classStudents[cls.id] || new Set();
           for (const day of SCHED_DAYS) {
             for (const slot of classSlots) {
-              if (!teacherFree(tAssign.teacher_id, day, slot) || !studentsFree(cls.id, day, slot)) continue;
-              candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + (usedDays.has(day) ? 0 : 1) });
+              if (!teacherFree(tAssign.teacher_id, day, slot)) continue;
+              const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
+              if (conflicts.length) {
+                blockedSlots.push({ day, ...slot, conflicts });
+                continue;
+              }
+              candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
             }
           }
           candidates.sort((a, b) => a.score - b.score || a.start - b.start || SCHED_DAYS.indexOf(a.day) - SCHED_DAYS.indexOf(b.day));
-          placed = candidates[0] || null;
-          if (!placed) break;
-          await base44.entities.ClassSchedule.create({
+          const placed = candidates[0];
+          if (!placed) {
+            const blocked = blockedSlots.sort((a, b) => a.conflicts.length - b.conflicts.length)[0];
+            if (blocked) blocked.conflicts.forEach((studentId) => suggestions.push({
+              student: studentName(studentId), student_id: studentId, fromClass: cls.class_name, from_class_id: cls.id,
+              day: blocked.day, time: fmtTime(mmToHHMM(blocked.start)), alt: suggestAlternative(cls, studentId),
+            }));
+            break;
+          }
+          const createdSchedule = await base44.entities.ClassSchedule.create({
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode,
             teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: scheduleRoom,
             day_of_week: placed.day, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
             recurrence_type: recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10),
           });
+          (byClass[cls.id] ||= []).push(createdSchedule);
           (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
           busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
           markStudentsBusy(cls.id, placed.day, placed);
           usedDays.add(placed.day);
+          dayLoad[placed.day]++;
           placedThis++;
           scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
-          if (conflictStudents.length) {
-            for (const sid of conflictStudents) {
-              const alt = suggestAlternative(cls, sid);
-              suggestions.push({
-                student: studentName(sid),
-                student_id: sid,
-                fromClass: cls.class_name,
-                from_class_id: cls.id,
-                day: placed.day,
-                time: fmtTime(mmToHHMM(placed.start)),
-                alt: alt,
-              });
-            }
-          }
         }
         if (placedThis < need) {
           failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)` });
@@ -919,11 +942,16 @@ export default function ClassManagement() {
                     </div>
                   </div>
                 )}
-                {(autoResult?.failed?.length || 0) > 0 && (
+                <UnassignedTeacherList
+                  items={(autoResult?.failed || []).filter((item) => item.classId)}
+                  onAssign={assignQualifiedTeacher}
+                  assigningId={assigningTeacherClassId}
+                />
+                {(autoResult?.failed || []).some((item) => !item.classId) && (
                   <div>
                     <h4 className="mb-2 text-sm font-semibold text-slate-800">Classes needing attention</h4>
                     <div className="space-y-2">
-                      {autoResult.failed.map((item, index) => <div key={`${item.name}-${index}`} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800"><span className="font-medium">{item.name}:</span> {item.reason}</div>)}
+                      {autoResult.failed.filter((item) => !item.classId).map((item, index) => <div key={`${item.name}-${index}`} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm text-amber-800"><span className="font-medium">{item.name}:</span> {item.reason}</div>)}
                     </div>
                   </div>
                 )}
