@@ -319,17 +319,32 @@ export default function ClassManagement() {
           : null;
         if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
         const classSlots = isHomeroom ? [homeroomSlot] : slots;
-        const tAssign = validTeacherAssignments[cls.id];
+        let tAssign = validTeacherAssignments[cls.id];
         if (!tAssign) {
           const candidates = activeTeachers.filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject));
-          failed.push({
-            name: cls.class_name,
-            reason: candidates.length ? "Select a qualified teacher before scheduling this class." : `No active teacher is assigned to ${cls.subject || "this subject"}.`,
-            classId: cls.id,
-            subject: cls.subject || "",
-            candidates: candidates.map((teacher) => ({ id: teacher.id, name: teacher.full_name || teacher.username || "Teacher" })),
+          if (!candidates.length) {
+            failed.push({
+              name: cls.class_name,
+              reason: `No active teacher is qualified for ${cls.subject || "this subject"}.`,
+              classId: cls.id,
+              subject: cls.subject || "",
+              candidates: [],
+            });
+            continue;
+          }
+          candidates.sort((a, b) => {
+            const availableSlots = (teacher) => isHomeroom
+              ? SCHED_DAYS.filter((day) => teacherFree(teacher.id, day, homeroomSlot)).length
+              : countFree(teacher.id);
+            return availableSlots(b) - availableSlots(a);
           });
-          continue;
+          const pick = candidates[0];
+          await base44.entities.TeacherClass.create({
+            teacher_id: pick.id, teacher_name: pick.full_name || "", class_id: cls.id,
+            role: "Primary Teacher", school_code: cm.schoolCode,
+          });
+          tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
+          assigned.push({ class: cls.class_name, teacher: pick.full_name || pick.username || "Teacher" });
         }
         const teacherRecord = cm.teachers.find((t) => t.id === tAssign.teacher_id);
         let scheduleRoom = teacherRecord?.room || "";
