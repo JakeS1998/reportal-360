@@ -17,11 +17,20 @@
     "file_url": {
       "type": "string",
       "format": "uri",
-      "title": "Uploaded File URL"
+      "title": "Assignment Submission File URL"
     },
     "file_name": {
       "type": "string",
-      "title": "Uploaded File Name"
+      "title": "Assignment Submission File Name"
+    },
+    "ai_report_file_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "AI/Plagiarism Report File URL"
+    },
+    "ai_report_file_name": {
+      "type": "string",
+      "title": "AI/Plagiarism Report File Name"
     },
     "submission_text": {
       "type": "string",
@@ -31,14 +40,6 @@
       "type": "string",
       "format": "date-time",
       "title": "Submitted At"
-    },
-    "plagiarism_score": {
-      "type": "number",
-      "title": "AI Similarity Score"
-    },
-    "plagiarism_note": {
-      "type": "string",
-      "title": "AI Similarity Note"
     },
     "teacher_viewed_by": {
       "type": "array",

@@ -13,15 +13,6 @@ async function getCaller(base44, body) {
   return resolveStaffCaller(base44, { callerUsername: body.caller_username, callerPassword: body.caller_password, callerEmail: body.caller_email, callerSso: body.caller_sso });
 }
 
-async function similarityCheck(base44, fileUrl) {
-  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: 'Review the attached student assignment document for signs of copied, templated, or unusually generic phrasing. Do not claim to search the internet or detect plagiarism conclusively. Return a cautious similarity-risk estimate from 0 to 100 and a short student-friendly explanation.',
-    file_urls: [fileUrl],
-    response_json_schema: { type: 'object', properties: { score: { type: 'number' }, note: { type: 'string' } }, required: ['score', 'note'] }
-  });
-  return { score: Math.max(0, Math.min(100, Math.round(result.score))), note: result.note };
-}
-
 export default async function(req) {
   try {
     const body = await req.json();
@@ -72,8 +63,13 @@ export default async function(req) {
       const enrolled = await service.StudentClass.filter({ student_id: caller.id, class_id: assignment.class_id, status: 'active' }, undefined, 1);
       if (!enrolled.length || !body.file_url) return Response.json({ success: false, error: 'Upload an assignment document' }, { status: 400 });
       const existing = await service.AssignmentSubmission.filter({ assignment_id: assignment.id, student_id: caller.id }, undefined, 1);
-      const ai = await similarityCheck(base44, body.file_url).catch(() => ({ score: null, note: 'AI similarity check is temporarily unavailable.' }));
-      const payload = { assignment_id: assignment.id, student_id: caller.id, student_name: caller.student_name, file_url: body.file_url, file_name: body.file_name || '', submission_text: '', submitted_at: new Date().toISOString(), plagiarism_score: ai.score, plagiarism_note: ai.note, teacher_viewed_by: [], status: 'submitted' };
+      const payload = {
+        assignment_id: assignment.id, student_id: caller.id, student_name: caller.student_name,
+        file_url: body.file_url, file_name: body.file_name || '',
+        ai_report_file_url: assignment.enable_ai_plagiarism_report ? body.ai_report_file_url || '' : '',
+        ai_report_file_name: assignment.enable_ai_plagiarism_report ? body.ai_report_file_name || '' : '',
+        submission_text: '', submitted_at: new Date().toISOString(), teacher_viewed_by: [], status: 'submitted'
+      };
       const submission = existing.length ? await service.AssignmentSubmission.update(existing[0].id, payload) : await service.AssignmentSubmission.create(payload);
       return Response.json({ success: true, submission });
     }

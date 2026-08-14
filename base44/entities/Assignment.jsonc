@@ -35,6 +35,11 @@
       "type": "string",
       "title": "Assigned By Teacher"
     },
+    "enable_ai_plagiarism_report": {
+      "type": "boolean",
+      "title": "Enable AI/Plagiarism Report Upload",
+      "default": false
+    },
     "status": {
       "type": "string",
       "enum": [
