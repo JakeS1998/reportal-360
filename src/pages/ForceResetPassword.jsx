@@ -56,7 +56,6 @@ export default function ForceResetPassword() {
       // Reset the password
       const resetRes = await base44.functions.invoke("resetPassword", {
         username: tempSession.username,
-        current_password: tempSession.password,
         new_password: newPassword,
       });
       if (!resetRes.data?.success) {
