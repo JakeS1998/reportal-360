@@ -425,7 +425,9 @@ export default function ClassManagement() {
           continue;
         }
         const teacherSessions = Object.fromEntries(qualifiedTeachers.map((teacher) => [teacher.id, 0]));
-        const roomForTeacher = (teacher) => cls.room || roomsForSubject(cls.subject)[0] || teacher.room || "";
+        // A subject can use any of its configured rooms, allowing separate sections
+        // with different teachers to run in parallel instead of competing for one room.
+        const roomsForTeacher = (teacher) => [...new Set([cls.room, ...roomsForSubject(cls.subject), teacher.room].filter(Boolean))];
         const have = (byClass[cls.id] || []).length;
         const need = Math.max(0, target - have);
         if (need === 0) continue;
@@ -445,11 +447,16 @@ export default function ClassManagement() {
               ? getSchoolDays(classTimetable).map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean)
               : [slot];
             if (dailyPattern && (day !== getSchoolDays(classTimetable)[0] || patternSlots.length !== getSchoolDays(classTimetable).length)) continue;
-            const availableTeachers = qualifiedTeachers.filter((teacher) => patternSlots.every((patternSlot) => {
-              const patternDay = patternSlot.day_type || patternSlot.day_of_week;
-              return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(roomForTeacher(teacher), patternDay, patternSlot);
-            }));
-            if (!availableTeachers.length) continue;
+            const availablePairs = qualifiedTeachers.flatMap((teacher) => {
+              const availableRooms = roomsForTeacher(teacher);
+              return (availableRooms.length ? availableRooms : [""])
+                .filter((room) => patternSlots.every((patternSlot) => {
+                  const patternDay = patternSlot.day_type || patternSlot.day_of_week;
+                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot);
+                }))
+                .map((room) => ({ teacher, room }));
+            });
+            if (!availablePairs.length) continue;
             const conflicts = [...classStudentsForSchedule].filter((studentId) => patternSlots.some((patternSlot) => {
               const patternDay = patternSlot.day_type || patternSlot.day_of_week;
               return overlaps((studentBusy[studentId] || {})[patternDay] || [], patternSlot);
@@ -458,14 +465,14 @@ export default function ClassManagement() {
               blockedSlots.push({ day, ...slot, conflicts });
               continue;
             }
-            availableTeachers.sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id]);
-            const teacher = availableTeachers[0];
+            availablePairs.sort((a, b) => teacherSessions[b.teacher.id] - teacherSessions[a.teacher.id]);
+            const { teacher, room } = availablePairs[0];
             const teacherDayLoad = ((busy[teacher.id] || {})[day] || []).length;
             const sameTimeCount = (byClass[cls.id] || []).filter((session) => toMin(session.start_time) === slot.start && toMin(session.end_time) === slot.end).length;
             const score = isFlexibleWeekly
               ? (globalDayLoad[day] || 0) * 100 + teacherDayLoad * 10 + dayLoad[day] * 5 + sameTimeCount * 25 + (usedDays.has(day) ? 50 : 0)
               : studentGapScore(cls.id, day, slot) + dayLoad[day] * 3;
-            candidates.push({ day, ...slot, slots: patternSlots, teacher, room: roomForTeacher(teacher), score });
+            candidates.push({ day, ...slot, slots: patternSlots, teacher, room, score });
           }
           candidates.sort((a, b) => a.score - b.score || a.start - b.start || a.day.localeCompare(b.day));
           const placed = candidates[0];
