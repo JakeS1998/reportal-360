@@ -208,6 +208,10 @@ export default function Schedule() {
     }
     const cls = cm.classes.find((c) => c.id === form.class_id);
     const teacher = cm.teachers.find((t) => t.id === form.teacher_id);
+    if (DAYS.includes(form.day_of_week) && teacher?.working_days?.length && !teacher.working_days.includes(form.day_of_week)) {
+      setFormError(`${teacher.full_name || "This teacher"} does not work on ${form.day_of_week}.`);
+      return;
+    }
     const payload = {
       class_id: form.class_id,
       class_name: cls?.class_name || "",
