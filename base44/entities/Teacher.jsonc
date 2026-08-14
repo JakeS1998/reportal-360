@@ -90,6 +90,18 @@
         "type": "string"
       }
     },
+    "teaching_levels": {
+      "type": "array",
+      "title": "School Levels This Teacher Serves",
+      "items": {
+        "type": "string",
+        "enum": [
+          "elementary",
+          "middle",
+          "high"
+        ]
+      }
+    },
     "room": {
       "type": "string",
       "title": "Assigned Room"
