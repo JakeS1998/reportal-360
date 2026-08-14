@@ -51,8 +51,10 @@ export default async function(req) {
     if (action === 'clone') {
       const source = await base44.asServiceRole.entities.LessonPlan.get(params.plan_id);
       if (!source || source.school_code !== schoolCode || (!manager && source.owner_id !== caller.id && !source.shared)) return Response.json({ success: false, error: 'Plan unavailable' }, { status: 403 });
+      const targetClassId = params.target_class_id || source.class_id;
+      if (!(await canAuthorClass(targetClassId))) return Response.json({ success: false, error: 'Not assigned to this class' }, { status: 403 });
       const { id, created_date, updated_date, created_by_id, reviewed_by, reviewed_at, review_notes, ...copy } = source;
-      const cloned = await base44.asServiceRole.entities.LessonPlan.create({ ...copy, title: `${copy.title} (Copy)`, owner_id: caller.id, owner_name: caller.full_name || caller.username, status: 'draft', shared: false });
+      const cloned = await base44.asServiceRole.entities.LessonPlan.create({ ...copy, class_id: targetClassId, class_name: params.target_class_name || source.class_name, schedule_id: params.target_class_id ? '' : source.schedule_id, title: `${copy.title} (Copy)`, owner_id: caller.id, owner_name: caller.full_name || caller.username, status: 'draft', shared: false });
       return Response.json({ success: true, plan: cloned });
     }
     if (action === 'review') {
