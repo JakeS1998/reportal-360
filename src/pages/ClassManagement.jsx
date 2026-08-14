@@ -82,11 +82,17 @@ export default function ClassManagement() {
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
+  const isElementary = cm.school?.school_type === "Elementary";
   const teacherCanTeach = (teacher, subject, gradeLevel) => {
     const target = (subject || "").trim().toLowerCase();
     const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
     const gradeAllowed = !(teacher?.grade_levels?.length) || teacher.grade_levels.includes(String(gradeLevel));
     return gradeAllowed && subjects.some((value) => value === target || value.split(/[,/]/).map((part) => part.trim()).includes(target));
+  };
+  const canLeadHomeroom = (teacher, gradeLevel) => {
+    const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
+    const gradeAllowed = !(teacher?.grade_levels?.length) || teacher.grade_levels.includes(String(gradeLevel));
+    return gradeAllowed && !subjects.some((subject) => ["pe", "music"].includes(subject));
   };
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
@@ -213,7 +219,10 @@ export default function ClassManagement() {
       for (const assignment of cm.teacherAssignments) {
         const cls = cm.classes.find((record) => record.id === assignment.class_id);
         const teacher = activeTeachers.find((record) => record.id === assignment.teacher_id);
-        if (!cls || !teacherCanTeach(teacher, cls.subject, cls.grade_level)) {
+        const assignmentIsValid = cls && (cls.subject || "").toLowerCase() === "homeroom"
+          ? canLeadHomeroom(teacher, cls.grade_level)
+          : teacherCanTeach(teacher, cls?.subject, cls?.grade_level);
+        if (!assignmentIsValid) {
           await base44.entities.TeacherClass.delete(assignment.id);
           continue;
         }
@@ -340,7 +349,7 @@ export default function ClassManagement() {
         const classSlots = isHomeroom ? getSchoolDays(classTimetable).map((day) => ({ ...homeroomSlot, day_of_week: day, day_type: "", label: "Homeroom" })) : modelSlots;
         const classAssignments = cm.teacherAssignments.filter((assignment) => assignment.class_id === cls.id);
         const qualifiedTeachers = activeTeachers
-          .filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject, cls.grade_level))
+          .filter((teacher) => isHomeroom ? canLeadHomeroom(teacher, cls.grade_level) : teacherCanTeach(teacher, cls.subject, cls.grade_level))
           .sort((a, b) => {
             const aPrimary = classAssignments.some((assignment) => assignment.teacher_id === a.id && assignment.role === "Primary Teacher") ? 1 : 0;
             const bPrimary = classAssignments.some((assignment) => assignment.teacher_id === b.id && assignment.role === "Primary Teacher") ? 1 : 0;
@@ -437,7 +446,7 @@ export default function ClassManagement() {
   const createClassSections = async () => {
     const activeStudents = cm.students.filter((student) => student.status !== "inactive" && student.grade_level);
     const managedSubjects = subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom");
-    if (!activeStudents.length || !managedSubjects.length) return;
+    if (!activeStudents.length || (!isElementary && !managedSubjects.length)) return;
     setSectionPlannerOpen(false);
     setCreatingSections(true);
     try {
@@ -446,10 +455,13 @@ export default function ClassManagement() {
       for (const grade of [...new Set(activeStudents.map((student) => student.grade_level))]) {
         const enrollment = activeStudents.filter((student) => student.grade_level === grade).length;
         const sectionsNeeded = Math.ceil(enrollment / 30);
-        for (const subject of managedSubjects) {
+        const subjectsToCreate = isElementary
+          ? [{ name: "Homeroom", sessions: 5 }, { name: "PE", sessions: 1 }, { name: "Music", sessions: 1 }]
+          : managedSubjects.map((subject) => ({ name: subject.name, sessions: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1), room: subject.rooms?.[0] || "" }));
+        for (const subject of subjectsToCreate) {
           const existing = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level === grade && cls.subject === subject.name && (!currentYearId || cls.academic_year_id === currentYearId));
           for (let section = existing.length + 1; section <= sectionsNeeded; section++) {
-            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.rooms?.[0] || "", status: "active", sessions_per_week: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1) });
+            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.room || roomsForSubject(subject.name)[0] || "", status: "active", sessions_per_week: subject.sessions });
           }
         }
       }
@@ -472,7 +484,12 @@ export default function ClassManagement() {
     try {
       const electiveSubjects = new Set(subjectDefs.filter((subject) => subject.is_elective).map((subject) => subject.name.trim().toLowerCase()));
       const currentYearId = cm.currentYear?.id || "";
-      const activeClasses = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level && (cls.subject || "").toLowerCase() !== "homeroom" && !electiveSubjects.has((cls.subject || "").trim().toLowerCase()) && (!currentYearId || cls.academic_year_id === currentYearId));
+      const elementarySubjects = new Set(["homeroom", "pe", "music"]);
+      const activeClasses = cm.classes.filter((cls) => {
+        const subject = (cls.subject || "").trim().toLowerCase();
+        const included = isElementary ? elementarySubjects.has(subject) : subject !== "homeroom" && !electiveSubjects.has(subject);
+        return cls.status === "active" && cls.grade_level && included && (!currentYearId || cls.academic_year_id === currentYearId);
+      });
       const classById = Object.fromEntries(activeClasses.map((cls) => [cls.id, cls]));
       const groups = {};
       activeClasses.forEach((cls) => {
@@ -763,10 +780,10 @@ export default function ClassManagement() {
       <Dialog open={sectionPlannerOpen} onOpenChange={setSectionPlannerOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Set weekly class meetings</DialogTitle>
+            <DialogTitle>{isElementary ? "Create elementary class groups" : "Set weekly class meetings"}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">Set how often each identified subject should meet each week. This applies to every section created for that subject.</p>
-          <div className={`rounded-lg border p-3 ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
+          <p className="text-sm text-slate-600">{isElementary ? "Each grade will be split into groups of up to 30 students. Every group receives one homeroom class plus weekly PE and Music classes for specialist teachers." : "Set how often each identified subject should meet each week. This applies to every section created for that subject."}</p>
+          {!isElementary && <div className={`rounded-lg border p-3 ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
             <p className="text-sm font-semibold text-slate-800">Student weekly blocks: {plannedWeeklyBlocks} of {weeklyBlocksAvailable || "—"}</p>
             <p className={`mt-1 text-xs ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "text-rose-700" : "text-slate-600"}`}>
               {timetable
@@ -775,8 +792,8 @@ export default function ClassManagement() {
                   : `${weeklyBlocksAvailable - plannedWeeklyBlocks} block${weeklyBlocksAvailable - plannedWeeklyBlocks === 1 ? " remains" : "s remain"} available each week.`
                 : "Set up school hours first to see the weekly block limit."}
             </p>
-          </div>
-          <div className="space-y-3">
+          </div>}
+          {!isElementary && <div className="space-y-3">
             {subjectDefs.filter((subject) => subject.name && subject.name.toLowerCase() !== "homeroom").map((subject) => (
               <div key={subject.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3">
                 <div>
@@ -786,7 +803,7 @@ export default function ClassManagement() {
                 <Input type="number" min={1} max={5} value={sectionFrequencies[subject.name] || 1} onChange={(e) => setSectionFrequencies({ ...sectionFrequencies, [subject.name]: e.target.value })} className="w-20" aria-label={`${subject.name} meetings per week`} />
               </div>
             ))}
-          </div>
+          </div>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setSectionPlannerOpen(false)}>Cancel</Button>
             <Button onClick={createClassSections} disabled={creatingSections} className="bg-slate-900 hover:bg-slate-800">Create Sections</Button>
