@@ -236,6 +236,8 @@
     }
   },
   "required": [
-    "student_name"
+    "student_name",
+    "student_number",
+    "school_code"
   ]
 }

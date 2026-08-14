@@ -25,17 +25,15 @@ function sanitizeStudent(s) {
   return rest;
 }
 
-// Generate a unique login username in the format schoolcode.name.student
-async function generateUniqueUsername(base44, schoolCode, name) {
-  const slug = slugifyName(name);
-  if (!slug) return null;
-  const base = `${schoolCode}.${slug}.student`;
-  const existing = await base44.asServiceRole.entities.Student.filter(
-    { username: base, school_code: schoolCode }, undefined, 1
-  );
-  if (existing.length === 0) return base;
-  // Collision — append a random 4-digit suffix
-  return `${schoolCode}.${slug}${Math.floor(1000 + Math.random() * 9000)}.student`;
+// Student logins are based on the school code and unique student number.
+function studentUsername(schoolCode, studentNumber) {
+  const normalizedNumber = String(studentNumber || "").trim();
+  return normalizedNumber ? `${String(schoolCode).trim()}.${normalizedNumber}` : null;
+}
+
+async function usernameIsAvailable(base44, username, excludeStudentId) {
+  const matches = await base44.asServiceRole.entities.Student.filter({ username }, undefined, 2);
+  return matches.every((student) => student.id === excludeStudentId);
 }
 
 export default async function(req) {
@@ -146,24 +144,20 @@ export default async function(req) {
       const students = await base44.asServiceRole.entities.Student.filter(
         { school_code: targetSchool }, "student_name", 500
       );
-      const existingUsernames = new Set(students.filter((s) => s.username).map((s) => s.username));
-      const toBackfill = students.filter((s) => !s.username);
-      if (toBackfill.length > 0) {
-        const updates = [];
-        for (const s of toBackfill) {
-          const slug = slugifyName(s.student_name);
-          if (!slug) continue;
-          let username = `${targetSchool}.${slug}.student`;
-          let n = 2;
-          while (existingUsernames.has(username)) { username = `${targetSchool}.${slug}${n}.student`; n++; }
-          existingUsernames.add(username);
-          updates.push({ id: s.id, username, password: DEFAULT_STUDENT_PASSWORD, password_reset_required: true });
-        }
-        if (updates.length > 0) {
-          await base44.asServiceRole.entities.Student.bulkUpdate(updates);
-          const map = Object.fromEntries(updates.map((u) => [u.id, u]));
-          students.forEach((s) => { if (map[s.id]) { s.username = map[s.id].username; s.password_reset_required = true; } });
-        }
+      const usernameOwners = new Map(students.filter((student) => student.username).map((student) => [student.username, student.id]));
+      const updates = [];
+      for (const student of students) {
+        const username = studentUsername(targetSchool, student.student_number);
+        if (!username || username === student.username) continue;
+        const ownerId = usernameOwners.get(username);
+        if (ownerId && ownerId !== student.id) continue;
+        usernameOwners.set(username, student.id);
+        updates.push({ id: student.id, username });
+      }
+      if (updates.length > 0) {
+        await base44.asServiceRole.entities.Student.bulkUpdate(updates);
+        const usernames = Object.fromEntries(updates.map((update) => [update.id, update.username]));
+        students.forEach((student) => { if (usernames[student.id]) student.username = usernames[student.id]; });
       }
       return Response.json({ success: true, students: students.map(sanitizeStudent) });
     }
@@ -309,14 +303,16 @@ export default async function(req) {
     if (action === "create") {
       if (callerRole === "student") return denyStudent();
       const { school_code, ...studentData } = params;
-      if (!studentData.student_name || !school_code) {
-        return Response.json({ success: false, error: "student_name and school_code required" }, { status: 400 });
+      if (!studentData.student_name || !studentData.student_number || !school_code) {
+        return Response.json({ success: false, error: "student_name, student_number, and school_code required" }, { status: 400 });
       }
       if (!(await authorizeSchool(school_code))) {
         return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
       }
-      // Auto-generate a student login from the roster
-      const username = await generateUniqueUsername(base44, school_code, studentData.student_name);
+      const username = studentUsername(school_code, studentData.student_number);
+      if (!(await usernameIsAvailable(base44, username))) {
+        return Response.json({ success: false, error: "A student with this student number already exists at this school" }, { status: 409 });
+      }
       const created = await base44.asServiceRole.entities.Student.create({
         ...studentData, school_code, status: studentData.status || "active",
         username,
@@ -339,20 +335,21 @@ export default async function(req) {
           return Response.json({ success: false, error: `Not authorized for school ${sc}` }, { status: 403 });
         }
       }
-      // Auto-generate logins for each new student
       const usedUsernames = new Set();
       const cleaned = [];
-      for (const r of records) {
-        const username = await generateUniqueUsername(base44, r.school_code, r.student_name);
-        if (username && !usedUsernames.has(username)) {
-          usedUsernames.add(username);
-          cleaned.push({
-            ...r, status: r.status || "active",
-            username, password: DEFAULT_STUDENT_PASSWORD, password_reset_required: true,
-          });
-        } else {
-          cleaned.push({ ...r, status: r.status || "active" });
+      for (const record of records) {
+        const username = studentUsername(record.school_code, record.student_number);
+        if (!record.student_name || !username) {
+          return Response.json({ success: false, error: "Every student needs a name, student number, and school code" }, { status: 400 });
         }
+        if (usedUsernames.has(username) || !(await usernameIsAvailable(base44, username))) {
+          return Response.json({ success: false, error: `Duplicate student number for ${record.school_code}` }, { status: 409 });
+        }
+        usedUsernames.add(username);
+        cleaned.push({
+          ...record, status: record.status || "active",
+          username, password: DEFAULT_STUDENT_PASSWORD, password_reset_required: true,
+        });
       }
       const created = await base44.asServiceRole.entities.Student.bulkCreate(cleaned);
       return Response.json({ success: true, count: created.length });
@@ -376,7 +373,14 @@ export default async function(req) {
           return Response.json({ success: false, error: "Not authorized for target school" }, { status: 403 });
         }
       }
-      const updated = await base44.asServiceRole.entities.Student.update(student_id, data);
+      const newSchoolCode = data.school_code || existing.school_code;
+      const newStudentNumber = data.student_number || existing.student_number;
+      const username = studentUsername(newSchoolCode, newStudentNumber);
+      if (!username) return Response.json({ success: false, error: "student_number is required" }, { status: 400 });
+      if (!(await usernameIsAvailable(base44, username, student_id))) {
+        return Response.json({ success: false, error: "A student with this student number already exists at this school" }, { status: 409 });
+      }
+      const updated = await base44.asServiceRole.entities.Student.update(student_id, { ...data, username });
       return Response.json({ success: true, student: sanitizeStudent(updated) });
     }
 
