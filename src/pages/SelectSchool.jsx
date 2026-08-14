@@ -39,6 +39,9 @@ const SCENES = [
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/592debd4c_generated_image.png", title: "Cathedral Caverns", location: "Marshall County, Alabama", fact: "Cathedral Caverns is known for its massive entrance and striking limestone formations." },
   { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/1ad80f88a_generated_image.png", title: "DeSoto State Park", location: "Northeast Alabama", fact: "DeSoto State Park sits atop Lookout Mountain near some of Alabama's most scenic waterfalls." },
   { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/5ecb796ce_generated_image.png", title: "Black Belt Countryside", location: "Central Alabama", fact: "Alabama's Black Belt is known for its fertile dark soils and rich cultural history." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/5a89930bf_generated_image.png", title: "USS Alabama", location: "Mobile, Alabama", fact: "The USS Alabama is a World War II battleship preserved at Battleship Memorial Park on Mobile Bay." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d3fc6f772_generated_image.png", title: "Vulcan Park", location: "Birmingham, Alabama", fact: "Vulcan, the world's largest cast-iron statue, overlooks Birmingham from Red Mountain." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/b2007d41b_generated_image.png", title: "DeSoto Falls", location: "Fort Payne, Alabama", fact: "DeSoto Falls cascades over 100 feet into a dramatic Little River Canyon gorge near Fort Payne." },
 ];
 
 function timeOfDay(h) {
