@@ -11,6 +11,7 @@ import { Plus, Search, Edit2, Copy, Archive, Trash2, BookOpen, Users, UserMinus,
 import { buildTeachingSlots } from "@/lib/teachingSlots";
 import AutoScheduleProgress from "@/components/class/AutoScheduleProgress";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
+import ClassDetailsDialog from "@/components/class/ClassDetailsDialog";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
 const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
@@ -53,6 +54,7 @@ export default function ClassManagement() {
   const [creatingSections, setCreatingSections] = useState(false);
   const [sectionPlannerOpen, setSectionPlannerOpen] = useState(false);
   const [sectionFrequencies, setSectionFrequencies] = useState({});
+  const [classDetail, setClassDetail] = useState(null);
 
   useEffect(() => {
     base44.entities.Subject.list("name", 200).then(setSubjectDefs).catch(() => {});
@@ -93,6 +95,16 @@ export default function ClassManagement() {
   const getTeachers = (classId) => cm.teacherAssignments.filter((ta) => ta.class_id === classId);
   const getStudentCount = (classId) => cm.studentAssignments.filter((sa) => sa.class_id === classId && sa.status === "active").length;
   const getYearName = (yearId) => cm.academicYears.find((y) => y.id === yearId)?.name || "—";
+
+  const openClassDetail = async (cls) => {
+    const students = cm.studentAssignments
+      .filter((assignment) => assignment.class_id === cls.id && assignment.status === "active")
+      .map((assignment) => cm.students.find((student) => student.id === assignment.student_id) || assignment)
+      .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""));
+    setClassDetail({ className: cls.class_name, students, schedules: [], loading: true });
+    const schedules = await base44.entities.ClassSchedule.filter({ class_id: cls.id }, undefined, 100);
+    setClassDetail({ className: cls.class_name, students, schedules, loading: false });
+  };
 
   const teacherInitials = (teacherId) => {
     const t = activeTeachers.find((t) => t.id === teacherId);
@@ -624,7 +636,7 @@ export default function ClassManagement() {
             const teachers = getTeachers(cls.id);
             const studentCount = getStudentCount(cls.id);
             return (
-              <div key={cls.id} className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
+              <div key={cls.id} onClick={() => openClassDetail(cls)} className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col cursor-pointer hover:border-slate-300 hover:shadow-sm">
                 <div className="flex items-start justify-between mb-3">
                   <div className="min-w-0">
                     <h3 className="text-sm font-bold text-slate-900 truncate">{cls.class_name}</h3>
@@ -655,7 +667,7 @@ export default function ClassManagement() {
                   {cls.description && <p className="text-xs text-slate-400 line-clamp-2">{cls.description}</p>}
                 </div>
 
-                <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-100">
+                <div onClick={(event) => event.stopPropagation()} className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-100">
                   <Button onClick={() => openAttendance(cls)} size="sm" variant="outline" className="mr-1 border-slate-200 text-slate-700">
                     <CalendarCheck className="w-3.5 h-3.5" /> Record attendance
                   </Button>
@@ -669,6 +681,8 @@ export default function ClassManagement() {
           })}
         </div>
       )}
+
+      <ClassDetailsDialog detail={classDetail} onOpenChange={(open) => !open && setClassDetail(null)} />
 
       <QuickActionsDialog
         open={!!attendanceTarget}
