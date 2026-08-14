@@ -179,6 +179,20 @@ export default function Schedule() {
     );
   };
 
+  const hasStudentConflict = (classId, day, start, end, excludeId) => {
+    const studentIds = new Set(cm.studentAssignments.filter((assignment) => assignment.class_id === classId && assignment.status === "active").map((assignment) => assignment.student_id));
+    if (studentIds.size === 0) return false;
+    const sMin = toMin(start);
+    const eMin = toMin(end);
+    return schedules.some((schedule) =>
+      (schedule.day_type || schedule.day_of_week) === day &&
+      schedule.id !== excludeId &&
+      sMin < toMin(schedule.end_time) &&
+      eMin > toMin(schedule.start_time) &&
+      cm.studentAssignments.some((assignment) => assignment.class_id === schedule.class_id && assignment.status === "active" && studentIds.has(assignment.student_id))
+    );
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setFormError("");
@@ -186,6 +200,10 @@ export default function Schedule() {
     if (toMin(form.end_time) <= toMin(form.start_time)) { setFormError("End time must be after start time."); return; }
     if (hasConflict(form.teacher_id, form.day_of_week, form.start_time, form.end_time, editing?.id)) {
       setFormError("That teacher already has a class overlapping this time on " + form.day_of_week + ".");
+      return;
+    }
+    if (hasStudentConflict(form.class_id, form.day_of_week, form.start_time, form.end_time, editing?.id)) {
+      setFormError("One or more students already have a class overlapping this time on " + form.day_of_week + ".");
       return;
     }
     const cls = cm.classes.find((c) => c.id === form.class_id);
