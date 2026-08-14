@@ -30,6 +30,7 @@ export default function ClassDashboard() {
   const [behOpen, setBehOpen] = useState(false);
   const [detentionOpen, setDetentionOpen] = useState(false);
   const [attendanceTarget, setAttendanceTarget] = useState(null);
+  const [openingAttendance, setOpeningAttendance] = useState(false);
   const [denied, setDenied] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -116,13 +117,21 @@ export default function ClassDashboard() {
   const reload = () => setReloadKey((k) => k + 1);
 
   const openAttendance = async () => {
+    if (openingAttendance) return;
+    setOpeningAttendance(true);
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10);
     const dayLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
     const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
-    const schedules = await base44.entities.ClassSchedule.filter({ class_id: classId }, undefined, 200);
-    const schedule = schedules.find((item) => item.day_of_week === dayName);
-    setAttendanceTarget({ scheduleId: schedule?.id || `manual-${classId}-${dateStr}`, dateStr, dayLabel });
+    try {
+      const schedules = await base44.entities.ClassSchedule.filter({ class_id: classId }, undefined, 200);
+      const schedule = schedules.find((item) => item.day_of_week === dayName);
+      setAttendanceTarget({ scheduleId: schedule?.id || `manual-${classId}-${dateStr}`, dateStr, dayLabel });
+    } catch (error) {
+      setAttendanceTarget({ scheduleId: `manual-${classId}-${dateStr}`, dateStr, dayLabel });
+    } finally {
+      setOpeningAttendance(false);
+    }
   };
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
@@ -144,7 +153,7 @@ export default function ClassDashboard() {
 
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm"><Link to={`/classes/${classId}/seating-plan`}><Armchair className="w-4 h-4 mr-1.5" /> Seating plan</Link></Button>
-        <Button onClick={openAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> Record Attendance</Button>
+        <Button onClick={openAttendance} disabled={openingAttendance} variant="outline" size="sm"><CalendarCheck className="w-4 h-4 mr-1.5" /> {openingAttendance ? "Opening…" : "Record Attendance"}</Button>
         <Button onClick={() => setAsmOpen(true)} variant="outline" size="sm"><Plus className="w-4 h-4 mr-1.5" /> Record Assessment</Button>
         <ClassGradesExportButton className={cls.class_name} students={students} attainment={attainment} />
         <Button onClick={() => setBehOpen(true)} variant="outline" size="sm"><ShieldAlert className="w-4 h-4 mr-1.5" /> Log Incident</Button>
