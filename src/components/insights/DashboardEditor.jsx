@@ -1,0 +1,19 @@
+import React from "react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { GripVertical, Plus, Trash2, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+export default function DashboardEditor({ defs, layout, onLayoutChange, canManage, allowed, onAllowedChange, onSaveAccess, saving }) {
+  const active = defs.filter(([id]) => layout.includes(id));
+  const available = defs.filter(([id]) => !layout.includes(id));
+  const reorder = ({ source, destination }) => {
+    if (!destination || source.index === destination.index) return;
+    const next = [...layout];
+    const [moved] = next.splice(source.index, 1);
+    next.splice(destination.index, 0, moved);
+    onLayoutChange(next);
+  };
+  const teacherMetrics = allowed || defs.map(([id]) => id);
+  return <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="bg-white shadow-sm"><GripVertical className="w-4 h-4" /> Customize dashboard</Button></DialogTrigger><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Arrange your dashboard</DialogTitle></DialogHeader><p className="text-sm text-slate-500 -mt-2">Drag cards to arrange them. Remove cards you do not need, then add them back anytime.</p><DragDropContext onDragEnd={reorder}><Droppable droppableId="widgets" direction="horizontal">{(provided) => <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-2 gap-3 pt-3">{active.map(([id, label, color], index) => <Draggable key={id} draggableId={id} index={index}>{(drag) => <div ref={drag.innerRef} {...drag.draggableProps} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center gap-2"><button {...drag.dragHandleProps} className="text-slate-400 cursor-grab"><GripVertical className="w-5 h-5" /></button><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} /><span className="flex-1 text-sm font-semibold text-slate-800">{label}</span><button onClick={() => onLayoutChange(layout.filter((item) => item !== id))} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600" aria-label={`Remove ${label}`}><Trash2 className="w-4 h-4" /></button></div></div>}</Draggable>)}{provided.placeholder}</div>}</Droppable></DragDropContext>{available.length > 0 && <div className="mt-6 border-t border-slate-100 pt-5"><p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Add widgets</p><div className="flex flex-wrap gap-2">{available.map(([id, label, color]) => <Button key={id} variant="outline" size="sm" onClick={() => onLayoutChange([...layout, id])}><Plus className="w-4 h-4" style={{ color }} />{label}</Button>)}</div></div>}{canManage && <div className="mt-6 border-t border-slate-100 pt-5"><div className="flex items-center gap-2 mb-3"><ShieldCheck className="w-4 h-4 text-slate-500" /><p className="text-sm font-semibold text-slate-800">Teacher widget access</p></div><div className="grid grid-cols-2 gap-2">{defs.map(([id, label]) => <label key={id} className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={teacherMetrics.includes(id)} onChange={() => onAllowedChange(teacherMetrics.includes(id) ? teacherMetrics.filter((metric) => metric !== id) : [...teacherMetrics, id])} />{label}</label>)}</div><Button onClick={onSaveAccess} disabled={saving} className="mt-4">{saving ? "Saving..." : "Save teacher access"}</Button></div>}</DialogContent></Dialog>;
+}
