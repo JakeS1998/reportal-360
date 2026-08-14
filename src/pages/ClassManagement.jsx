@@ -381,11 +381,13 @@ export default function ClassManagement() {
         });
       }
 
-      // Schedule the most-constrained classes first (most enrolled students), so
-      // shared students get a consistent timetable before less-shared classes fill slots.
+      // Schedule the highest weekly requirements first, then prioritize classes
+      // with the most shared students, so limited teacher availability cannot leave
+      // long-running subjects without enough remaining slots.
       const queue = cm.classes
         .filter((c) => c.status === "active" && !isElementaryClassroom(c))
-        .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
+        .sort((a, b) => (parseInt(b.sessions_per_week, 10) || 1) - (parseInt(a.sessions_per_week, 10) || 1)
+          || (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
 
       setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
       for (let qi = 0; qi < queue.length; qi++) {
@@ -393,10 +395,10 @@ export default function ClassManagement() {
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
-        // A traditional timetable repeats one daily pattern. A subject taught five
-        // times weekly therefore occupies one matching slot on every school day.
+        // Secondary schedules use the exact configured weekly frequency. Daily
+        // repetition is reserved for the elementary classroom blocks handled below.
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
-        const dailyPattern = classTimetable?.scheduling_model === "traditional" && !isHomeroom;
+        const dailyPattern = false;
         const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
         const target = dailyPattern
           ? Math.max(1, Math.ceil((parseInt(cls.sessions_per_week, 10) || 1) / getSchoolDays(classTimetable).length))
