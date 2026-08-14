@@ -79,8 +79,8 @@ export default function StudentScheduleDialog({ open, onOpenChange, student, cla
     (async () => {
       setLoading(true);
       try {
-        const rows = await base44.entities.ClassSchedule.filter({ school_code: schoolCode }, "start_time", 500);
-        if (active) setSchedules(rows.filter((s) => classIds.has(s.class_id)));
+        const rows = await base44.entities.ClassSchedule.filter({ class_id: { $in: Array.from(classIds) } }, "start_time", 500);
+        if (active) setSchedules(rows);
       } catch (err) {
         console.error(err);
       } finally {
