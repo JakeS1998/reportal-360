@@ -356,13 +356,13 @@ export default function SelectSchool() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="schoolcode.name"
+                placeholder="schoolcode.name or student number"
                 className="pl-9"
                 autoCapitalize="none"
                 autoCorrect="off"
               />
             </div>
-            <p className="text-xs text-slate-500 mt-1">Format: schoolcode.name</p>
+            <p className="text-xs text-slate-500 mt-1">Staff: schoolcode.name · Students: permanent student number</p>
           </div>
           <div>
             <Label className="text-sm font-medium text-slate-700">Password</Label>

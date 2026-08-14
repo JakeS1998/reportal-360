@@ -62,17 +62,9 @@ export default async function(req) {
       });
     }
 
-    // --- Student login (username ends with ".student"; no MFA/OTP) ---
-    if (username.endsWith(".student")) {
-      const sDot = username.indexOf(".");
-      const sSchoolCode = sDot > 0 ? username.slice(0, sDot) : null;
-      const sQuery: any = { username };
-      if (sSchoolCode) sQuery.school_code = sSchoolCode;
-      const students = await base44.asServiceRole.entities.Student.filter(sQuery);
-      if (students.length === 0) {
-        await logAudit(base44, "login_failed", username, "student", "Student not found", sSchoolCode || undefined, auditExtra);
-        return Response.json({ success: false, error: "Invalid username or password" });
-      }
+    // --- Student login (permanent student number; no MFA/OTP) ---
+    const students = await base44.asServiceRole.entities.Student.filter({ username }, undefined, 1);
+    if (students.length > 0) {
       const student = students[0];
       if (student.status && student.status !== "active") {
         await logAudit(base44, "login_failed", username, "student", "Inactive student account", student.school_code, auditExtra);

@@ -7,10 +7,6 @@ const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentia
 
 const DEFAULT_STUDENT_PASSWORD = "Student123!";
 
-function slugifyName(name) {
-  return (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
 function generateRandomPassword(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
   let password = "";
@@ -25,10 +21,10 @@ function sanitizeStudent(s) {
   return rest;
 }
 
-// Student logins are based on the school code and unique student number.
-function studentUsername(schoolCode, studentNumber) {
+// Student numbers are permanent, system-wide login names.
+function studentUsername(studentNumber) {
   const normalizedNumber = String(studentNumber || "").trim();
-  return normalizedNumber ? `${String(schoolCode).trim()}.${normalizedNumber}` : null;
+  return normalizedNumber || null;
 }
 
 async function usernameIsAvailable(base44, username, excludeStudentId) {
@@ -54,15 +50,12 @@ export default async function(req) {
       callerRole = "admin";
       callerName = "admin";
     } else if (caller_username) {
-      // Student auth (username ends with ".student")
-      if (caller_username.endsWith(".student")) {
-        const students = await base44.asServiceRole.entities.Student.filter({
-          username: caller_username,
-          password: caller_password,
-        });
-        if (students.length === 0) {
-          return Response.json({ success: false, error: "Unauthorized" }, { status: 403 });
-        }
+      // Student accounts use a permanent student number rather than a school-specific login.
+      const students = await base44.asServiceRole.entities.Student.filter({
+        username: caller_username,
+        password: caller_password,
+      }, undefined, 1);
+      if (students.length > 0) {
         if (students[0].status && students[0].status !== "active") {
           return Response.json({ success: false, error: "Account inactive" }, { status: 403 });
         }
@@ -147,7 +140,7 @@ export default async function(req) {
       const usernameOwners = new Map(students.filter((student) => student.username).map((student) => [student.username, student.id]));
       const updates = [];
       for (const student of students) {
-        const username = studentUsername(targetSchool, student.student_number);
+        const username = studentUsername(student.student_number);
         if (!username || username === student.username) continue;
         const ownerId = usernameOwners.get(username);
         if (ownerId && ownerId !== student.id) continue;
@@ -309,9 +302,9 @@ export default async function(req) {
       if (!(await authorizeSchool(school_code))) {
         return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
       }
-      const username = studentUsername(school_code, studentData.student_number);
+      const username = studentUsername(studentData.student_number);
       if (!(await usernameIsAvailable(base44, username))) {
-        return Response.json({ success: false, error: "A student with this student number already exists at this school" }, { status: 409 });
+        return Response.json({ success: false, error: "This student number is already in use" }, { status: 409 });
       }
       const created = await base44.asServiceRole.entities.Student.create({
         ...studentData, school_code, status: studentData.status || "active",
@@ -338,12 +331,12 @@ export default async function(req) {
       const usedUsernames = new Set();
       const cleaned = [];
       for (const record of records) {
-        const username = studentUsername(record.school_code, record.student_number);
+        const username = studentUsername(record.student_number);
         if (!record.student_name || !username) {
           return Response.json({ success: false, error: "Every student needs a name, student number, and school code" }, { status: 400 });
         }
         if (usedUsernames.has(username) || !(await usernameIsAvailable(base44, username))) {
-          return Response.json({ success: false, error: `Duplicate student number for ${record.school_code}` }, { status: 409 });
+          return Response.json({ success: false, error: "Duplicate student number" }, { status: 409 });
         }
         usedUsernames.add(username);
         cleaned.push({
@@ -373,12 +366,11 @@ export default async function(req) {
           return Response.json({ success: false, error: "Not authorized for target school" }, { status: 403 });
         }
       }
-      const newSchoolCode = data.school_code || existing.school_code;
       const newStudentNumber = data.student_number || existing.student_number;
-      const username = studentUsername(newSchoolCode, newStudentNumber);
+      const username = studentUsername(newStudentNumber);
       if (!username) return Response.json({ success: false, error: "student_number is required" }, { status: 400 });
       if (!(await usernameIsAvailable(base44, username, student_id))) {
-        return Response.json({ success: false, error: "A student with this student number already exists at this school" }, { status: 409 });
+        return Response.json({ success: false, error: "This student number is already in use" }, { status: 409 });
       }
       const updated = await base44.asServiceRole.entities.Student.update(student_id, { ...data, username });
       return Response.json({ success: true, student: sanitizeStudent(updated) });
