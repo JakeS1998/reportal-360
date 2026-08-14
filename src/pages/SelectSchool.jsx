@@ -31,7 +31,6 @@ const SCENES = [
   { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/a05c80435_generated_image.png", title: "Cheaha State Park", location: "Clay County, Alabama", fact: "Cheaha Mountain is Alabama's highest point, rising 2,407 feet above sea level." },
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/61a1762cd_generated_image.png", title: "Little River Canyon", location: "Northeast Alabama", fact: "Little River is one of the few rivers in the country that flows for most of its length atop a mountain." },
   { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d53c05b7b_generated_image.png", title: "Mobile Bay", location: "Mobile, Alabama", fact: "Mobile Bay has played a central role in Alabama's maritime history for more than 300 years." },
-  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/16d380734_generated_image.png", title: "Alabama School Community", location: "Alabama", fact: "Alabama's public schools serve students across communities from the foothills to the Gulf Coast." },
 ];
 
 function timeOfDay(h) {
