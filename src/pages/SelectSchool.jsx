@@ -299,8 +299,8 @@ export default function SelectSchool() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
-
-        <div className="relative mb-6 flex flex-col items-center">
+       <div className="absolute -inset-6 sm:-inset-8 bg-slate-950/45 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/30 shadow-2xl" aria-hidden="true" />
+       <div className="relative mb-6 flex flex-col items-center">
           <div className="relative">
             <div className="absolute -inset-10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),transparent_70%)] blur-2xl pointer-events-none" aria-hidden="true" />
             <LogoTransparent className="relative w-72" />
