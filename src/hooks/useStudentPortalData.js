@@ -22,6 +22,10 @@ export default function useStudentPortalData(includeSchedule = false) {
       } catch (error) { setState({ loading: false, error: error.message || "Unable to load your information", profile: null, schedules: [] }); }
     };
     load();
+    const unsubscribe = base44.entities.StudentClass.subscribe((event) => {
+      if (event.data?.student_id === session.user.student_id) load();
+    });
+    return unsubscribe;
   }, [includeSchedule, navigate]);
   return state;
 }

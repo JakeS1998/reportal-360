@@ -68,6 +68,10 @@ export default function StudentProfile() {
       }
     };
     load();
+    const unsubscribe = base44.entities.StudentClass.subscribe((event) => {
+      if (event.data?.student_id === studentId) load();
+    });
+    return unsubscribe;
   }, [studentId, user, activeSchool]);
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
