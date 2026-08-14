@@ -155,6 +155,43 @@ export default async function(req) {
       return Response.json({ success: true, students: students.map(sanitizeStudent) });
     }
 
+    if (action === "list_transfer_destinations") {
+      if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
+      const directories = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 500);
+      const schools = directories.filter((directory) => callerRole === "admin" || directory.system_code === callerSystemCode);
+      return Response.json({ success: true, schools: schools.map((directory) => ({ school_code: directory.school_code, school_name: directory.school_name })) });
+    }
+
+    if (action === "transfer") {
+      if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
+      const { school_code, target_school_code, student_ids, grade_level } = params;
+      const studentIds = [...new Set(student_ids || [])];
+      if (!school_code || !target_school_code || !Array.isArray(student_ids) || studentIds.length === 0 || studentIds.length > 500) {
+        return Response.json({ success: false, error: "Choose up to 500 students and a destination school" }, { status: 400 });
+      }
+      if (school_code === target_school_code) return Response.json({ success: false, error: "Choose a different destination school" }, { status: 400 });
+      if (!(await authorizeSchool(school_code))) return Response.json({ success: false, error: "Not authorized for this school" }, { status: 403 });
+      const targetDirectory = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_code: target_school_code }, undefined, 1);
+      if (targetDirectory.length === 0 || (callerRole !== "admin" && targetDirectory[0].system_code !== callerSystemCode)) {
+        return Response.json({ success: false, error: "Destination school is not available to you" }, { status: 403 });
+      }
+      const sourceStudents = await base44.asServiceRole.entities.Student.filter({ school_code }, undefined, 500);
+      const students = sourceStudents.filter((student) => studentIds.includes(student.id));
+      if (students.length !== studentIds.length) return Response.json({ success: false, error: "One or more students are not in this school" }, { status: 400 });
+      const transferDate = new Date().toISOString().slice(0, 10);
+      const studentUpdates = students.map((student) => ({ id: student.id, school_code: target_school_code, homeroom: "", ...(grade_level ? { grade_level } : {}) }));
+      const [enrollments, homerooms] = await Promise.all([
+        base44.asServiceRole.entities.StudentClass.filter({ school_code, status: "active" }, undefined, 5000),
+        base44.asServiceRole.entities.Homeroom.filter({ school_code }, undefined, 500),
+      ]);
+      const enrollmentUpdates = enrollments.filter((enrollment) => studentIds.includes(enrollment.student_id)).map((enrollment) => ({ id: enrollment.id, status: "withdrawn", end_date: transferDate }));
+      const homeroomUpdates = homerooms.filter((homeroom) => (homeroom.student_ids || []).some((id) => studentIds.includes(id))).map((homeroom) => ({ id: homeroom.id, student_ids: (homeroom.student_ids || []).filter((id) => !studentIds.includes(id)) }));
+      await base44.asServiceRole.entities.Student.bulkUpdate(studentUpdates);
+      if (enrollmentUpdates.length) await base44.asServiceRole.entities.StudentClass.bulkUpdate(enrollmentUpdates);
+      if (homeroomUpdates.length) await base44.asServiceRole.entities.Homeroom.bulkUpdate(homeroomUpdates);
+      return Response.json({ success: true, transferred: students.length, destination_school_code: target_school_code });
+    }
+
     if (action === "list_access_audit") {
       if (!["admin", "area", "manager", "school_admin"].includes(callerRole)) return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
       const targetSchool = params.school_code || callerSchoolCode;

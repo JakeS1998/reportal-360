@@ -55,7 +55,7 @@ function ScoreCell({ score, grade, highlight }) {
   );
 }
 
-export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
+export default function StudentRosterTable({ rows, subjectFilter, onSelect, selectedIds, onToggle }) {
   if (!rows.length) {
     return <p className="text-sm text-slate-400 py-8 text-center">No students found for the current filters.</p>;
   }
@@ -65,7 +65,7 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-200">
-            <th className="px-4 py-3">Student</th>
+            {onToggle && <th className="px-4 py-3"><input type="checkbox" checked={rows.length > 0 && rows.every((row) => selectedIds?.includes(row.id))} onChange={(event) => rows.forEach((row) => onToggle(row.id, event.target.checked))} /></th>}<th className="px-4 py-3">Student</th>
             <th className="px-3 py-3">ID</th>
             <th className="px-3 py-3">Grade</th>
             <th className="px-3 py-3">Homeroom</th>
@@ -81,7 +81,7 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect }) {
         <tbody>
           {rows.map((r) => (
             <tr key={r.student_number} onClick={() => onSelect?.(r)} className="border-b border-slate-100 hover:bg-blue-50/40 transition-colors cursor-pointer group">
-              <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+              {onToggle && <td className="px-4 py-3"><input type="checkbox" checked={selectedIds?.includes(r.id)} onClick={(event) => event.stopPropagation()} onChange={(event) => onToggle(r.id, event.target.checked)} /></td>}<td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                   {r.student_name}
                   <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />

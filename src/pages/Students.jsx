@@ -9,6 +9,7 @@ import FadeIn from "@/components/FadeIn";
 import Skeleton from "@/components/Skeleton";
 import KpiCard from "@/components/KpiCard";
 import TeacherStudents from "@/components/TeacherStudents";
+import StudentTransferDialog from "@/components/StudentTransferDialog";
 import { Users } from "lucide-react";
 
 export default function Students() {
@@ -19,6 +20,7 @@ export default function Students() {
   const [homeroomByStudentNumber, setHomeroomByStudentNumber] = useState({});
   const [studentIdsByNumber, setStudentIdsByNumber] = useState({});
   const [students, setStudents] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(true);
 
   const rows = useMemo(() => students.map((student) => ({
@@ -87,6 +89,10 @@ export default function Students() {
     () => ["All Homerooms", ...homerooms.map((h) => h.homeroom_name).filter(Boolean).sort()],
     [homerooms]
   );
+  const selectedStudents = rowsWithHomeroom.filter((student) => selectedIds.includes(student.id));
+  const canTransfer = ["admin", "area", "manager", "school_admin"].includes(user?.role);
+  const toggleSelection = (id, selected) => setSelectedIds((ids) => selected ? [...new Set([...ids, id])] : ids.filter((value) => value !== id));
+  const reloadRoster = () => { setSelectedIds([]); setSearch(""); window.location.reload(); };
 
   if (isTeacher) return <TeacherStudents />;
 
@@ -136,11 +142,13 @@ export default function Students() {
         </div>
       </FadeIn>
       <FadeIn delay={60}>
-        <SectionCard title="Student Roster" subtitle={`${filteredRows.length} students · ${activeSchool?.school_name || ""} · FY ${activeSchool?.year || ""}`} icon={Users}>
+        <SectionCard title="Student Roster" subtitle={`${filteredRows.length} students · ${activeSchool?.school_name || ""} · FY ${activeSchool?.year || ""}`} icon={Users} action={canTransfer ? <StudentTransferDialog schoolCode={activeSchool.school_code} selectedStudents={selectedStudents} credentials={{ caller_username: user?.username, caller_password: user?.password || localStorage.getItem("userPassword") || "" }} onComplete={reloadRoster} /> : null}>
           <StudentToolbar search={search} onSearch={setSearch} homeroomOptions={homerooms.length ? homeroomOptions : null} />
           <StudentRosterTable
             rows={filteredRows}
             subjectFilter={filters.subject}
+            selectedIds={selectedIds}
+            onToggle={canTransfer ? toggleSelection : null}
             onSelect={(student) => navigate(`/students/${student.profileId || `sample-${student.student_number}`}`)}
           />
         </SectionCard>
