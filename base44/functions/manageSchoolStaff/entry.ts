@@ -21,6 +21,20 @@ function makeUsername(schoolCode, fullName) {
   return `${schoolCode}.${namePart}`;
 }
 
+function resolveGradeLevels(teachingLevel, gradeLevels = []) {
+  const allowedByLevel = {
+    elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
+    middle: ["6", "7", "8"],
+    high: ["8", "9", "10", "11", "12"],
+  };
+  const allowed = allowedByLevel[teachingLevel];
+  if (!allowed) return { error: "School level must be elementary, middle, or high" };
+  const selected = Array.isArray(gradeLevels) ? gradeLevels : [];
+  if (teachingLevel === "elementary" && selected.length === 0) return { error: "Elementary staff must have at least one grade assigned" };
+  if (selected.some((grade) => !allowed.includes(grade))) return { error: `${teachingLevel === "middle" ? "Middle" : teachingLevel === "high" ? "High" : "Elementary"} staff can only be assigned eligible grades` };
+  return { gradeLevels: selected.length > 0 ? selected : allowed };
+}
+
 export default async function(req) {
   try {
     const body = await req.json();
@@ -91,7 +105,9 @@ export default async function(req) {
         const teachingLevel = { E: "elementary", M: "middle", H: "high" }[schoolLevelCode];
         if (!teachingLevel) { errors.push(`Row ${index + 2}: school_level is required and must be E, M, or H`); continue; }
         const subjectNames = (item.subject || "").split(";").map((name) => name.trim()).filter(Boolean);
-        const gradeLevels = (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean);
+        const gradeSelection = resolveGradeLevels(teachingLevel, (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean));
+        if (gradeSelection.error) { errors.push(`Row ${index + 2}: ${gradeSelection.error}`); continue; }
+        const gradeLevels = gradeSelection.gradeLevels;
         const roomName = item.room?.trim() || "";
         const temp_password = customPassword || generateRandomPassword();
         await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectNames[0] || "", subjects: subjectNames, grade_levels: gradeLevels, teaching_levels: [teachingLevel], room: roomName, teacher_id: username, password_reset_required: true });
@@ -129,7 +145,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, room } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, room } = params;
 
       if (!full_name || !role || !school_code || !system_code || !email) {
         return Response.json(
@@ -159,6 +175,10 @@ export default async function(req) {
         return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
       }
 
+      const teachingLevel = Array.isArray(teaching_levels) ? teaching_levels[0] : "";
+      const gradeSelection = resolveGradeLevels(teachingLevel, grade_levels);
+      if (gradeSelection.error) return Response.json({ success: false, error: gradeSelection.error }, { status: 400 });
+
       const username = (customUsername || "").trim() || makeUsername(school_code, full_name);
 
       // Check for duplicate username
@@ -187,7 +207,8 @@ export default async function(req) {
         email: email || "",
         subject: subject || subjects?.[0] || "",
         subjects: Array.isArray(subjects) ? subjects : (subject ? [subject] : []),
-        grade_levels: Array.isArray(grade_levels) ? grade_levels : [],
+        grade_levels: gradeSelection.gradeLevels,
+        teaching_levels: [teachingLevel],
         room: room || "",
         teacher_id: username,
         password_reset_required: true,

@@ -15,6 +15,11 @@ import {
 
 const ROLE_LABELS = { area: "Area", manager: "Manager", teacher: "Teacher", school_admin: "School Admin" };
 const GRADE_OPTIONS = ["Pre-K", "K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const GRADES_BY_TEACHING_LEVEL = {
+  elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
+  middle: ["6", "7", "8"],
+  high: ["8", "9", "10", "11", "12"],
+};
 const ROLE_BADGE = {
   area: "bg-indigo-50 text-indigo-600",
   manager: "bg-blue-50 text-blue-600",
@@ -51,6 +56,7 @@ export default function SchoolUserManager({
   const [subject, setSubject] = useState("");
   const [subjectList, setSubjectList] = useState([]);
   const [gradeLevels, setGradeLevels] = useState([]);
+  const [teachingLevel, setTeachingLevel] = useState("elementary");
   const [room, setRoom] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
@@ -64,6 +70,7 @@ export default function SchoolUserManager({
   }, []);
 
   const roomsFor = (subjName) => (subjects.find((s) => s.name === subjName)?.rooms) || [];
+  const availableGrades = GRADES_BY_TEACHING_LEVEL[teachingLevel] || GRADE_OPTIONS;
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -153,6 +160,7 @@ export default function SchoolUserManager({
         subject: subjectList[0] || subject,
         subjects: subjectList,
         grade_levels: gradeLevels,
+        teaching_levels: [teachingLevel],
         room,
         username: username || undefined,
         password: password || undefined,
@@ -166,6 +174,7 @@ export default function SchoolUserManager({
         setSubject("");
         setSubjectList([]);
         setGradeLevels([]);
+        setTeachingLevel("elementary");
         setRoom("");
         loadUsers();
       } else {
@@ -479,10 +488,10 @@ export default function SchoolUserManager({
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-slate-700">Grades they can teach</Label>
-                  <select multiple value={gradeLevels} onChange={(e) => setGradeLevels(Array.from(e.target.selectedOptions, (option) => option.value))} className="mt-1 h-28 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
-                    {GRADE_OPTIONS.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
+                  <select multiple required={teachingLevel === "elementary"} value={gradeLevels} onChange={(e) => setGradeLevels(Array.from(e.target.selectedOptions, (option) => option.value))} className="mt-1 h-28 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100">
+                    {availableGrades.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
                   </select>
-                  <p className="text-xs text-slate-400 mt-1">Leave empty only if this teacher can teach every grade.</p>
+                  <p className="text-xs text-slate-400 mt-1">{teachingLevel === "elementary" ? "Select at least one elementary grade." : "Defaults to the full school-level range when left empty."}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>
@@ -498,6 +507,23 @@ export default function SchoolUserManager({
                     ))}
                   </select>
                   <p className="text-xs text-slate-400 mt-1">Used as the default room for scheduled classes</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-slate-700">School Level</Label>
+                  <select
+                    value={teachingLevel}
+                    onChange={(e) => {
+                      const level = e.target.value;
+                      setTeachingLevel(level);
+                      setGradeLevels(level === "elementary" ? [] : GRADES_BY_TEACHING_LEVEL[level]);
+                    }}
+                    className="mt-1 w-full text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="elementary">E — Elementary</option>
+                    <option value="middle">M — Middle (6–8)</option>
+                    <option value="high">H — High (8+)</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">Sets the grades this teacher is eligible to teach</p>
                 </div>
               </div>
             </div>
