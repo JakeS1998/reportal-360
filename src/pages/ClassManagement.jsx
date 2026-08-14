@@ -16,7 +16,7 @@ import ClassDetailsDialog from "@/components/class/ClassDetailsDialog";
 import UnassignedTeacherList from "@/components/class/UnassignedTeacherList";
 
 const STATUS_BADGE = { active: "bg-emerald-50 text-emerald-600", archived: "bg-slate-100 text-slate-500", draft: "bg-amber-50 text-amber-600" };
-const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
+const ROLE_BADGE = { "Primary Teacher": "bg-blue-50 text-blue-600", "Secondary Teacher": "bg-violet-50 text-violet-600", "Assistant Teacher": "bg-slate-100 text-slate-600", "Co-Teacher": "bg-indigo-50 text-indigo-600", Substitute: "bg-amber-50 text-amber-600" };
 
 const SCHED_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const toMin = (t) => { if (!t) return 0; const [h, m] = t.split(":"); return parseInt(h, 10) * 60 + parseInt(m, 10); };
@@ -47,6 +47,7 @@ export default function ClassManagement() {
   const [assignProgress, setAssignProgress] = useState({ current: 0, total: 0, label: "" });
   const [selectedSuggestions, setSelectedSuggestions] = useState(new Set());
   const [accepting, setAccepting] = useState(false);
+  const [moveProgress, setMoveProgress] = useState({ current: 0, total: 0, label: "" });
   const [moveConfirmation, setMoveConfirmation] = useState("");
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
@@ -509,9 +510,14 @@ export default function ClassManagement() {
           placedThis++;
         }
         const scheduledTeachers = qualifiedTeachers.filter((teacher) => teacherSessions[teacher.id] > 0);
-        const primaryTeacher = [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
-        for (const teacher of scheduledTeachers) {
-          const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : (isHomeroom ? "Co-Teacher" : "Assistant Teacher");
+        const assignedPrimary = classAssignments.find((assignment) => assignment.role === "Primary Teacher");
+        const primaryTeacher = activeTeachers.find((teacher) => teacher.id === assignedPrimary?.teacher_id)
+          || [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
+        const teachersToAssign = primaryTeacher && !scheduledTeachers.some((teacher) => teacher.id === primaryTeacher.id)
+          ? [primaryTeacher, ...scheduledTeachers]
+          : scheduledTeachers;
+        for (const teacher of teachersToAssign) {
+          const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : (isHomeroom ? "Co-Teacher" : "Secondary Teacher");
           const existingAssignment = classAssignments.find((assignment) => assignment.teacher_id === teacher.id);
           if (existingAssignment) await base44.entities.TeacherClass.update(existingAssignment.id, { role });
           else await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role, school_code: cm.schoolCode });
@@ -750,8 +756,14 @@ export default function ClassManagement() {
     const targets = indices.map((i) => list[i]).filter((s) => s && s.alt?.id);
     if (targets.length === 0) return;
     setAccepting(true);
+    setMoveProgress({ current: 0, total: targets.length, label: "Preparing student moves…" });
     try {
-      for (const sug of targets) await acceptSuggestion(sug);
+      for (let index = 0; index < targets.length; index++) {
+        const sug = targets[index];
+        setMoveProgress({ current: index, total: targets.length, label: sug.student || "Moving student…" });
+        await acceptSuggestion(sug);
+        setMoveProgress({ current: index + 1, total: targets.length, label: sug.student || "Student moved" });
+      }
       const done = new Set(indices);
       const remaining = list.filter((_, i) => !done.has(i));
       setAutoResult({ ...autoResult, suggestions: remaining });
@@ -1182,8 +1194,9 @@ export default function ClassManagement() {
                         </label>
                       ))}
                     </div>
+                    {accepting && <div className="mb-3"><AutoScheduleProgress icon={Users} title="Moving students" current={moveProgress.current} total={moveProgress.total} label={moveProgress.label} /></div>}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button variant="outline" disabled={accepting || !autoResult.suggestions.some((item) => item.alt?.id)} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, index) => index))}>{accepting ? "Moving students…" : "Accept all recommendations"}</Button>
+                      <Button variant="outline" disabled={accepting || !autoResult.suggestions.some((item) => item.alt?.id)} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, index) => index))}>{accepting ? `Moving ${moveProgress.current} of ${moveProgress.total}…` : "Accept all recommendations"}</Button>
                       <Button variant="outline" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>{accepting ? "Moving students…" : `Apply selected moves (${selectedSuggestions.size})`}</Button>
                     </div>
                     {moveConfirmation && <p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" />{moveConfirmation}</p>}

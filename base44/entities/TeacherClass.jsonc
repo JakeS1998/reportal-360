@@ -19,6 +19,7 @@
       "title": "Role",
       "enum": [
         "Primary Teacher",
+        "Secondary Teacher",
         "Assistant Teacher",
         "Co-Teacher",
         "Substitute"
