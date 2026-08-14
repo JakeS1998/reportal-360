@@ -359,10 +359,15 @@ export default function ClassManagement() {
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi, total: queue.length, label: cls.class_name });
-        const target = Math.max(1, Math.min(modelSlots.length, parseInt(cls.sessions_per_week, 10) || 1));
+        // A traditional timetable repeats one daily pattern. A subject taught five
+        // times weekly therefore occupies one matching slot on every school day.
+        const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
+        const dailyPattern = classTimetable?.scheduling_model === "traditional" && !isHomeroom;
+        const target = dailyPattern
+          ? Math.max(1, Math.ceil((parseInt(cls.sessions_per_week, 10) || 1) / getSchoolDays(classTimetable).length))
+          : Math.max(1, Math.min(modelSlots.length, parseInt(cls.sessions_per_week, 10) || 1));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
-        const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
         const homeroomSlot = classTimetable?.homeroom_start && classTimetable?.homeroom_end
           ? { start: toMin(classTimetable.homeroom_start), end: toMin(classTimetable.homeroom_end) }
           : null;
@@ -397,16 +402,26 @@ export default function ClassManagement() {
           for (const slot of classSlots) {
             const day = slot.day_type || slot.day_of_week;
             if (isHomeroom && usedDays.has(day)) continue;
-            const availableTeachers = qualifiedTeachers.filter((teacher) => teacherWorksOn(teacher, day) && teacherFree(teacher.id, day, slot) && roomFree(roomForTeacher(teacher), day, slot));
+            const patternSlots = dailyPattern
+              ? getSchoolDays(classTimetable).map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean)
+              : [slot];
+            if (dailyPattern && (day !== getSchoolDays(classTimetable)[0] || patternSlots.length !== getSchoolDays(classTimetable).length)) continue;
+            const availableTeachers = qualifiedTeachers.filter((teacher) => patternSlots.every((patternSlot) => {
+              const patternDay = patternSlot.day_type || patternSlot.day_of_week;
+              return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(roomForTeacher(teacher), patternDay, patternSlot);
+            }));
             if (!availableTeachers.length) continue;
-            const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
+            const conflicts = [...classStudentsForSchedule].filter((studentId) => patternSlots.some((patternSlot) => {
+              const patternDay = patternSlot.day_type || patternSlot.day_of_week;
+              return overlaps((studentBusy[studentId] || {})[patternDay] || [], patternSlot);
+            }));
             if (conflicts.length) {
               blockedSlots.push({ day, ...slot, conflicts });
               continue;
             }
             availableTeachers.sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id]);
             const teacher = availableTeachers[0];
-            candidates.push({ day, ...slot, teacher, room: roomForTeacher(teacher), score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
+            candidates.push({ day, ...slot, slots: patternSlots, teacher, room: roomForTeacher(teacher), score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
           }
           candidates.sort((a, b) => a.score - b.score || a.start - b.start || a.day.localeCompare(b.day));
           const placed = candidates[0];
@@ -418,23 +433,26 @@ export default function ClassManagement() {
             }));
             break;
           }
-          const createdSchedule = await base44.entities.ClassSchedule.create({
-            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
-            schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placed.day_type || "", period_label: placed.label || "",
-            teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
-            day_of_week: placed.day_of_week, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
-            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
-          });
-          (byClass[cls.id] ||= []).push(createdSchedule);
-          (busy[placed.teacher.id] ||= {})[placed.day] ||= [];
-          busy[placed.teacher.id][placed.day].push({ start: placed.start, end: placed.end });
-          if (placed.room) { (roomBusy[placed.room] ||= {})[placed.day] ||= []; roomBusy[placed.room][placed.day].push({ start: placed.start, end: placed.end }); }
-          teacherSessions[placed.teacher.id]++;
-          markStudentsBusy(cls.id, placed.day, placed);
-          usedDays.add(placed.day);
-          dayLoad[placed.day]++;
+          for (const placement of placed.slots || [placed]) {
+            const placementDay = placement.day_type || placement.day_of_week;
+            const createdSchedule = await base44.entities.ClassSchedule.create({
+              class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
+              schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placement.day_type || "", period_label: placement.label || "",
+              teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
+              day_of_week: placement.day_of_week, start_time: mmToHHMM(placement.start), end_time: mmToHHMM(placement.end),
+              recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
+            });
+            (byClass[cls.id] ||= []).push(createdSchedule);
+            (busy[placed.teacher.id] ||= {})[placementDay] ||= [];
+            busy[placed.teacher.id][placementDay].push({ start: placement.start, end: placement.end });
+            if (placed.room) { (roomBusy[placed.room] ||= {})[placementDay] ||= []; roomBusy[placed.room][placementDay].push({ start: placement.start, end: placement.end }); }
+            markStudentsBusy(cls.id, placementDay, placement);
+            usedDays.add(placementDay);
+            dayLoad[placementDay]++;
+            scheduled.push({ name: cls.class_name, day: placementDay, time: fmtTime(mmToHHMM(placement.start)) });
+          }
+          teacherSessions[placed.teacher.id] += (placed.slots || [placed]).length;
           placedThis++;
-          scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
         }
         const scheduledTeachers = qualifiedTeachers.filter((teacher) => teacherSessions[teacher.id] > 0);
         const primaryTeacher = [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
@@ -863,7 +881,7 @@ export default function ClassManagement() {
           <DialogHeader>
             <DialogTitle>Set weekly class meetings</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">Kindergarten through Grade 5 remain with their regular teacher all day, so only weekly PE and Music sections are created. Higher grades use the subject frequencies below.</p>
+          <p className="text-sm text-slate-600">Kindergarten through Grade 5 receive teacher-specific morning and afternoon classroom blocks, with PE and Music placed in the remaining timetable slots. Higher grades use the subject frequencies below.</p>
           <div className={`rounded-lg border p-3 ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
             <p className="text-sm font-semibold text-slate-800">Student weekly blocks: {plannedWeeklyBlocks} of {weeklyBlocksAvailable || "—"}</p>
             <p className={`mt-1 text-xs ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "text-rose-700" : "text-slate-600"}`}>
