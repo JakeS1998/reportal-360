@@ -329,39 +329,20 @@ export default function ClassManagement() {
           : null;
         if (isHomeroom && !homeroomSlot) { failed.push({ name: cls.class_name, reason: "No homeroom time set in school hours" }); continue; }
         const classSlots = isHomeroom ? getSchoolDays(classTimetable).map((day) => ({ ...homeroomSlot, day_of_week: day, day_type: "", label: "Homeroom" })) : modelSlots;
-        let tAssign = validTeacherAssignments[cls.id];
-        if (!tAssign) {
-          const candidates = activeTeachers.filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject));
-          if (!candidates.length) {
-            failed.push({
-              name: cls.class_name,
-              reason: `No active teacher is qualified for ${cls.subject || "this subject"}.`,
-              classId: cls.id,
-              subject: cls.subject || "",
-              candidates: [],
-            });
-            continue;
-          }
-          candidates.sort((a, b) => {
-            const availableSlots = (teacher) => isHomeroom
-              ? classSlots.filter((slot) => teacherFree(teacher.id, slot.day_of_week, slot)).length
-              : countFree(teacher.id);
-            return availableSlots(b) - availableSlots(a);
+        const classAssignments = cm.teacherAssignments.filter((assignment) => assignment.class_id === cls.id);
+        const qualifiedTeachers = activeTeachers
+          .filter((teacher) => isHomeroom || teacherCanTeach(teacher, cls.subject))
+          .sort((a, b) => {
+            const aPrimary = classAssignments.some((assignment) => assignment.teacher_id === a.id && assignment.role === "Primary Teacher") ? 1 : 0;
+            const bPrimary = classAssignments.some((assignment) => assignment.teacher_id === b.id && assignment.role === "Primary Teacher") ? 1 : 0;
+            return bPrimary - aPrimary || countFree(b.id) - countFree(a.id);
           });
-          const pick = candidates[0];
-          await base44.entities.TeacherClass.create({
-            teacher_id: pick.id, teacher_name: pick.full_name || "", class_id: cls.id,
-            role: "Primary Teacher", school_code: cm.schoolCode,
-          });
-          tAssign = { teacher_id: pick.id, teacher_name: pick.full_name || "" };
-          assigned.push({ class: cls.class_name, teacher: pick.full_name || pick.username || "Teacher" });
+        if (!qualifiedTeachers.length) {
+          failed.push({ name: cls.class_name, reason: `No active teacher is qualified for ${cls.subject || "this subject"}.`, classId: cls.id, subject: cls.subject || "", candidates: [] });
+          continue;
         }
-        const teacherRecord = cm.teachers.find((t) => t.id === tAssign.teacher_id);
-        let scheduleRoom = teacherRecord?.room || "";
-        if (!scheduleRoom) {
-          const subjRooms = roomsForSubject(cls.subject);
-          if (subjRooms.length > 0) scheduleRoom = subjRooms[0];
-        }
+        const teacherSessions = Object.fromEntries(qualifiedTeachers.map((teacher) => [teacher.id, 0]));
+        const roomForTeacher = (teacher) => cls.room || roomsForSubject(cls.subject)[0] || teacher.room || "";
         const have = (byClass[cls.id] || []).length;
         const need = Math.max(0, target - have);
         if (need === 0) continue;
@@ -375,13 +356,16 @@ export default function ClassManagement() {
           const classStudentsForSchedule = classStudents[cls.id] || new Set();
           for (const slot of classSlots) {
             const day = slot.day_type || slot.day_of_week;
-            if (!teacherFree(tAssign.teacher_id, day, slot) || !roomFree(scheduleRoom, day, slot)) continue;
+            const availableTeachers = qualifiedTeachers.filter((teacher) => teacherFree(teacher.id, day, slot) && roomFree(roomForTeacher(teacher), day, slot));
+            if (!availableTeachers.length) continue;
             const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
             if (conflicts.length) {
               blockedSlots.push({ day, ...slot, conflicts });
               continue;
             }
-            candidates.push({ day, ...slot, score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
+            availableTeachers.sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id]);
+            const teacher = availableTeachers[0];
+            candidates.push({ day, ...slot, teacher, room: roomForTeacher(teacher), score: studentGapScore(cls.id, day, slot) + dayLoad[day] * 3 });
           }
           candidates.sort((a, b) => a.score - b.score || a.start - b.start || a.day.localeCompare(b.day));
           const placed = candidates[0];
@@ -396,20 +380,30 @@ export default function ClassManagement() {
           const createdSchedule = await base44.entities.ClassSchedule.create({
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
             schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placed.day_type || "", period_label: placed.label || "",
-            teacher_id: tAssign.teacher_id, teacher_name: tAssign.teacher_name, room: scheduleRoom,
+            teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
             day_of_week: placed.day_of_week, start_time: mmToHHMM(placed.start), end_time: mmToHHMM(placed.end),
             recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
           });
           (byClass[cls.id] ||= []).push(createdSchedule);
-          (busy[tAssign.teacher_id] ||= {})[placed.day] ||= [];
-          busy[tAssign.teacher_id][placed.day].push({ start: placed.start, end: placed.end });
-          if (scheduleRoom) { (roomBusy[scheduleRoom] ||= {})[placed.day] ||= []; roomBusy[scheduleRoom][placed.day].push({ start: placed.start, end: placed.end }); }
+          (busy[placed.teacher.id] ||= {})[placed.day] ||= [];
+          busy[placed.teacher.id][placed.day].push({ start: placed.start, end: placed.end });
+          if (placed.room) { (roomBusy[placed.room] ||= {})[placed.day] ||= []; roomBusy[placed.room][placed.day].push({ start: placed.start, end: placed.end }); }
+          teacherSessions[placed.teacher.id]++;
           markStudentsBusy(cls.id, placed.day, placed);
           usedDays.add(placed.day);
           dayLoad[placed.day]++;
           placedThis++;
           scheduled.push({ name: cls.class_name, day: placed.day, time: fmtTime(mmToHHMM(placed.start)) });
         }
+        const scheduledTeachers = qualifiedTeachers.filter((teacher) => teacherSessions[teacher.id] > 0);
+        const primaryTeacher = [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
+        for (const teacher of scheduledTeachers) {
+          const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : "Assistant Teacher";
+          const existingAssignment = classAssignments.find((assignment) => assignment.teacher_id === teacher.id);
+          if (existingAssignment) await base44.entities.TeacherClass.update(existingAssignment.id, { role });
+          else await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role, school_code: cm.schoolCode });
+        }
+        if (scheduledTeachers.length) assigned.push({ class: cls.class_name, teacher: scheduledTeachers.map((teacher) => `${teacher.full_name || teacher.username || "Teacher"} (${teacherSessions[teacher.id]})`).join(", ") });
         if (placedThis < need) {
           failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)` });
         }
@@ -994,7 +988,10 @@ export default function ClassManagement() {
                         </label>
                       ))}
                     </div>
-                    <Button className="mt-3" variant="outline" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>{accepting ? "Moving students…" : `Apply selected moves (${selectedSuggestions.size})`}</Button>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="outline" disabled={accepting || !autoResult.suggestions.some((item) => item.alt?.id)} onClick={() => acceptSuggestions(autoResult.suggestions.map((_, index) => index))}>{accepting ? "Moving students…" : "Accept all recommendations"}</Button>
+                      <Button variant="outline" disabled={accepting || selectedSuggestions.size === 0} onClick={() => acceptSuggestions([...selectedSuggestions])}>{accepting ? "Moving students…" : `Apply selected moves (${selectedSuggestions.size})`}</Button>
+                    </div>
                   </div>
                 )}
                 {(autoResult?.scheduled || 0) === 0 && (autoResult?.failed?.length || 0) === 0 && (autoResult?.assigned?.length || 0) === 0 && <p className="text-sm text-slate-500">No new sessions were needed because all active classes are already scheduled.</p>}
