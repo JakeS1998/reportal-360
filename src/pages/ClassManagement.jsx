@@ -94,6 +94,26 @@ export default function ClassManagement() {
     const gradeAllowed = !(teacher?.grade_levels?.length) || teacher.grade_levels.includes(String(gradeLevel));
     return gradeAllowed && !subjects.some((subject) => ["pe", "music"].includes(subject));
   };
+  const workingDaysFor = (teacher) => teacher?.working_days?.length ? teacher.working_days : SCHED_DAYS;
+  const teacherWorksOn = (teacher, day) => workingDaysFor(teacher).includes(day);
+  const elementaryTeacherGroups = (gradeLevel) => {
+    const available = activeTeachers.filter((teacher) => canLeadHomeroom(teacher, gradeLevel));
+    const unused = new Map(available.map((teacher) => [teacher.id, teacher]));
+    const groups = [];
+    available.filter((teacher) => SCHED_DAYS.every((day) => teacherWorksOn(teacher, day))).forEach((teacher) => {
+      groups.push([teacher]);
+      unused.delete(teacher.id);
+    });
+    for (const teacher of [...unused.values()]) {
+      if (!unused.has(teacher.id)) continue;
+      const partner = [...unused.values()].find((candidate) => candidate.id !== teacher.id && SCHED_DAYS.every((day) => teacherWorksOn(teacher, day) || teacherWorksOn(candidate, day)));
+      if (!partner) continue;
+      groups.push([teacher, partner]);
+      unused.delete(teacher.id);
+      unused.delete(partner.id);
+    }
+    return groups;
+  };
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
   const subjects = useMemo(() => [...new Set(cm.classes.map((c) => c.subject).filter(Boolean))].sort(), [cm.classes]);
@@ -350,6 +370,7 @@ export default function ClassManagement() {
         const classAssignments = cm.teacherAssignments.filter((assignment) => assignment.class_id === cls.id);
         const qualifiedTeachers = activeTeachers
           .filter((teacher) => isHomeroom && isElementaryGrade(cls.grade_level) ? canLeadHomeroom(teacher, cls.grade_level) : teacherCanTeach(teacher, cls.subject, cls.grade_level))
+          .filter((teacher) => !isHomeroom || classAssignments.length === 0 || classAssignments.some((assignment) => assignment.teacher_id === teacher.id))
           .sort((a, b) => {
             const aPrimary = classAssignments.some((assignment) => assignment.teacher_id === a.id && assignment.role === "Primary Teacher") ? 1 : 0;
             const bPrimary = classAssignments.some((assignment) => assignment.teacher_id === b.id && assignment.role === "Primary Teacher") ? 1 : 0;
@@ -374,7 +395,8 @@ export default function ClassManagement() {
           const classStudentsForSchedule = classStudents[cls.id] || new Set();
           for (const slot of classSlots) {
             const day = slot.day_type || slot.day_of_week;
-            const availableTeachers = qualifiedTeachers.filter((teacher) => teacherFree(teacher.id, day, slot) && roomFree(roomForTeacher(teacher), day, slot));
+            if (isHomeroom && usedDays.has(day)) continue;
+            const availableTeachers = qualifiedTeachers.filter((teacher) => teacherWorksOn(teacher, day) && teacherFree(teacher.id, day, slot) && roomFree(roomForTeacher(teacher), day, slot));
             if (!availableTeachers.length) continue;
             const conflicts = [...classStudentsForSchedule].filter((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot));
             if (conflicts.length) {
@@ -416,7 +438,7 @@ export default function ClassManagement() {
         const scheduledTeachers = qualifiedTeachers.filter((teacher) => teacherSessions[teacher.id] > 0);
         const primaryTeacher = [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
         for (const teacher of scheduledTeachers) {
-          const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : "Assistant Teacher";
+          const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : (isHomeroom ? "Co-Teacher" : "Assistant Teacher");
           const existingAssignment = classAssignments.find((assignment) => assignment.teacher_id === teacher.id);
           if (existingAssignment) await base44.entities.TeacherClass.update(existingAssignment.id, { role });
           else await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role, school_code: cm.schoolCode });
@@ -451,21 +473,27 @@ export default function ClassManagement() {
     setCreatingSections(true);
     try {
       const newClasses = [];
+      const homeroomTeams = new Map();
       const currentYearId = cm.currentYear?.id || "";
       for (const grade of [...new Set(activeStudents.map((student) => student.grade_level))]) {
-        const enrollment = activeStudents.filter((student) => student.grade_level === grade).length;
-        const sectionsNeeded = Math.ceil(enrollment / 30);
-        const subjectsToCreate = isElementaryGrade(grade)
+        const elementary = isElementaryGrade(grade);
+        const elementaryGroups = elementary ? elementaryTeacherGroups(grade) : [];
+        const sectionsNeeded = elementary ? elementaryGroups.length : Math.ceil(activeStudents.filter((student) => student.grade_level === grade).length / 30);
+        const subjectsToCreate = elementary
           ? [{ name: "Homeroom", sessions: 5 }, { name: "PE", sessions: 1 }, { name: "Music", sessions: 1 }]
           : managedSubjects.map((subject) => ({ name: subject.name, sessions: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1), room: subject.rooms?.[0] || "" }));
         for (const subject of subjectsToCreate) {
           const existing = cm.classes.filter((cls) => cls.status === "active" && cls.grade_level === grade && cls.subject === subject.name && (!currentYearId || cls.academic_year_id === currentYearId));
           for (let section = existing.length + 1; section <= sectionsNeeded; section++) {
-            newClasses.push({ class_name: `${grade} ${subject.name} ${section}`, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.room || roomsForSubject(subject.name)[0] || "", status: "active", sessions_per_week: subject.sessions });
+            const className = `${grade} ${subject.name} ${section}`;
+            newClasses.push({ class_name: className, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: grade, subject: subject.name, room: subject.room || roomsForSubject(subject.name)[0] || "", status: "active", sessions_per_week: subject.sessions });
+            if (subject.name === "Homeroom") homeroomTeams.set(className, elementaryGroups[section - 1] || []);
           }
         }
       }
-      if (newClasses.length > 0) await base44.entities.Class.bulkCreate(newClasses);
+      const createdClasses = newClasses.length > 0 ? await base44.entities.Class.bulkCreate(newClasses) : [];
+      const teacherAssignments = createdClasses.flatMap((cls) => (homeroomTeams.get(cls.class_name) || []).map((teacher, index) => ({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role: index === 0 ? "Primary Teacher" : "Co-Teacher", school_code: cm.schoolCode })));
+      if (teacherAssignments.length > 0) await base44.entities.TeacherClass.bulkCreate(teacherAssignments);
       await cm.loadData();
       setAssignResult({ sectionsCreated: newClasses.length, created: 0, studentsAssigned: 0, totalStudents: activeStudents.length });
     } finally {
@@ -477,7 +505,7 @@ export default function ClassManagement() {
   // available sections. Electives remain available for manual enrollment.
   const autoAssignStudents = async () => {
     if (cm.students.length === 0) { setAssignResult({ error: "No students to assign." }); return; }
-    if (!confirm("Rebalance core classes by grade and subject? Existing core enrollments will be replaced so each section stays as even as possible and never exceeds 30 students.")) return;
+    if (!confirm("Rebalance core classes by grade and subject? Existing core enrollments will be replaced so each section stays as even as possible. Elementary classes follow teacher groups first; higher grades remain capped at 30 students.")) return;
     setAssignRunning(true);
     setAssignResult(null);
     setAssignProgress({ current: 0, total: cm.students.length, label: "Starting…" });
@@ -510,7 +538,7 @@ export default function ClassManagement() {
           if (grade !== student.grade_level) continue;
           const assignedCount = toCreate.filter((assignment) => classList.some((cls) => cls.id === assignment.class_id)).length;
           const target = classList[assignedCount % classList.length];
-          if (Math.floor(assignedCount / classList.length) >= 30) { unassigned.add(student.id); continue; }
+          if (!isElementaryGrade(grade) && Math.floor(assignedCount / classList.length) >= 30) { unassigned.add(student.id); continue; }
           toCreate.push({ student_id: student.id, student_name: student.student_name, class_id: target.id, academic_year_id: currentYearId, school_code: cm.schoolCode, status: "active" });
         }
       }
@@ -782,7 +810,7 @@ export default function ClassManagement() {
           <DialogHeader>
             <DialogTitle>Set weekly class meetings</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">Kindergarten through Grade 5 are split into groups of up to 30, with a homeroom class plus weekly PE and Music. Higher grades use the subject frequencies below.</p>
+          <p className="text-sm text-slate-600">Kindergarten through Grade 5 create one homeroom per full-week teacher or teacher pair that covers Monday–Friday, with weekly PE and Music. Higher grades use the subject frequencies below.</p>
           <div className={`rounded-lg border p-3 ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "border-rose-200 bg-rose-50" : "border-blue-100 bg-blue-50"}`}>
             <p className="text-sm font-semibold text-slate-800">Student weekly blocks: {plannedWeeklyBlocks} of {weeklyBlocksAvailable || "—"}</p>
             <p className={`mt-1 text-xs ${weeklyBlocksAvailable && plannedWeeklyBlocks > weeklyBlocksAvailable ? "text-rose-700" : "text-slate-600"}`}>

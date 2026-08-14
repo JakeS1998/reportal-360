@@ -21,6 +21,13 @@ function makeUsername(schoolCode, fullName) {
   return `${schoolCode}.${namePart}`;
 }
 
+function resolveWorkingDays(workingDays = []) {
+  const allowed = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  const selected = Array.isArray(workingDays) ? workingDays.filter(Boolean) : [];
+  if (selected.some((day) => !allowed.includes(day))) return { error: "Working days must be Monday through Friday" };
+  return { workingDays: selected.length ? selected : allowed };
+}
+
 function resolveGradeLevels(teachingLevel, gradeLevels = []) {
   const allowedByLevel = {
     elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
@@ -108,9 +115,11 @@ export default async function(req) {
         const gradeSelection = resolveGradeLevels(teachingLevel, (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean));
         if (gradeSelection.error) { errors.push(`Row ${index + 2}: ${gradeSelection.error}`); continue; }
         const gradeLevels = gradeSelection.gradeLevels;
+        const workingDaySelection = resolveWorkingDays((item.working_days || "").split(";").map((day) => day.trim()).filter(Boolean));
+        if (workingDaySelection.error) { errors.push(`Row ${index + 2}: ${workingDaySelection.error}`); continue; }
         const roomName = item.room?.trim() || "";
         const temp_password = customPassword || generateRandomPassword();
-        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectNames[0] || "", subjects: subjectNames, grade_levels: gradeLevels, teaching_levels: [teachingLevel], room: roomName, teacher_id: username, password_reset_required: true });
+        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectNames[0] || "", subjects: subjectNames, grade_levels: gradeLevels, teaching_levels: [teachingLevel], working_days: workingDaySelection.workingDays, room: roomName, teacher_id: username, password_reset_required: true });
         credentials.push({ full_name, username, temp_password });
         for (const subjectName of subjectNames) {
           const key = subjectName.toLowerCase();
@@ -145,7 +154,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, room } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, working_days, room } = params;
 
       if (!full_name || !role || !school_code || !system_code || !email) {
         return Response.json(
@@ -178,6 +187,8 @@ export default async function(req) {
       const teachingLevel = Array.isArray(teaching_levels) ? teaching_levels[0] : "";
       const gradeSelection = resolveGradeLevels(teachingLevel, grade_levels);
       if (gradeSelection.error) return Response.json({ success: false, error: gradeSelection.error }, { status: 400 });
+      const workingDaySelection = resolveWorkingDays(working_days);
+      if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
 
       const username = (customUsername || "").trim() || makeUsername(school_code, full_name);
 
@@ -209,6 +220,7 @@ export default async function(req) {
         subjects: Array.isArray(subjects) ? subjects : (subject ? [subject] : []),
         grade_levels: gradeSelection.gradeLevels,
         teaching_levels: [teachingLevel],
+        working_days: workingDaySelection.workingDays,
         room: room || "",
         teacher_id: username,
         password_reset_required: true,
@@ -350,7 +362,12 @@ export default async function(req) {
       if (updates.role !== undefined && updates.role !== existing.role && callerRole !== "admin") {
         return Response.json({ success: false, error: "Only admins can change roles" }, { status: 403 });
       }
-      const allowedFields = ["full_name", "email", "subject", "subjects", "grade_levels", "room", "department", "job_title", "active", "role", "mfa_enabled", "target_free_periods"];
+      if (updates.working_days !== undefined) {
+        const workingDaySelection = resolveWorkingDays(updates.working_days);
+        if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
+        updates.working_days = workingDaySelection.workingDays;
+      }
+      const allowedFields = ["full_name", "email", "subject", "subjects", "grade_levels", "working_days", "room", "department", "job_title", "active", "role", "mfa_enabled", "target_free_periods"];
       const updateData: any = {};
       for (const field of allowedFields) {
         if (updates[field] !== undefined) updateData[field] = updates[field];

@@ -20,6 +20,7 @@ const GRADES_BY_TEACHING_LEVEL = {
   middle: ["6", "7", "8"],
   high: ["8", "9", "10", "11", "12"],
 };
+const WORKING_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const ROLE_BADGE = {
   area: "bg-indigo-50 text-indigo-600",
   manager: "bg-blue-50 text-blue-600",
@@ -57,6 +58,7 @@ export default function SchoolUserManager({
   const [subjectList, setSubjectList] = useState([]);
   const [gradeLevels, setGradeLevels] = useState([]);
   const [teachingLevel, setTeachingLevel] = useState("elementary");
+  const [workingDays, setWorkingDays] = useState(WORKING_DAYS);
   const [room, setRoom] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
@@ -161,6 +163,7 @@ export default function SchoolUserManager({
         subjects: subjectList,
         grade_levels: gradeLevels,
         teaching_levels: [teachingLevel],
+        working_days: workingDays,
         room,
         username: username || undefined,
         password: password || undefined,
@@ -175,6 +178,7 @@ export default function SchoolUserManager({
         setSubjectList([]);
         setGradeLevels([]);
         setTeachingLevel("elementary");
+        setWorkingDays(WORKING_DAYS);
         setRoom("");
         loadUsers();
       } else {
@@ -525,6 +529,13 @@ export default function SchoolUserManager({
                   </select>
                   <p className="text-xs text-slate-400 mt-1">Sets the grades this teacher is eligible to teach</p>
                 </div>
+                <div className="md:col-span-2">
+                  <Label className="text-sm font-medium text-slate-700">Working Days</Label>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                    {WORKING_DAYS.map((day) => <label key={day} className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={workingDays.includes(day)} onChange={(e) => setWorkingDays((days) => e.target.checked ? [...days, day] : days.filter((item) => item !== day))} />{day.slice(0, 3)}</label>)}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">Classes are only scheduled on these days.</p>
+                </div>
               </div>
             </div>
             {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -586,6 +597,7 @@ export default function SchoolUserManager({
                           subject: u.subject || "",
                           subjects: u.subjects || (u.subject ? [u.subject] : []),
                           grade_levels: u.grade_levels || [],
+                          working_days: u.working_days?.length ? u.working_days : WORKING_DAYS,
                           room: u.room || "",
                           department: u.department || "",
                           job_title: u.job_title || "",
@@ -662,6 +674,12 @@ export default function SchoolUserManager({
                 {GRADE_OPTIONS.map((grade) => <option key={grade} value={grade}>{grade}</option>)}
               </select>
               <p className="text-xs text-slate-400 mt-1">Leave empty only if this teacher can teach every grade.</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-slate-700">Working Days</Label>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                {WORKING_DAYS.map((day) => <label key={day} className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={editForm.working_days?.includes(day)} onChange={(e) => setEditForm({ ...editForm, working_days: e.target.checked ? [...(editForm.working_days || []), day] : (editForm.working_days || []).filter((item) => item !== day) })} />{day.slice(0, 3)}</label>)}
+              </div>
             </div>
             <div>
               <Label className="text-sm font-medium text-slate-700">Assigned Room</Label>

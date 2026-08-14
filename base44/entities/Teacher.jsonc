@@ -102,6 +102,27 @@
         ]
       }
     },
+    "working_days": {
+      "type": "array",
+      "title": "Working Days",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ]
+      },
+      "default": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ]
+    },
     "room": {
       "type": "string",
       "title": "Assigned Room"
