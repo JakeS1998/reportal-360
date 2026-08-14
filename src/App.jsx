@@ -58,9 +58,11 @@ import StudentLoginManagement from './pages/StudentLoginManagement';
 import StudentPortalLayout from '@/components/StudentPortalLayout';
 import SeatingPlan from './pages/SeatingPlan';
 import AssessmentWeights from './pages/AssessmentWeights';
+import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  if (window.location.pathname === "/attendance-photo") return <AttendancePhotoUpload />;
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {

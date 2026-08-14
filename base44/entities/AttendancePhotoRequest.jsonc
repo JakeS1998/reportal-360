@@ -1,0 +1,68 @@
+{
+  "name": "AttendancePhotoRequest",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "title": "Secure Upload Token"
+    },
+    "attendance_record_id": {
+      "type": "string",
+      "title": "Attendance Record ID"
+    },
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "schedule_id": {
+      "type": "string",
+      "title": "Schedule ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Attendance Date"
+    },
+    "excused_reason": {
+      "type": "string",
+      "title": "Excused Absence Reason"
+    },
+    "file_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "Uploaded File URL"
+    },
+    "file_name": {
+      "type": "string",
+      "title": "Uploaded File Name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "uploaded",
+        "expired"
+      ],
+      "default": "pending",
+      "title": "Status"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+    }
+  },
+  "required": [
+    "token",
+    "student_id",
+    "class_id",
+    "schedule_id",
+    "date",
+    "status",
+    "expires_at"
+  ]
+}

@@ -228,7 +228,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
                 );
               })}
               </div>
-              {marks[sa.student_id] === "excused" && <ExcusedAbsenceFields detail={excuseDetails[sa.student_id]} disabled={locked} onChange={(detail) => setExcuseDetails((current) => ({ ...current, [sa.student_id]: detail }))} />}
+              {marks[sa.student_id] === "excused" && <ExcusedAbsenceFields detail={excuseDetails[sa.student_id]} disabled={locked} attendanceContext={{ classId, scheduleId, date, student_id: sa.student_id, user }} onChange={(detail) => setExcuseDetails((current) => ({ ...current, [sa.student_id]: detail }))} />}
             </div>
           </div>
         ))}
