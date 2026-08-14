@@ -31,6 +31,14 @@ const SCENES = [
   { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/a05c80435_generated_image.png", title: "Cheaha State Park", location: "Clay County, Alabama", fact: "Cheaha Mountain is Alabama's highest point, rising 2,407 feet above sea level." },
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/61a1762cd_generated_image.png", title: "Little River Canyon", location: "Northeast Alabama", fact: "Little River is one of the few rivers in the country that flows for most of its length atop a mountain." },
   { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d53c05b7b_generated_image.png", title: "Mobile Bay", location: "Mobile, Alabama", fact: "Mobile Bay has played a central role in Alabama's maritime history for more than 300 years." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/051ff80bf_generated_image.png", title: "Tuscaloosa Hills", location: "Tuscaloosa County, Alabama", fact: "The rolling hills around Tuscaloosa form part of Alabama's diverse Piedmont landscape." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/64c534d21_generated_image.png", title: "Chewacla State Park", location: "Auburn, Alabama", fact: "Chewacla State Park protects 696 acres of forests, streams, and lakes near Auburn." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/3bfd82019_generated_image.png", title: "Edmund Pettus Bridge", location: "Selma, Alabama", fact: "The Edmund Pettus Bridge spans the Alabama River in historic Selma." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/bdfb40c70_generated_image.png", title: "Bankhead National Forest", location: "Northwest Alabama", fact: "Bankhead National Forest is home to the Sipsey Wilderness, Alabama's largest wilderness area." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/47f498ef4_generated_image.png", title: "Dauphin Island", location: "Mobile County, Alabama", fact: "Dauphin Island is a barrier island known for bird migration and Gulf Coast beaches." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/592debd4c_generated_image.png", title: "Cathedral Caverns", location: "Marshall County, Alabama", fact: "Cathedral Caverns is known for its massive entrance and striking limestone formations." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/1ad80f88a_generated_image.png", title: "DeSoto State Park", location: "Northeast Alabama", fact: "DeSoto State Park sits atop Lookout Mountain near some of Alabama's most scenic waterfalls." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/5ecb796ce_generated_image.png", title: "Black Belt Countryside", location: "Central Alabama", fact: "Alabama's Black Belt is known for its fertile dark soils and rich cultural history." },
 ];
 
 function timeOfDay(h) {
@@ -77,6 +85,7 @@ export default function SelectSchool() {
   const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" });
   const tzStr = (Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(now).find((p) => p.type === "timeZoneName") || {}).value || "";
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const daylightProgress = Math.min(1, Math.max(0, (now.getHours() + now.getMinutes() / 60 - 6) / 12));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -262,8 +271,6 @@ export default function SelectSchool() {
         className="fixed inset-0 w-full h-full"
         fittingType="fill"
       />
-      <div className="fixed inset-0 bg-gradient-to-b from-slate-900/70 via-slate-900/50 to-slate-900/70" />
-
       <div className="absolute top-6 left-6 z-10 max-w-sm bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg">
         <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">This {periodLabel}'s Alabama Landmark</p>
         <div className="flex items-center gap-2">
@@ -279,6 +286,17 @@ export default function SelectSchool() {
       <div className="absolute top-6 right-6 z-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg text-right">
         <p className="text-2xl font-bold leading-none tabular-nums">{timeStr}</p>
         <p className="text-xs text-white/70 mt-1">{tzStr}</p>
+        <div className="relative mt-3 h-8 w-32 ml-auto" aria-label="Sun position from sunrise to sunset">
+          <svg viewBox="0 0 128 32" className="absolute inset-0 h-full w-full" aria-hidden="true">
+            <path d="M8 28 A56 56 0 0 1 120 28" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5" />
+            <path d="M8 28 H120" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+          </svg>
+          <span className="absolute -translate-x-1/2 -translate-y-1/2 text-amber-300 drop-shadow" style={{ left: `${8 + daylightProgress * 112}px`, top: `${28 - Math.sin(daylightProgress * Math.PI) * 24}px` }}>
+            ☀
+          </span>
+          <span className="absolute bottom-0 left-0 text-[9px] text-white/65">Sunrise</span>
+          <span className="absolute bottom-0 right-0 text-[9px] text-white/65">Sunset</span>
+        </div>
         <p className="text-sm text-white/85 mt-1.5">{dateStr}</p>
       </div>
 
