@@ -472,16 +472,18 @@ export default function ClassManagement() {
             }));
             break;
           }
-          for (const placement of placed.slots || [placed]) {
+          const placementSlots = placed.slots || [placed];
+          const scheduleRecords = placementSlots.map((placement) => ({
+            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
+            schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placement.day_type || "", period_label: placement.label || "",
+            teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
+            day_of_week: placement.day_of_week, start_time: mmToHHMM(placement.start), end_time: mmToHHMM(placement.end),
+            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
+          }));
+          const createdSchedules = await base44.entities.ClassSchedule.bulkCreate(scheduleRecords);
+          placementSlots.forEach((placement, index) => {
             const placementDay = placement.day_type || placement.day_of_week;
-            const createdSchedule = await base44.entities.ClassSchedule.create({
-              class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
-              schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placement.day_type || "", period_label: placement.label || "",
-              teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
-              day_of_week: placement.day_of_week, start_time: mmToHHMM(placement.start), end_time: mmToHHMM(placement.end),
-              recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
-            });
-            (byClass[cls.id] ||= []).push(createdSchedule);
+            (byClass[cls.id] ||= []).push(createdSchedules[index] || scheduleRecords[index]);
             (busy[placed.teacher.id] ||= {})[placementDay] ||= [];
             busy[placed.teacher.id][placementDay].push({ start: placement.start, end: placement.end });
             if (placed.room) { (roomBusy[placed.room] ||= {})[placementDay] ||= []; roomBusy[placed.room][placementDay].push({ start: placement.start, end: placement.end }); }
@@ -490,7 +492,7 @@ export default function ClassManagement() {
             dayLoad[placementDay]++;
             globalDayLoad[placementDay] = (globalDayLoad[placementDay] || 0) + 1;
             scheduled.push({ name: cls.class_name, day: placementDay, time: fmtTime(mmToHHMM(placement.start)) });
-          }
+          });
           teacherSessions[placed.teacher.id] += (placed.slots || [placed]).length;
           placedThis++;
         }
