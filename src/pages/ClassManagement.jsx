@@ -49,6 +49,7 @@ export default function ClassManagement() {
   const [accepting, setAccepting] = useState(false);
   const [subjectDefs, setSubjectDefs] = useState([]);
   const [timetable, setTimetable] = useState(null);
+  const [scheduleStyle, setScheduleStyle] = useState("traditional");
   const [recurrence, setRecurrence] = useState("weekly");
   const [attendanceTarget, setAttendanceTarget] = useState(null);
   const [clearAssignmentsOpen, setClearAssignmentsOpen] = useState(false);
@@ -66,7 +67,7 @@ export default function ClassManagement() {
   useEffect(() => {
     if (!cm.schoolCode) return;
     base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5)
-      .then((r) => setTimetable(r[0] || null))
+      .then((r) => { const schoolTimetable = r.find((item) => item.scope === "school") || r[0] || null; setTimetable(schoolTimetable); setScheduleStyle(schoolTimetable?.scheduling_model || "traditional"); })
       .catch(() => {});
   }, [cm.schoolCode]);
 
@@ -180,6 +181,13 @@ export default function ClassManagement() {
     } finally {
       setAssigningTeacherClassId("");
     }
+  };
+
+  const changeScheduleStyle = async (style) => {
+    setScheduleStyle(style);
+    if (!timetable?.id) return;
+    const updated = await base44.entities.SchoolTimetable.update(timetable.id, { scheduling_model: style });
+    setTimetable(updated);
   };
 
   const runAutoSchedule = async () => {
@@ -616,9 +624,10 @@ export default function ClassManagement() {
           <Button onClick={autoAssignStudents} disabled={assignRunning || cm.students.length === 0} variant="outline" className="border-slate-200">
             <Users className="w-4 h-4 mr-1" /> {assignRunning ? "Assigning…" : "Auto Assign Core Students"}
           </Button>
-          <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} disabled={autoRunning} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2" title="How often the schedule repeats">
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Biweekly (2-weekly)</option>
+          <select value={scheduleStyle} onChange={(e) => changeScheduleStyle(e.target.value)} disabled={autoRunning} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-2" title="Schedule style">
+            <option value="traditional">Traditional</option>
+            <option value="rotating_block">A/B Rotating Block</option>
+            <option value="flexible_weekly">Flexible Weekly</option>
           </select>
           <Button onClick={runAutoSchedule} disabled={autoRunning || cm.classes.length === 0} variant="outline" className="border-slate-200">
             <Wand2 className="w-4 h-4 mr-1" /> {autoRunning ? "Scheduling…" : "Rebuild Schedule"}

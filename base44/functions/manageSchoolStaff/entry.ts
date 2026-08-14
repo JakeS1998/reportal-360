@@ -88,9 +88,10 @@ export default async function(req) {
         const passwordError = customPassword ? validatePasswordComplexity(customPassword) : null;
         if (passwordError) { errors.push(`Row ${index + 2}: ${passwordError}`); continue; }
         const subjectNames = (item.subject || "").split(";").map((name) => name.trim()).filter(Boolean);
+        const gradeLevels = (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean);
         const roomName = item.room?.trim() || "";
         const temp_password = customPassword || generateRandomPassword();
-        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectNames[0] || "", subjects: subjectNames, room: roomName, teacher_id: username, password_reset_required: true });
+        await base44.asServiceRole.entities.Teacher.create({ username, password: temp_password, full_name, role, school_code, system_code, school_name: school_name || "", system_name: system_name || "", email, subject: subjectNames[0] || "", subjects: subjectNames, grade_levels: gradeLevels, room: roomName, teacher_id: username, password_reset_required: true });
         credentials.push({ full_name, username, temp_password });
         for (const subjectName of subjectNames) {
           const key = subjectName.toLowerCase();
