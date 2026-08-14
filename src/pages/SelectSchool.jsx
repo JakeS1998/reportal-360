@@ -286,22 +286,20 @@ export default function SelectSchool() {
       <div className="absolute top-6 right-6 z-10 bg-slate-950/60 backdrop-blur-md rounded-xl border border-white/30 px-5 py-4 text-white shadow-lg text-right">
         <p className="text-2xl font-bold leading-none tabular-nums">{timeStr}</p>
         <p className="text-xs text-white/70 mt-1">{tzStr}</p>
-        <div className="relative mt-3 h-6 w-32 ml-auto" aria-label="Sun position from sunrise to sunset">
-          <svg viewBox="0 0 128 24" className="absolute inset-0 h-full w-full" aria-hidden="true">
-            <path d="M8 20 Q64 10 120 20" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5" />
-            <path d="M8 20 H120" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        <div className="relative mt-3 h-8 w-32 ml-auto" aria-label="Sun position from sunrise to sunset">
+          <svg viewBox="0 0 128 32" className="absolute inset-0 h-full w-full" aria-hidden="true">
+            <path d="M8 26 Q64 8 120 26" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" />
+            <path d="M8 26 H120" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1" />
           </svg>
-          <span className="absolute -translate-x-1/2 -translate-y-1/2 text-amber-300 drop-shadow" style={{ left: `${8 + daylightProgress * 112}px`, top: `${20 - Math.sin(daylightProgress * Math.PI) * 10}px` }}>
+          <span className="absolute -translate-x-1/2 -translate-y-1/2 text-white drop-shadow" style={{ left: `${8 + daylightProgress * 112}px`, top: `${26 - Math.sin(daylightProgress * Math.PI) * 18}px` }}>
             ☀
           </span>
-          <span className="absolute bottom-0 left-0 text-[9px] text-white/65">Sunrise</span>
-          <span className="absolute bottom-0 right-0 text-[9px] text-white/65">Sunset</span>
         </div>
         <p className="text-sm text-white/85 mt-1.5">{dateStr}</p>
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
-        <div className="absolute -inset-6 sm:-inset-8 bg-slate-950/45 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/30 shadow-2xl" aria-hidden="true" />
+
         <div className="relative mb-6 flex flex-col items-center">
           <div className="relative">
             <div className="absolute -inset-10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),transparent_70%)] blur-2xl pointer-events-none" aria-hidden="true" />
