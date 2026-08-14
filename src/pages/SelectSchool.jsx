@@ -268,10 +268,10 @@ export default function SelectSchool() {
       <Image
         src={scene.url}
         alt={scene.title}
-        className="fixed inset-0 w-full h-full"
+        className="fixed inset-0 w-full h-full login-background-motion"
         fittingType="fill"
       />
-      <div className="absolute top-6 left-6 z-10 max-w-sm bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg">
+      <div className="absolute top-6 left-6 z-10 max-w-sm bg-slate-950/60 backdrop-blur-md rounded-xl border border-white/30 px-5 py-4 text-white shadow-lg">
         <p className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-2">This {periodLabel}'s Alabama Landmark</p>
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-amber-300 shrink-0" />
@@ -283,15 +283,15 @@ export default function SelectSchool() {
         <p className="text-sm text-white/85 leading-snug mt-2.5 pt-2.5 border-t border-white/15">{scene.fact}</p>
       </div>
 
-      <div className="absolute top-6 right-6 z-10 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-4 text-white shadow-lg text-right">
+      <div className="absolute top-6 right-6 z-10 bg-slate-950/60 backdrop-blur-md rounded-xl border border-white/30 px-5 py-4 text-white shadow-lg text-right">
         <p className="text-2xl font-bold leading-none tabular-nums">{timeStr}</p>
         <p className="text-xs text-white/70 mt-1">{tzStr}</p>
-        <div className="relative mt-3 h-8 w-32 ml-auto" aria-label="Sun position from sunrise to sunset">
-          <svg viewBox="0 0 128 32" className="absolute inset-0 h-full w-full" aria-hidden="true">
-            <path d="M8 28 A56 56 0 0 1 120 28" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5" />
-            <path d="M8 28 H120" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+        <div className="relative mt-3 h-6 w-32 ml-auto" aria-label="Sun position from sunrise to sunset">
+          <svg viewBox="0 0 128 24" className="absolute inset-0 h-full w-full" aria-hidden="true">
+            <path d="M8 20 Q64 10 120 20" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.5" />
+            <path d="M8 20 H120" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
           </svg>
-          <span className="absolute -translate-x-1/2 -translate-y-1/2 text-amber-300 drop-shadow" style={{ left: `${8 + daylightProgress * 112}px`, top: `${28 - Math.sin(daylightProgress * Math.PI) * 24}px` }}>
+          <span className="absolute -translate-x-1/2 -translate-y-1/2 text-amber-300 drop-shadow" style={{ left: `${8 + daylightProgress * 112}px`, top: `${20 - Math.sin(daylightProgress * Math.PI) * 10}px` }}>
             ☀
           </span>
           <span className="absolute bottom-0 left-0 text-[9px] text-white/65">Sunrise</span>
@@ -301,7 +301,7 @@ export default function SelectSchool() {
       </div>
 
       <div className="relative z-10 w-full max-w-sm">
-        <div className="absolute -inset-6 sm:-inset-8 bg-white/15 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/20 shadow-2xl" aria-hidden="true" />
+        <div className="absolute -inset-6 sm:-inset-8 bg-slate-950/45 backdrop-blur-2xl rounded-[2rem] ring-1 ring-white/30 shadow-2xl" aria-hidden="true" />
         <div className="relative mb-6 flex flex-col items-center">
           <div className="relative">
             <div className="absolute -inset-10 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.28),transparent_70%)] blur-2xl pointer-events-none" aria-hidden="true" />
@@ -399,7 +399,7 @@ export default function SelectSchool() {
           )}
         </div>
 
-          <div className="relative text-center mt-4 space-y-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 px-5 py-3">
+          <div className="relative text-center mt-4 space-y-2 bg-slate-950/60 backdrop-blur-md rounded-xl border border-white/30 px-5 py-3">
             <div>
               <a href="https://blueridge-group.co.uk" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-white hover:underline">
                 ReportAL 360 by Blueridge Group

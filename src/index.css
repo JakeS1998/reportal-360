@@ -91,6 +91,17 @@
   }
 }
 
+@keyframes login-background-motion {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to { transform: scale(1.08) translate3d(-1%, -0.75%, 0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .login-background-motion {
+    animation: login-background-motion 26s ease-in-out infinite alternate;
+  }
+}
+
 @media print {
   @page { size: A4 landscape; margin: 10mm; }
   aside, header, .print\:hidden {
