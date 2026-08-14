@@ -1,0 +1,45 @@
+{
+  "name": "AssessmentWeightConfig",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "classwork": {
+      "type": "number",
+      "title": "Classwork Weight"
+    },
+    "quiz": {
+      "type": "number",
+      "title": "Quiz Weight"
+    },
+    "test": {
+      "type": "number",
+      "title": "Test / Exam Weight"
+    },
+    "essay": {
+      "type": "number",
+      "title": "Essay Weight"
+    },
+    "project": {
+      "type": "number",
+      "title": "Project Weight"
+    },
+    "homework": {
+      "type": "number",
+      "title": "Homework Weight"
+    },
+    "presentation": {
+      "type": "number",
+      "title": "Presentation Weight"
+    },
+    "other": {
+      "type": "number",
+      "title": "Other Weight"
+    }
+  },
+  "required": [
+    "school_code"
+  ]
+}

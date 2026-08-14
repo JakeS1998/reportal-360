@@ -57,6 +57,7 @@ import StudentAccessAudit from './pages/StudentAccessAudit';
 import StudentLoginManagement from './pages/StudentLoginManagement';
 import StudentPortalLayout from '@/components/StudentPortalLayout';
 import SeatingPlan from './pages/SeatingPlan';
+import AssessmentWeights from './pages/AssessmentWeights';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -120,6 +121,7 @@ const AuthenticatedApp = () => {
         <Route path="/student-assignments" element={<StudentAssignments />} />
         <Route path="/student-access-audit" element={<StudentAccessAudit />} />
         <Route path="/student-logins" element={<StudentLoginManagement />} />
+        <Route path="/assessment-weights" element={<AssessmentWeights />} />
         <Route path="/my-classes" element={<MyClasses />} />
         <Route path="/assignment-submissions" element={<TeacherAssignmentSubmissions />} />
         <Route path="/classes/:classId" element={<ClassDashboard />} />
