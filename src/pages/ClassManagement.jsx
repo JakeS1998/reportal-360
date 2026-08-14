@@ -1249,7 +1249,16 @@ export default function ClassManagement() {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={() => setAssignResult(null)} className="bg-slate-900 hover:bg-slate-800">Done</Button>
+            <Button variant="outline" onClick={() => setAssignResult(null)}>Done</Button>
+            {!assignResult?.error && assignResult?.sectionsCreated !== undefined && (
+              <Button onClick={() => { setAssignResult(null); autoAssignStudents(); }} className="bg-slate-900 hover:bg-slate-800">Assign Students</Button>
+            )}
+            {!assignResult?.error && assignResult?.sectionsCreated === undefined && !assignResult?.unassigned && (
+              <Button onClick={() => { setAssignResult(null); runAutoSchedule(); }} className="bg-slate-900 hover:bg-slate-800">Rebuild Schedule</Button>
+            )}
+            {!assignResult?.error && assignResult?.unassigned > 0 && (
+              <Button onClick={() => { setAssignResult(null); openSectionPlanner(); }} className="bg-slate-900 hover:bg-slate-800">Create More Sections</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
