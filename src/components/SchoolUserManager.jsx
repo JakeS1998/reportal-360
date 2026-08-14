@@ -129,7 +129,7 @@ export default function SchoolUserManager({
         system_code: selectedSchool.system_code,
         school_code: selectedSchool.school_code,
       });
-      if (res.data?.success) setUsers(res.data.users || []);
+      if (res.data?.success) setUsers([...(res.data.users || [])].sort((a, b) => (a.full_name || a.username || "").localeCompare(b.full_name || b.username || "")));
       else setError(res.data?.error || "Failed to load staff");
     } catch {
       setError("Failed to load staff");

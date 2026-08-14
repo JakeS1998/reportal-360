@@ -138,7 +138,7 @@ export default function Schedule() {
   const schoolStart = timetable?.school_start ? toMin(timetable.school_start) : null;
   const schoolEnd = timetable?.school_end ? toMin(timetable.school_end) : null;
 
-  const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
+  const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager").sort((a, b) => (a.full_name || a.username || "").localeCompare(b.full_name || b.username || ""));
   const activeClasses = cm.classes.filter((c) => c.status === "active");
   const gradeLevels = [...new Set(cm.classes.map((item) => item.grade_level).filter(Boolean))].sort((a, b) => Number(a) - Number(b));
   const scheduleDays = timetable?.scheduling_model === "rotating_block" ? (timetable.cycle_day_types?.length ? timetable.cycle_day_types : ["A", "B"]) : DAYS;

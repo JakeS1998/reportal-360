@@ -49,7 +49,7 @@ export default function TeacherWorkload({ teachers, schedules, timetable, caller
   }, [teachers]);
 
   const rows = useMemo(() => {
-    return teachers.map((t) => {
+    return [...teachers].sort((a, b) => (a.full_name || a.username || "").localeCompare(b.full_name || b.username || "")).map((t) => {
       const perDay = DAYS.map((day) => {
         const dayClasses = schedules.filter((s) => s.teacher_id === t.id && s.day_of_week === day);
         let free = 0;

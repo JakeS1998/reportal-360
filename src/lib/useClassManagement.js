@@ -73,7 +73,7 @@ export function useClassManagement() {
         ...callerCreds,
         school_code: schoolCode,
       });
-      if (teachersRes.data?.success) setTeachers(teachersRes.data.users || []);
+      if (teachersRes.data?.success) setTeachers([...(teachersRes.data.users || [])].sort((a, b) => (a.full_name || a.username || "").localeCompare(b.full_name || b.username || "")));
     } catch (err) {
       console.error("Failed to load class management data", err);
     } finally {
