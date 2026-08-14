@@ -92,8 +92,9 @@ export default function ClassManagement() {
   const canLeadHomeroom = (teacher, gradeLevel) => {
     const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
     const gradeAllowed = !(teacher?.grade_levels?.length) || teacher.grade_levels.includes(String(gradeLevel));
-    return gradeAllowed && !subjects.some((subject) => ["pe", "music"].includes(subject));
+    return gradeAllowed && !subjects.some((subject) => ["pe", "physical education", "music"].includes(subject));
   };
+  const isElementaryClassBlock = (cls) => isElementaryGrade(cls.grade_level) && ["morning", "afternoon"].includes(cls.elementary_block);
   const workingDaysFor = (teacher) => teacher?.working_days?.length ? teacher.working_days : SCHED_DAYS;
   const teacherWorksOn = (teacher, day) => workingDaysFor(teacher).includes(day);
   const elementaryTeacherGroups = (gradeLevel) => {
@@ -239,7 +240,7 @@ export default function ClassManagement() {
       for (const assignment of cm.teacherAssignments) {
         const cls = cm.classes.find((record) => record.id === assignment.class_id);
         const teacher = activeTeachers.find((record) => record.id === assignment.teacher_id);
-        const assignmentIsValid = cls && (cls.subject || "").toLowerCase() === "homeroom" && isElementaryGrade(cls.grade_level)
+        const assignmentIsValid = cls && (isElementaryClassBlock(cls) || ((cls.subject || "").toLowerCase() === "homeroom" && isElementaryGrade(cls.grade_level)))
           ? canLeadHomeroom(teacher, cls.grade_level)
           : teacherCanTeach(teacher, cls?.subject, cls?.grade_level);
         if (!assignmentIsValid) {
@@ -349,7 +350,7 @@ export default function ClassManagement() {
       // Schedule the most-constrained classes first (most enrolled students), so
       // shared students get a consistent timetable before less-shared classes fill slots.
       const queue = cm.classes
-        .filter((c) => c.status === "active")
+        .filter((c) => c.status === "active" && !isElementaryClassBlock(c))
         .sort((a, b) => (classStudents[b.id]?.size || 0) - (classStudents[a.id]?.size || 0));
 
       setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
@@ -448,6 +449,44 @@ export default function ClassManagement() {
           failed.push({ name: cls.class_name, reason: `Only ${have + placedThis}/${target} sessions fit (teacher/timetable full)` });
         }
       }
+      const elementaryBlocks = cm.classes.filter((cls) => cls.status === "active" && isElementaryClassBlock(cls));
+      for (const cls of elementaryBlocks) {
+        const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        const lunchStart = toMin(classTimetable?.lunch_start);
+        const lunchEnd = toMin(classTimetable?.lunch_end);
+        const primaryAssignment = cm.teacherAssignments.find((assignment) => assignment.class_id === cls.id && assignment.role === "Primary Teacher");
+        const teacher = activeTeachers.find((record) => record.id === primaryAssignment?.teacher_id);
+        if (!teacher) { failed.push({ name: cls.class_name, reason: "No primary classroom teacher assigned." }); continue; }
+        const homeroomBlock = cls.elementary_block === "morning" && classTimetable?.school_start && classTimetable?.homeroom_end
+          ? [{ start: toMin(classTimetable.school_start), end: toMin(classTimetable.homeroom_end), label: "Morning classroom", day_type: "", day_of_week: "" }]
+          : [];
+        const blockSlots = [...homeroomBlock, ...buildScheduleSlots(classTimetable)].filter((slot) => {
+          const morning = slot.end <= lunchStart;
+          const afternoon = slot.start >= lunchEnd;
+          return cls.elementary_block === "morning" ? morning : afternoon;
+        }).flatMap((slot) => slot.day_of_week ? [slot] : getSchoolDays(classTimetable).map((day) => ({ ...slot, day_of_week: day })));
+        let placedThis = 0;
+        for (const slot of blockSlots) {
+          const day = slot.day_type || slot.day_of_week;
+          if (!teacherWorksOn(teacher, day) || !teacherFree(teacher.id, day, slot)) continue;
+          const classStudentsForSchedule = classStudents[cls.id] || new Set();
+          if ([...classStudentsForSchedule].some((studentId) => overlaps((studentBusy[studentId] || {})[day] || [], slot))) continue;
+          const createdSchedule = await base44.entities.ClassSchedule.create({
+            class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
+            schedule_type: classTimetable?.scheduling_model || "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
+            teacher_id: teacher.id, teacher_name: teacher.full_name || "", room: teacher.room || "",
+            day_of_week: slot.day_of_week, start_time: mmToHHMM(slot.start), end_time: mmToHHMM(slot.end),
+            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
+          });
+          (byClass[cls.id] ||= []).push(createdSchedule);
+          (busy[teacher.id] ||= {})[day] ||= [];
+          busy[teacher.id][day].push({ start: slot.start, end: slot.end });
+          markStudentsBusy(cls.id, day, slot);
+          placedThis++;
+          scheduled.push({ name: cls.class_name, day, time: fmtTime(mmToHHMM(slot.start)) });
+        }
+        if (placedThis < blockSlots.length) failed.push({ name: cls.class_name, reason: `Only ${placedThis}/${blockSlots.length} classroom slots fit around specialist lessons.` });
+      }
       setAutoProgress({ current: queue.length, total: queue.length, label: "Done" });
       setAutoResult({ scheduled: scheduled.length, failed, assigned, suggestions });
       cm.loadData();
@@ -473,11 +512,24 @@ export default function ClassManagement() {
     setCreatingSections(true);
     try {
       const newClasses = [];
+      const newElementaryBlocks = [];
       const currentYearId = cm.currentYear?.id || "";
       for (const grade of [...new Set(activeStudents.map((student) => student.grade_level))]) {
+        const gradeStudents = activeStudents.filter((student) => student.grade_level === grade);
         const elementary = isElementaryGrade(grade);
         const elementaryGroups = elementary ? elementaryTeacherGroups(grade) : [];
-        const sectionsNeeded = elementary ? elementaryGroups.length : Math.ceil(activeStudents.filter((student) => student.grade_level === grade).length / 30);
+        const sectionsNeeded = elementary ? elementaryGroups.length : Math.ceil(gradeStudents.length / 30);
+        if (elementary) {
+          for (let index = 0; index < elementaryGroups.length; index++) {
+            const group = elementaryGroups[index];
+            const assignedStudents = gradeStudents.filter((_, studentIndex) => studentIndex % elementaryGroups.length === index);
+            for (const block of ["morning", "afternoon"]) {
+              const className = `${grade} Classroom ${index + 1} ${block === "morning" ? "Morning" : "Afternoon"}`;
+              const exists = cm.classes.some((cls) => cls.status === "active" && cls.class_name === className && (!currentYearId || cls.academic_year_id === currentYearId));
+              if (!exists) newElementaryBlocks.push({ className, grade, block, group, assignedStudents });
+            }
+          }
+        }
         const subjectsToCreate = elementary
           ? [{ name: "Physical Education", sessions: 1 }, { name: "Music", sessions: 1 }]
           : managedSubjects.map((subject) => ({ name: subject.name, sessions: Math.max(1, parseInt(sectionFrequencies[subject.name], 10) || 1), room: subject.rooms?.[0] || "" }));
@@ -490,8 +542,13 @@ export default function ClassManagement() {
         }
       }
       if (newClasses.length > 0) await base44.entities.Class.bulkCreate(newClasses);
+      for (const block of newElementaryBlocks) {
+        const cls = await base44.entities.Class.create({ class_name: block.className, school_code: cm.schoolCode, school_name: cm.schoolName, academic_year_id: currentYearId, grade_level: block.grade, subject: "Elementary Classroom", status: "active", sessions_per_week: 1, elementary_block: block.block });
+        await base44.entities.TeacherClass.bulkCreate(block.group.map((teacher, index) => ({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role: index === 0 ? "Primary Teacher" : "Co-Teacher", school_code: cm.schoolCode })));
+        if (block.assignedStudents.length) await base44.entities.StudentClass.bulkCreate(block.assignedStudents.map((student) => ({ student_id: student.id, student_name: student.student_name, class_id: cls.id, academic_year_id: currentYearId, school_code: cm.schoolCode, status: "active" })));
+      }
       await cm.loadData();
-      setAssignResult({ sectionsCreated: newClasses.length, created: 0, studentsAssigned: 0, totalStudents: activeStudents.length });
+      setAssignResult({ sectionsCreated: newClasses.length + newElementaryBlocks.length, created: 0, studentsAssigned: 0, totalStudents: activeStudents.length });
     } finally {
       setCreatingSections(false);
     }
