@@ -28,7 +28,7 @@ function resolveWorkingDays(workingDays = []) {
   return { workingDays: selected.length ? selected : allowed };
 }
 
-function resolveGradeLevels(teachingLevel, gradeLevels = []) {
+function resolveGradeLevels(teachingLevel, gradeLevels = [], role = "teacher") {
   const allowedByLevel = {
     elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
     middle: ["6", "7", "8"],
@@ -37,6 +37,7 @@ function resolveGradeLevels(teachingLevel, gradeLevels = []) {
   const allowed = allowedByLevel[teachingLevel];
   if (!allowed) return { error: "School level must be elementary, middle, or high" };
   const selected = Array.isArray(gradeLevels) ? gradeLevels : [];
+  if (role === "manager" && selected.length === 0) return { gradeLevels: [] };
   if (teachingLevel === "elementary" && selected.length === 0) return { error: "Elementary staff must have at least one grade assigned" };
   if (selected.some((grade) => !allowed.includes(grade))) return { error: `${teachingLevel === "middle" ? "Middle" : teachingLevel === "high" ? "High" : "Elementary"} staff can only be assigned eligible grades` };
   return { gradeLevels: selected.length > 0 ? selected : allowed };
@@ -112,7 +113,7 @@ export default async function(req) {
         const teachingLevel = { E: "elementary", M: "middle", H: "high" }[schoolLevelCode];
         if (!teachingLevel) { errors.push(`Row ${index + 2}: school_level is required and must be E, M, or H`); continue; }
         const subjectNames = (item.subject || "").split(";").map((name) => name.trim()).filter(Boolean);
-        const gradeSelection = resolveGradeLevels(teachingLevel, (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean));
+        const gradeSelection = resolveGradeLevels(teachingLevel, (item.grades || "").split(";").map((grade) => grade.trim()).filter(Boolean), role);
         if (gradeSelection.error) { errors.push(`Row ${index + 2}: ${gradeSelection.error}`); continue; }
         const gradeLevels = gradeSelection.gradeLevels;
         const workingDaySelection = resolveWorkingDays((item.working_days || "").split(";").map((day) => day.trim()).filter(Boolean));
@@ -185,7 +186,7 @@ export default async function(req) {
       }
 
       const teachingLevel = Array.isArray(teaching_levels) ? teaching_levels[0] : "";
-      const gradeSelection = resolveGradeLevels(teachingLevel, grade_levels);
+      const gradeSelection = resolveGradeLevels(teachingLevel, grade_levels, role);
       if (gradeSelection.error) return Response.json({ success: false, error: gradeSelection.error }, { status: 400 });
       const workingDaySelection = resolveWorkingDays(working_days);
       if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
