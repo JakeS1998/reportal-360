@@ -226,6 +226,9 @@ export default function ClassManagement() {
     setAutoProgress({ current: 0, total: 0, label: "Preparing…" });
     setSelectedSuggestions(new Set());
     setMoveConfirmation("");
+    const scheduleStart = new Date();
+    scheduleStart.setDate(scheduleStart.getDate() - ((scheduleStart.getDay() + 6) % 7));
+    const scheduleStartDate = scheduleStart.toISOString().slice(0, 10);
     try {
       const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5);
       const timetable = ttRes[0];
@@ -549,7 +552,7 @@ export default function ClassManagement() {
             schedule_type: classTimetable?.scheduling_model || "traditional", day_type: placement.day_type || "", period_label: placement.label || "",
             teacher_id: placed.teacher.id, teacher_name: placed.teacher.full_name || "", room: placed.room,
             day_of_week: placement.day_of_week, start_time: mmToHHMM(placement.start), end_time: mmToHHMM(placement.end),
-            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
+            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: scheduleStartDate, locked: false,
           }));
           pendingScheduleRecords.push(...scheduleRecords);
           placementSlots.forEach((placement, index) => {
@@ -634,7 +637,7 @@ export default function ClassManagement() {
             schedule_type: "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
             teacher_id: teacher.id, teacher_name: teacher.full_name || "", room: teacher.room || "",
             day_of_week: slot.day_of_week, start_time: mmToHHMM(slot.start), end_time: mmToHHMM(slot.end),
-            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
+            recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: scheduleStartDate, locked: false,
           };
           pendingScheduleRecords.push(createdSchedule);
           (byClass[cls.id] ||= []).push(createdSchedule);
