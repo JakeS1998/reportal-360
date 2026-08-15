@@ -100,7 +100,7 @@ export default function Schedule() {
       const schoolSchedules = await base44.entities.ClassSchedule.filter(
         { school_code: cm.schoolCode },
         "start_time",
-        500
+        2000
       );
       setSchedules(schoolSchedules);
     } catch (err) {
