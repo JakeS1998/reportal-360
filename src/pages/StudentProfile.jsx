@@ -97,7 +97,7 @@ export default function StudentProfile() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowContacts(true)}><Contact className="w-4 h-4 mr-1" />Contact Info</Button>}
+          {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowContacts(true)}><Contact className="w-4 h-4 mr-1" />Contacts & Pickups</Button>}
           {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" />Edit Profile</Button>}
           {!studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>}
           <Button variant="outline" onClick={() => setShowPreview(true)}>
