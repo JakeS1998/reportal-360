@@ -77,6 +77,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/student-access-audit", label: "Student Access Audit", icon: ShieldCheck },
         { to: "/student-logins", label: "Student Login Management", icon: KeyRound },
         { to: "/assessment-weights", label: "Assessment Weights", icon: GraduationCap },
+        { to: "/attendance-review", label: "Attendance Review", icon: CalendarCheck },
       ],
     });
   }

@@ -59,6 +59,7 @@ import StudentPortalLayout from '@/components/StudentPortalLayout';
 import SeatingPlan from './pages/SeatingPlan';
 import AssessmentWeights from './pages/AssessmentWeights';
 import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
+import AttendanceReview from './pages/AttendanceReview';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -111,6 +112,7 @@ const AuthenticatedApp = () => {
         <Route path="/overview" element={<ExecutiveOverview />} />
         <Route path="/academics" element={<AcademicPerformance />} />
         <Route path="/attendance" element={<AttendanceEngagement />} />
+        <Route path="/attendance-review" element={<AttendanceReview />} />
         <Route path="/demographics" element={<StudentsDemographics />} />
         <Route path="/students" element={<Students />} />
         <Route path="/insights" element={<PredictiveInsights />} />

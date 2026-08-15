@@ -1,0 +1,10 @@
+import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+export default function EditAttendanceRecordDialog({ record, onClose, onSave, saving }) {
+  const [status, setStatus] = useState("present");
+  const [reason, setReason] = useState("");
+  useEffect(() => { if (record) { setStatus(record.status); setReason(record.excused_reason || ""); } }, [record]);
+  return <Dialog open={Boolean(record)} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>Edit submitted attendance</DialogTitle></DialogHeader>{record && <p className="text-sm text-slate-500">{record.student_name} · {record.class_name} · {record.date}</p>}<label className="text-sm font-medium text-slate-700">Status<select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="present">Present</option><option value="absent">Absent</option><option value="late">Late</option><option value="excused">Excused</option></select></label>{status === "excused" && <label className="text-sm font-medium text-slate-700">Evidence type<select value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border border-input bg-white px-3 text-sm"><option value="">Select evidence type…</option><option>Parent Note</option><option>Medical Note</option><option>Professional Note</option></select></label>}<DialogFooter><Button variant="outline" onClick={onClose}>Cancel</Button><Button disabled={saving} onClick={() => onSave({ status, excused_reason: reason })}>{saving ? "Saving…" : "Save changes"}</Button></DialogFooter></DialogContent></Dialog>;
+}
