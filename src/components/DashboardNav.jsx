@@ -102,6 +102,17 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       return { ...base, [heading]: !current };
     });
 
+  const isSectionOpen = (groupHeading, sectionLabel) =>
+    openGroups === null ? true : !!openGroups[`${groupHeading}:${sectionLabel}`];
+
+  const toggleSection = (groupHeading, sectionLabel) =>
+    setOpenGroups((g) => {
+      const base = g || {};
+      const key = `${groupHeading}:${sectionLabel}`;
+      const current = g === null ? true : !!g[key];
+      return { ...base, [key]: !current };
+    });
+
   const handleNavigate = () => {
     if (onNavigate) onNavigate();
   };
@@ -154,30 +165,41 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
             </button>
             {open && (
               <div className="space-y-0.5">
-                {(group.sections || [{ items: group.items }]).map((section, sectionIndex) => (
-                  <div key={section.label || sectionIndex} className={section.label ? "pt-2 first:pt-0" : ""}>
-                    {section.label && <p className="px-6 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">{section.label}</p>}
-                    {section.items.map((n) => (
-                      <NavLink
-                        key={n.to}
-                        to={n.to}
-                        onClick={handleNavigate}
-                        className={({ isActive }) =>
-                          `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
-                          }`
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
-                            <n.icon className="w-4 h-4 shrink-0" /> {n.label}
-                          </>
-                        )}
-                      </NavLink>
-                    ))}
-                  </div>
-                ))}
+                {(group.sections || [{ items: group.items }]).map((section, sectionIndex) => {
+                  const sectionOpen = !section.label || isSectionOpen(group.heading, section.label);
+                  return (
+                    <div key={section.label || sectionIndex} className={section.label ? "pt-2 first:pt-0" : ""}>
+                      {section.label && (
+                        <button
+                          onClick={() => toggleSection(group.heading, section.label)}
+                          className="flex w-full items-center gap-2 px-6 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35 hover:text-white/65"
+                        >
+                          <span className="flex-1 text-left">{section.label}</span>
+                          <ChevronDown className={`h-3 w-3 transition-transform ${sectionOpen ? "" : "-rotate-90"}`} />
+                        </button>
+                      )}
+                      {sectionOpen && section.items.map((n) => (
+                        <NavLink
+                          key={n.to}
+                          to={n.to}
+                          onClick={handleNavigate}
+                          className={({ isActive }) =>
+                            `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                            }`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <>
+                              {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
+                              <n.icon className="w-4 h-4 shrink-0" /> {n.label}
+                            </>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
