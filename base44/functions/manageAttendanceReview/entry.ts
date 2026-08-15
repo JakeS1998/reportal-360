@@ -45,12 +45,13 @@ export default async function(req: Request): Promise<Response> {
       const relevantMemberships = memberships.filter((item) => item.status !== 'withdrawn' && classIds.has(item.class_id) && (studentIds.has(item.student_id) || searchedClassIds.has(item.class_id)));
       const activeSchedules = schedules.filter((item) => classIds.has(item.class_id) && scheduleRunsOnDate(item, date));
       const scheduleByClass = new Map(); activeSchedules.forEach((item) => scheduleByClass.set(item.class_id, [...(scheduleByClass.get(item.class_id) || []), item]));
-      const studentNames = new Map(students.map((item) => [item.id, item.student_name]));
+      const studentDetails = new Map(students.map((item) => [item.id, { name: item.student_name, has504: Boolean(item.section_504_plan), hasIep: Boolean(item.iep_on_file) }]));
       const classNames = new Map(classes.map((item) => [item.id, item.class_name]));
       const attendanceByKey = new Map(attendance.map((item) => [`${item.student_id}:${item.class_id}:${item.schedule_id}`, item]));
       const records = relevantMemberships.flatMap((membership) => (scheduleByClass.get(membership.class_id) || []).map((schedule) => {
         const existing = attendanceByKey.get(`${membership.student_id}:${membership.class_id}:${schedule.id}`);
-        return { ...(existing || {}), student_id: membership.student_id, student_name: studentNames.get(membership.student_id) || 'Student', class_id: membership.class_id, class_name: classNames.get(membership.class_id) || 'Class', schedule_id: schedule.id, date, start_time: schedule.start_time, end_time: schedule.end_time, status: existing?.status || 'not_taken', submitted: Boolean(existing?.submitted), locked_by_manager: Boolean(existing?.locked_by_manager) };
+        const student = studentDetails.get(membership.student_id) || {};
+        return { ...(existing || {}), student_id: membership.student_id, student_name: student.name || 'Student', has_504: student.has504, has_iep: student.hasIep, class_id: membership.class_id, class_name: classNames.get(membership.class_id) || 'Class', schedule_id: schedule.id, date, start_time: schedule.start_time, end_time: schedule.end_time, status: existing?.status || 'not_taken', submitted: Boolean(existing?.submitted), locked_by_manager: Boolean(existing?.locked_by_manager) };
       })).sort((a, b) => `${a.student_name}${a.start_time}`.localeCompare(`${b.student_name}${b.start_time}`));
       return Response.json({ success: true, records });
     }
