@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mark_missing_assignments",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "mark_missing": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "markMissingAssignments",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Mark missing assignments",
+            "description": "Check overdue work"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Mark Missing Assignments",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Marks overdue assignments as missing for students without a submission."
+}

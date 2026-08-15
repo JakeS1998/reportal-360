@@ -101,6 +101,8 @@
       "type": "string",
       "enum": [
         "submitted",
+        "late",
+        "missing",
         "viewed"
       ],
       "default": "submitted",

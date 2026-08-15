@@ -74,6 +74,15 @@ export default async function(req) {
       return Response.json({ success: true, submission });
     }
 
+    if (body.action === 'teacher_late_submit') {
+      const submission = await service.AssignmentSubmission.get(body.submission_id);
+      const assignment = submission && await service.Assignment.get(submission.assignment_id);
+      if (!submission || !assignment || caller.role === 'student' || !(await canTeach(assignment.class_id))) return Response.json({ success: false, error: 'Not authorized' }, { status: 403 });
+      if (submission.status !== 'missing' || !body.file_url) return Response.json({ success: false, error: 'A missing submission and assignment file are required' }, { status: 400 });
+      const updated = await service.AssignmentSubmission.update(submission.id, { file_url: body.file_url, file_name: body.file_name || '', submitted_at: new Date().toISOString(), status: 'late' });
+      return Response.json({ success: true, submission: updated });
+    }
+
     if (body.action === 'grade_submission') {
       const submission = await service.AssignmentSubmission.get(body.submission_id);
       const assignment = submission && await service.Assignment.get(submission.assignment_id);
