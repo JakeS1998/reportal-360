@@ -287,7 +287,25 @@ export default function ClassManagement() {
         });
       });
 
+      // Reserve grade-level periods by subject. Multiple sections of the same
+      // subject may run in parallel, but a different subject cannot occupy the
+      // same period and create a collision in a student's timetable.
+      const gradeSubjectBusy = {};
+      const subjectKey = (value) => (value || "").trim().toLowerCase();
+      existing.forEach((schedule) => {
+        const scheduledClass = cm.classes.find((item) => item.id === schedule.class_id);
+        if (!scheduledClass?.grade_level || !scheduledClass?.subject) return;
+        const day = schedule.day_type || schedule.day_of_week;
+        (gradeSubjectBusy[scheduledClass.grade_level] ||= {})[day] ||= [];
+        gradeSubjectBusy[scheduledClass.grade_level][day].push({ start: toMin(schedule.start_time), end: toMin(schedule.end_time), subject: subjectKey(scheduledClass.subject) });
+      });
       const overlaps = (list, slot) => list.some((b) => slot.start < b.end && slot.end > b.start);
+      const gradeSlotFree = (cls, day, slot) => !((gradeSubjectBusy[cls.grade_level] || {})[day] || []).some((block) => block.subject !== subjectKey(cls.subject) && slot.start < block.end && slot.end > block.start);
+      const markGradeSlotBusy = (cls, day, slot) => {
+        if (!cls.grade_level || !cls.subject) return;
+        (gradeSubjectBusy[cls.grade_level] ||= {})[day] ||= [];
+        gradeSubjectBusy[cls.grade_level][day].push({ start: slot.start, end: slot.end, subject: subjectKey(cls.subject) });
+      };
       const teacherFree = (tid, day, slot) => !overlaps((busy[tid] || {})[day] || [], slot);
       const roomFree = (room, day, slot) => !room || !overlaps((roomBusy[room] || {})[day] || [], slot);
       const studentsFree = (classId, day, slot) => {
@@ -460,7 +478,7 @@ export default function ClassManagement() {
               return (availableRooms.length ? availableRooms : [""])
                 .filter((room) => patternSlots.every((patternSlot) => {
                   const patternDay = patternSlot.day_type || patternSlot.day_of_week;
-                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot);
+                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot) && gradeSlotFree(cls, patternDay, patternSlot);
                 }))
                 .map((room) => ({ teacher, room }));
             });
@@ -516,6 +534,7 @@ export default function ClassManagement() {
             busy[placed.teacher.id][placementDay].push({ start: placement.start, end: placement.end });
             if (placed.room) { (roomBusy[placed.room] ||= {})[placementDay] ||= []; roomBusy[placed.room][placementDay].push({ start: placement.start, end: placement.end }); }
             markStudentsBusy(cls.id, placementDay, placement);
+            markGradeSlotBusy(cls, placementDay, placement);
             usedDays.add(placementDay);
             dayLoad[placementDay]++;
             globalDayLoad[placementDay] = (globalDayLoad[placementDay] || 0) + 1;
