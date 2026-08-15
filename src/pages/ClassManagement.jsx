@@ -396,13 +396,18 @@ export default function ClassManagement() {
         const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
         const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
-        // Traditional schedules use one consistent time pattern across every school day.
+        // In a traditional timetable, only subjects taught every school day keep a
+        // single fixed period. Lower-frequency subjects fill the open periods on
+        // their required days, preserving those daily core-class anchors.
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
-        const dailyPattern = classTimetable?.scheduling_model === "traditional";
+        const weeklySessions = Math.max(1, parseInt(cls.sessions_per_week, 10) || 1);
+        const schoolDays = getSchoolDays(classTimetable);
+        const dailyPattern = classTimetable?.scheduling_model === "traditional" && weeklySessions >= schoolDays.length;
+        const dailyPatternCount = dailyPattern ? Math.floor(weeklySessions / schoolDays.length) : 0;
         const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
-        const target = dailyPattern
-          ? Math.max(1, Math.ceil((parseInt(cls.sessions_per_week, 10) || 1) / getSchoolDays(classTimetable).length))
-          : Math.max(1, Math.min(modelSlots.length, flexibleTarget || parseInt(cls.sessions_per_week, 10) || 1));
+        const target = classTimetable?.scheduling_model === "traditional"
+          ? (dailyPatternCount + (weeklySessions % schoolDays.length))
+          : Math.max(1, Math.min(modelSlots.length, flexibleTarget || weeklySessions));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
         const homeroomSlot = classTimetable?.homeroom_start && classTimetable?.homeroom_end
@@ -442,10 +447,14 @@ export default function ClassManagement() {
           for (const slot of classSlots) {
             const day = slot.day_type || slot.day_of_week;
             if (isHomeroom && usedDays.has(day)) continue;
-            const patternSlots = dailyPattern
-              ? getSchoolDays(classTimetable).map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean)
+            const requiresDailyPattern = dailyPattern && i < dailyPatternCount;
+            // A daily core subject is placed as one linked set of matching periods.
+            // Remaining lower-frequency sessions use individual open periods.
+            const patternSlots = requiresDailyPattern
+              ? schoolDays.map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean)
               : [slot];
-            if (dailyPattern && (day !== getSchoolDays(classTimetable)[0] || patternSlots.length !== getSchoolDays(classTimetable).length)) continue;
+            if (requiresDailyPattern && (day !== schoolDays[0] || patternSlots.length !== schoolDays.length)) continue;
+            if (!requiresDailyPattern && !isHomeroom && usedDays.has(day) && usedDays.size < slotDays.length) continue;
             const availablePairs = qualifiedTeachers.flatMap((teacher) => {
               const availableRooms = roomsForTeacher(teacher);
               return (availableRooms.length ? availableRooms : [""])
