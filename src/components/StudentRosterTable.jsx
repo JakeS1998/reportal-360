@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronRight } from "lucide-react";
+import StudentSupportMarkers from "@/components/student/StudentSupportMarkers";
 
 function scoreColor(score) {
   if (score == null) return "text-slate-300";
@@ -84,6 +85,7 @@ export default function StudentRosterTable({ rows, subjectFilter, onSelect, sele
               {onToggle && <td className="px-4 py-3"><input type="checkbox" checked={selectedIds?.includes(r.id)} onClick={(event) => event.stopPropagation()} onChange={(event) => onToggle(r.id, event.target.checked)} /></td>}<td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                   {r.student_name}
+                  <StudentSupportMarkers student={r} />
                   <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />
                 </div>
               </td>

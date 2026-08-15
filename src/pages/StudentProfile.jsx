@@ -11,6 +11,7 @@ import StudentSensitiveProfile from "@/components/student/StudentSensitiveProfil
 import ParentEmailDialog from "@/components/student/ParentEmailDialog";
 import StudentProfileEditDialog from "@/components/student/StudentProfileEditDialog";
 import StudentContactDialog from "@/components/student/StudentContactDialog";
+import StudentSupportMarkers from "@/components/student/StudentSupportMarkers";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -91,7 +92,7 @@ export default function StudentProfile() {
             <span className="text-xl font-bold text-slate-500">{(s.student_name || "?").charAt(0).toUpperCase()}</span>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900">{s.student_name}</h2>
+            <div className="flex items-center gap-2"><h2 className="text-lg font-bold text-slate-900">{s.student_name}</h2><StudentSupportMarkers student={s} /></div>
             <p className="text-sm text-slate-500">Grade {s.grade_level || "—"} {s.homeroom ? `· ${s.homeroom}` : ""} {s.student_number ? `· #${s.student_number}` : ""}</p>
           </div>
         </div>
@@ -138,6 +139,9 @@ export default function StudentProfile() {
             ["Disability", s.disability ? "Yes" : "No"],
             ["State Student ID", s.state_student_id],
             ["Status", s.status],
+            ["504 Plan", s.section_504_plan ? "On file" : "—"],
+            ["IEP", s.iep_on_file ? "On file" : "—"],
+            ["Transportation", s.transportation],
           ].map(([label, value]) => (
             <div key={label}>
               <p className="text-xs text-slate-400">{label}</p>

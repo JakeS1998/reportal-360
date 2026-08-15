@@ -38,6 +38,14 @@
       "type": "string",
       "title": "Homeroom"
     },
+    "transportation": {
+      "type": "string",
+      "title": "Transportation",
+      "enum": [
+        "Bus Rider",
+        "Pickup"
+      ]
+    },
     "status": {
       "type": "string",
       "title": "Status",
