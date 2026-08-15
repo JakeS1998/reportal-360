@@ -28,7 +28,32 @@ export default async function(req) {
       const plans = await base44.asServiceRole.entities.LessonPlan.filter({ school_code: schoolCode }, '-updated_date', 500);
       if (params.scope === 'review') {
         if (!manager) return Response.json({ success: false, error: 'Manager access required' }, { status: 403 });
-        return Response.json({ success: true, plans: plans.filter((p) => p.status === 'pending_review') });
+        const schedules = await base44.asServiceRole.entities.ClassSchedule.filter({ school_code: schoolCode }, 'start_time', 2000);
+        const now = new Date();
+        const cutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const weekdayIndex = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+        const missingPlanSchedules = schedules.flatMap((schedule) => {
+          const start = new Date(schedule.start_date || now.toISOString().slice(0, 10));
+          const targetDay = weekdayIndex[schedule.day_of_week];
+          if (targetDay === undefined) return [];
+          const occurrence = new Date(now);
+          occurrence.setHours(0, 0, 0, 0);
+          occurrence.setDate(occurrence.getDate() + ((targetDay - occurrence.getDay() + 7) % 7));
+          occurrence.setHours(...schedule.start_time.split(':').map(Number), 0, 0);
+          if (occurrence < now) occurrence.setDate(occurrence.getDate() + 7);
+          const recurrenceType = schedule.recurrence_type || 'weekly';
+          const weeksSinceStart = Math.floor((occurrence.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const isActive = occurrence >= start && (recurrenceType === 'weekly' || recurrenceType === 'cycle' || (recurrenceType === 'biweekly' && weeksSinceStart % 2 === 0) || (recurrenceType === 'none' && weeksSinceStart === 0));
+          const lessonDate = occurrence.toISOString().slice(0, 10);
+          const approved = plans.some((plan) => plan.class_id === schedule.class_id && plan.lesson_date === lessonDate && plan.status === 'approved');
+          if (!isActive || occurrence > cutoff || approved) return [];
+          return [{ schedule_id: schedule.id, class_name: schedule.class_name || 'Class', starts_at: occurrence.toLocaleString('en-GB', { weekday: 'short', hour: 'numeric', minute: '2-digit' }) }];
+        });
+        const upcomingMissingPlans = Object.values(missingPlanSchedules.reduce((byClass, item) => {
+          if (!byClass[item.class_name] || item.starts_at < byClass[item.class_name].starts_at) byClass[item.class_name] = item;
+          return byClass;
+        }, {}));
+        return Response.json({ success: true, plans: plans.filter((p) => p.status === 'pending_review'), upcomingMissingPlans });
       }
       return Response.json({ success: true, plans: manager ? plans : plans.filter((p) => p.owner_id === caller.id || p.shared) });
     }
