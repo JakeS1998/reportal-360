@@ -29,6 +29,13 @@ export default async function(req: Request): Promise<Response> {
     const classes = await base44.asServiceRole.entities.Class.filter({ school_code: targetSchool }, undefined, 500);
     const classIds = new Set(classes.map((item) => item.id));
 
+    if (action === 'suggest') {
+      const term = query?.trim().toLowerCase() || '';
+      if (term.length < 2) return Response.json({ success: true, students: [] });
+      const students = await base44.asServiceRole.entities.Student.filter({ school_code: targetSchool }, 'student_name', 500);
+      return Response.json({ success: true, students: students.filter((item) => `${item.student_name} ${item.student_number || ''}`.toLowerCase().includes(term)).slice(0, 8).map((item) => ({ id: item.id, student_name: item.student_name, student_number: item.student_number || '' })) });
+    }
+
     if (action === 'search') {
       if (!query?.trim() || !date) return Response.json({ success: true, records: [] });
       const term = query.trim().toLowerCase();
