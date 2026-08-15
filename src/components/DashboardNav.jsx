@@ -63,24 +63,34 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
   if (canManageStaff) {
     navGroups.push({
       heading: "Administration",
-      items: [
-        { to: "/staff", label: "Admin Panel", icon: UserCog },
-        { to: "/lesson-plan-reviews", label: "Lesson Plan Reviews", icon: ClipboardList },
-        { to: "/subjects", label: "Subjects & Rooms", icon: Library },
-        { to: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
-        { to: "/homerooms", label: "Homerooms", icon: Home },
-        { to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 },
-        { to: "/classes", label: "Classes", icon: BookOpen },
-        { to: "/academic-years", label: "Academic Years", icon: Calendar },
-        { to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck },
-        { to: "/student-assignments", label: "Student Assignments", icon: UserPlus },
-        { to: "/student-access-audit", label: "Student Access Audit", icon: ShieldCheck },
-        { to: "/student-logins", label: "Student Login Management", icon: KeyRound },
-        { to: "/assessment-weights", label: "Assessment Weights", icon: GraduationCap },
-        { to: "/attendance-review", label: "Attendance Review", icon: CalendarCheck },
+      sections: [
+        { label: "People & Access", items: [
+          { to: "/staff", label: "Admin Panel", icon: UserCog },
+          { to: "/teacher-assignments", label: "Teacher Assignments", icon: UserCheck },
+          { to: "/student-assignments", label: "Student Assignments", icon: UserPlus },
+          { to: "/student-logins", label: "Student Login Management", icon: KeyRound },
+          { to: "/student-access-audit", label: "Student Access Audit", icon: ShieldCheck },
+        ] },
+        { label: "Academic Setup", items: [
+          { to: "/subjects", label: "Subjects & Rooms", icon: Library },
+          { to: "/classes", label: "Classes", icon: BookOpen },
+          { to: "/homerooms", label: "Homerooms", icon: Home },
+          { to: "/academic-years", label: "Academic Years", icon: Calendar },
+          { to: "/assessment-weights", label: "Assessment Weights", icon: GraduationCap },
+        ] },
+        { label: "Scheduling & Attendance", items: [
+          { to: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
+          { to: "/attendance-review", label: "Attendance Review", icon: CalendarCheck },
+        ] },
+        { label: "Quality & Training", items: [
+          { to: "/lesson-plan-reviews", label: "Lesson Plan Reviews", icon: ClipboardList },
+          { to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 },
+        ] },
       ],
     });
   }
+
+  const groupItems = (group) => group.sections ? group.sections.flatMap((section) => section.items) : group.items;
 
   const isGroupOpen = (heading) =>
     openGroups === null ? true : !!openGroups[heading];
@@ -100,7 +110,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
     return (
       <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
         {navGroups.flatMap((group, gi) => [
-          ...group.items.map((n) => (
+          ...groupItems(group).map((n) => (
             <NavLink
               key={n.to}
               to={n.to}
@@ -144,24 +154,29 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
             </button>
             {open && (
               <div className="space-y-0.5">
-                {group.items.map((n) => (
-                  <NavLink
-                    key={n.to}
-                    to={n.to}
-                    onClick={handleNavigate}
-                    className={({ isActive }) =>
-                      `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
-                        <n.icon className="w-4 h-4 shrink-0" /> {n.label}
-                      </>
-                    )}
-                  </NavLink>
+                {(group.sections || [{ items: group.items }]).map((section, sectionIndex) => (
+                  <div key={section.label || sectionIndex} className={section.label ? "pt-2 first:pt-0" : ""}>
+                    {section.label && <p className="px-6 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">{section.label}</p>}
+                    {section.items.map((n) => (
+                      <NavLink
+                        key={n.to}
+                        to={n.to}
+                        onClick={handleNavigate}
+                        className={({ isActive }) =>
+                          `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full" style={{ backgroundColor: CRIMSON }} />}
+                            <n.icon className="w-4 h-4 shrink-0" /> {n.label}
+                          </>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
