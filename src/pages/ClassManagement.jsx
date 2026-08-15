@@ -343,6 +343,10 @@ export default function ClassManagement() {
       const assigned = [];
       const suggestions = [];
       const globalDayLoad = {};
+      // Primary sections are balanced separately for each subject. This prevents
+      // a teacher who happens to be assigned first from accumulating every class.
+      const teacherSubjectLeadLoad = {};
+      const leadLoadKey = (teacherId, subject) => `${teacherId}|${subjectKey(subject)}`;
       existing.forEach((schedule) => {
         const day = schedule.day_type || schedule.day_of_week;
         globalDayLoad[day] = (globalDayLoad[day] || 0) + 1;
@@ -439,16 +443,13 @@ export default function ClassManagement() {
         const qualifiedTeachers = activeTeachers
           .filter((teacher) => isHomeroom && isElementaryGrade(cls.grade_level) ? canLeadHomeroom(teacher, cls.grade_level) : teacherCanTeach(teacher, cls.subject, cls.grade_level))
           .filter((teacher) => !isHomeroom || classAssignments.length === 0 || classAssignments.some((assignment) => assignment.teacher_id === teacher.id))
-          .sort((a, b) => {
-            const aPrimary = classAssignments.some((assignment) => assignment.teacher_id === a.id && assignment.role === "Primary Teacher") ? 1 : 0;
-            const bPrimary = classAssignments.some((assignment) => assignment.teacher_id === b.id && assignment.role === "Primary Teacher") ? 1 : 0;
-            return bPrimary - aPrimary || countFree(b.id) - countFree(a.id);
-          });
+          .sort((a, b) => countFree(b.id) - countFree(a.id) || (a.full_name || "").localeCompare(b.full_name || ""));
         if (!qualifiedTeachers.length) {
           failed.push({ name: cls.class_name, reason: `No active teacher is qualified for ${cls.subject || "this subject"}.`, classId: cls.id, subject: cls.subject || "", candidates: [] });
           continue;
         }
         const teacherSessions = Object.fromEntries(qualifiedTeachers.map((teacher) => [teacher.id, 0]));
+        let leadTeacherId = null;
         // A subject can use any of its configured rooms, allowing separate sections
         // with different teachers to run in parallel instead of competing for one room.
         const roomsForTeacher = (teacher) => [...new Set([cls.room, ...roomsForSubject(cls.subject), teacher.room].filter(Boolean))];
@@ -497,8 +498,20 @@ export default function ClassManagement() {
               blockedSlots.push({ day, ...slot, conflicts });
               continue;
             }
-            availablePairs.sort((a, b) => teacherSessions[b.teacher.id] - teacherSessions[a.teacher.id]);
+            availablePairs.sort((a, b) => {
+              const aIsLead = leadTeacherId === a.teacher.id ? 1 : 0;
+              const bIsLead = leadTeacherId === b.teacher.id ? 1 : 0;
+              return bIsLead - aIsLead
+                || (teacherSubjectLeadLoad[leadLoadKey(a.teacher.id, cls.subject)] || 0) - (teacherSubjectLeadLoad[leadLoadKey(b.teacher.id, cls.subject)] || 0)
+                || teacherSessions[b.teacher.id] - teacherSessions[a.teacher.id]
+                || countFree(b.teacher.id) - countFree(a.teacher.id);
+            });
             const { teacher, room } = availablePairs[0];
+            if (!leadTeacherId) {
+              leadTeacherId = teacher.id;
+              const key = leadLoadKey(teacher.id, cls.subject);
+              teacherSubjectLeadLoad[key] = (teacherSubjectLeadLoad[key] || 0) + 1;
+            }
             const teacherDayLoad = ((busy[teacher.id] || {})[day] || []).length;
             const sameTimeCount = (byClass[cls.id] || []).filter((session) => toMin(session.start_time) === slot.start && toMin(session.end_time) === slot.end).length;
             const score = isFlexibleWeekly
@@ -550,12 +563,16 @@ export default function ClassManagement() {
           placedThis++;
         }
         const scheduledTeachers = qualifiedTeachers.filter((teacher) => teacherSessions[teacher.id] > 0);
-        const assignedPrimary = classAssignments.find((assignment) => assignment.role === "Primary Teacher");
-        const primaryTeacher = activeTeachers.find((teacher) => teacher.id === assignedPrimary?.teacher_id)
+        const primaryTeacher = activeTeachers.find((teacher) => teacher.id === leadTeacherId)
           || [...scheduledTeachers].sort((a, b) => teacherSessions[b.id] - teacherSessions[a.id])[0];
         const teachersToAssign = primaryTeacher && !scheduledTeachers.some((teacher) => teacher.id === primaryTeacher.id)
           ? [primaryTeacher, ...scheduledTeachers]
           : scheduledTeachers;
+        // A rebuild has one accountable lead per section. Keep any other existing
+        // assignments, but no longer leave a previous lead as another primary.
+        for (const assignment of classAssignments.filter((item) => item.role === "Primary Teacher" && item.teacher_id !== primaryTeacher?.id)) {
+          await base44.entities.TeacherClass.update(assignment.id, { role: "Secondary Teacher" });
+        }
         for (const teacher of teachersToAssign) {
           const role = teacher.id === primaryTeacher?.id ? "Primary Teacher" : (isHomeroom ? "Co-Teacher" : "Secondary Teacher");
           const existingAssignment = classAssignments.find((assignment) => assignment.teacher_id === teacher.id);
