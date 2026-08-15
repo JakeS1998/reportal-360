@@ -84,7 +84,7 @@ export default function ClassManagement() {
   const roomsForSubject = (subjName) => (subjectDefs.find((s) => s.name === subjName)?.rooms) || [];
 
   const activeTeachers = cm.teachers.filter((t) => t.role === "teacher" || t.role === "manager");
-  const isElementaryGrade = (grade) => cm.school?.school_type === "Elementary" && ["K", "Kindergarten", "0", "1", "2", "3", "4", "5"].includes(String(grade).trim());
+  const isElementaryGrade = (grade) => ["Pre-K", "PK", "K", "Kindergarten", "0", "1", "2", "3", "4", "5"].includes(String(grade).trim());
   const teacherCanTeach = (teacher, subject, gradeLevel) => {
     const target = (subject || "").trim().toLowerCase();
     const subjects = [...(teacher?.subjects || []), teacher?.subject].filter(Boolean).map((value) => value.trim().toLowerCase());
