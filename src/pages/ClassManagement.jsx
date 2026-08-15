@@ -421,6 +421,7 @@ export default function ClassManagement() {
         const weeklySessions = Math.max(1, parseInt(cls.sessions_per_week, 10) || 1);
         const schoolDays = getSchoolDays(classTimetable);
         const isTraditionalSchedule = classTimetable?.scheduling_model === "traditional";
+        const isOneOffEnrichment = weeklySessions === 1 && ["physical education", "music", "computer tech"].includes((cls.subject || "").trim().toLowerCase());
         const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
         // Each traditional placement is a consistent same-time pattern: 5 sessions
         // become one daily pattern, 9 becomes one 5-day and one 4-day pattern.
@@ -480,7 +481,7 @@ export default function ClassManagement() {
               return (availableRooms.length ? availableRooms : [""])
                 .filter((room) => patternSlots.every((patternSlot) => {
                   const patternDay = patternSlot.day_type || patternSlot.day_of_week;
-                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot) && gradeSlotFree(cls, patternDay, patternSlot);
+                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot) && (isOneOffEnrichment || gradeSlotFree(cls, patternDay, patternSlot));
                 }))
                 .map((room) => ({ teacher, room }));
             });
