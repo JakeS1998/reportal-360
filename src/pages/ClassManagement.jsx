@@ -410,9 +410,7 @@ export default function ClassManagement() {
         const classTimetable = isElementarySpecialist
           ? { ...baseTimetable, scheduling_model: "traditional", school_days: SCHED_DAYS, cycle_day_types: [] }
           : baseTimetable;
-        const elementaryLunchStart = isElementaryGrade(cls.grade_level) ? toMin(classTimetable?.lunch_start) : 0;
-        const modelSlots = buildScheduleSlots(classTimetable)
-          .filter((slot) => !elementaryLunchStart || slot.end <= elementaryLunchStart);
+        const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
         // In a traditional timetable, only subjects taught every school day keep a
         // single fixed period. Lower-frequency subjects fill the open periods on
@@ -616,10 +614,8 @@ export default function ClassManagement() {
         const homeroomBlock = classTimetable?.school_start && classTimetable?.homeroom_end
           ? [{ start: toMin(classTimetable.school_start), end: toMin(classTimetable.homeroom_end), label: "Classroom", day_type: "", day_of_week: "" }]
           : [];
-        const elementaryLunchStart = toMin(classTimetable?.lunch_start);
         const blockSlots = [...homeroomBlock, ...buildScheduleSlots(classTimetable)]
-          .flatMap((slot) => slot.day_of_week ? [slot] : getSchoolDays(classTimetable).map((day) => ({ ...slot, day_of_week: day })))
-          .filter((slot) => !elementaryLunchStart || slot.end <= elementaryLunchStart);
+          .flatMap((slot) => slot.day_of_week ? [slot] : getSchoolDays(classTimetable).map((day) => ({ ...slot, day_of_week: day })));
         let placedThis = 0;
         for (const slot of blockSlots) {
           const day = slot.day_type || slot.day_of_week;
