@@ -52,6 +52,11 @@
       "type": "boolean",
       "title": "Submitted",
       "default": false
+    },
+    "locked_by_manager": {
+      "type": "boolean",
+      "title": "Locked by School Manager",
+      "default": false
     }
   },
   "required": [

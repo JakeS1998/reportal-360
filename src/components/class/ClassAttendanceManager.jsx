@@ -28,14 +28,16 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [meetsToday, setMeetsToday] = useState(false);
   const [state, setState] = useState(null); // null | { submitted: bool }
+  const [managerLocked, setManagerLocked] = useState({});
 
   const set = (id, status) => {
+    if (managerLocked[id]) return;
     setMarks((current) => ({ ...current, [id]: status }));
     if (status !== "excused") setExcuseDetails((current) => { const next = { ...current }; delete next[id]; return next; });
   };
   const markAll = (status) => {
-    setMarks(Object.fromEntries(students.map((s) => [s.student_id, status])));
-    if (status !== "excused") setExcuseDetails({});
+    setMarks((current) => Object.fromEntries(students.map((s) => [s.student_id, managerLocked[s.student_id] ? current[s.student_id] : status])));
+    if (status !== "excused") setExcuseDetails((current) => Object.fromEntries(Object.entries(current).filter(([id]) => managerLocked[id])));
   };
 
   // Determine whether this class is scheduled to meet today.
@@ -75,10 +77,12 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         students.forEach((s) => { if (!(s.student_id in m)) m[s.student_id] = "present"; });
         setMarks(m);
         setExcuseDetails(Object.fromEntries(recs.filter((r) => r.status === "excused").map((r) => [r.student_id, { reason: r.excused_reason || "", fileUrl: r.attachment_file_url || "", fileName: r.attachment_file_name || "" }])));
-        setState({ submitted: recs.every((r) => r.submitted) });
+        setManagerLocked(Object.fromEntries(recs.filter((r) => r.locked_by_manager).map((r) => [r.student_id, true])));
+        setState({ submitted: recs.length === students.length && recs.every((r) => r.submitted) });
       } else {
         setMarks(Object.fromEntries(students.map((s) => [s.student_id, "present"])));
         setExcuseDetails({});
+        setManagerLocked({});
         setState(null);
       }
     } catch (err) {
@@ -105,6 +109,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
           excused_reason: status === "excused" ? detail.reason || "" : "",
           attachment_file_url: status === "excused" ? upload?.file_url || detail.fileUrl || "" : "",
           attachment_file_name: status === "excused" ? detail.file?.name || detail.fileName || "" : "",
+          locked_by_manager: Boolean(managerLocked[student.student_id]),
         };
       };
       if (individual) {
@@ -218,9 +223,9 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
                   <button
                     key={st.key}
                     onClick={() => set(sa.student_id, st.key)}
-                    disabled={locked}
-                    title={st.label}
-                    className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg border transition-colors ${active ? st.active : INACTIVE} ${locked ? "cursor-not-allowed opacity-60 hover:bg-transparent" : ""}`}
+                    disabled={locked || managerLocked[sa.student_id]}
+                    title={managerLocked[sa.student_id] ? "Locked by school manager" : st.label}
+                    className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg border transition-colors ${active ? st.active : INACTIVE} ${locked || managerLocked[sa.student_id] ? "cursor-not-allowed opacity-60 hover:bg-transparent" : ""}`}
                   >
                     <st.icon className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">{st.label}</span>
@@ -228,7 +233,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
                 );
               })}
               </div>
-              {marks[sa.student_id] === "excused" && <ExcusedAbsenceFields detail={excuseDetails[sa.student_id]} disabled={locked} attendanceContext={{ classId, scheduleId, date, student_id: sa.student_id, user }} onChange={(detail) => setExcuseDetails((current) => ({ ...current, [sa.student_id]: detail }))} />}
+              {marks[sa.student_id] === "excused" && <ExcusedAbsenceFields detail={excuseDetails[sa.student_id]} disabled={locked || managerLocked[sa.student_id]} attendanceContext={{ classId, scheduleId, date, student_id: sa.student_id, user }} onChange={(detail) => setExcuseDetails((current) => ({ ...current, [sa.student_id]: detail }))} />}
             </div>
           </div>
         ))}
