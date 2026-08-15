@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, GraduationCap, CalendarCheck, Users, Sparkles,
   ClipboardList, BookOpen, Award, ChevronDown, FileText,
-  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck, Settings, KeyRound,
+  UserCog, BarChart3, Calendar, UserCheck, UserPlus, CalendarDays, Library, Home, Repeat, MessageSquare, ShieldCheck, Settings, KeyRound, Plus, X,
 } from "lucide-react";
 
 const CRIMSON = "#9E1B32";
@@ -17,6 +17,12 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
       return null;
     }
   });
+  const [quickLinks, setQuickLinks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("my-reportal-links")) || []; } catch { return []; }
+  });
+  const [quickLinkToAdd, setQuickLinkToAdd] = useState("");
+
+  useEffect(() => { localStorage.setItem("my-reportal-links", JSON.stringify(quickLinks)); }, [quickLinks]);
 
   useEffect(() => {
     if (openGroups) localStorage.setItem("sidebar-groups", JSON.stringify(openGroups));
@@ -91,6 +97,8 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
   }
 
   const groupItems = (group) => group.sections ? group.sections.flatMap((section) => section.items) : group.items;
+  const availablePages = navGroups.flatMap(groupItems);
+  const quickLinkPages = quickLinks.map((to) => availablePages.find((page) => page.to === to)).filter(Boolean);
 
   const isGroupOpen = (heading) =>
     openGroups === null ? true : !!openGroups[heading];
@@ -151,6 +159,51 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
 
   return (
     <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
+      <div>
+        <button
+          onClick={() => toggleGroup("My ReportAL")}
+          className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/45 hover:text-white/70 transition-colors"
+        >
+          <span className="inline-block w-3 h-px" style={{ backgroundColor: CRIMSON }} />
+          <span className="flex-1 text-left">My ReportAL</span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${isGroupOpen("My ReportAL") ? "" : "-rotate-90"}`} />
+        </button>
+        {isGroupOpen("My ReportAL") && (
+          <div className="space-y-1">
+            {quickLinkPages.map((page) => (
+              <div key={page.to} className="flex items-center gap-1">
+                <NavLink
+                  to={page.to}
+                  onClick={handleNavigate}
+                  className={({ isActive }) => `flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 pl-6 text-sm font-medium transition-colors ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"}`}
+                >
+                  <page.icon className="h-4 w-4 shrink-0" /> <span className="truncate">{page.label}</span>
+                </NavLink>
+                <button onClick={() => setQuickLinks((links) => links.filter((to) => to !== page.to))} className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" title={`Remove ${page.label}`}>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {quickLinks.length < 5 && (
+              <div className="flex gap-1 px-3 pt-1">
+                <select value={quickLinkToAdd} onChange={(event) => setQuickLinkToAdd(event.target.value)} className="min-w-0 flex-1 rounded bg-white/10 px-2 py-1.5 text-xs text-white outline-none">
+                  <option value="" className="text-slate-900">Add a page…</option>
+                  {availablePages.filter((page) => !quickLinks.includes(page.to)).map((page) => <option key={page.to} value={page.to} className="text-slate-900">{page.label}</option>)}
+                </select>
+                <button
+                  disabled={!quickLinkToAdd}
+                  onClick={() => { setQuickLinks((links) => [...links, quickLinkToAdd]); setQuickLinkToAdd(""); }}
+                  className="rounded bg-white/10 p-1.5 text-white hover:bg-white/20 disabled:opacity-40"
+                  title="Add quick link"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            {quickLinkPages.length === 0 && <p className="px-6 py-1 text-xs text-white/35">Add up to five pages for quick access.</p>}
+          </div>
+        )}
+      </div>
       {navGroups.map((group) => {
         const open = isGroupOpen(group.heading);
         return (
