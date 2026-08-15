@@ -1,0 +1,64 @@
+{
+  "name": "Syllabus",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "class_name": {
+      "type": "string",
+      "title": "Class Name"
+    },
+    "title": {
+      "type": "string",
+      "title": "Syllabus Title"
+    },
+    "course_description": {
+      "type": "string",
+      "title": "Course Description"
+    },
+    "learning_objectives": {
+      "type": "string",
+      "title": "Learning Objectives"
+    },
+    "topics_outline": {
+      "type": "string",
+      "title": "Topics and Outline"
+    },
+    "assessment_policy": {
+      "type": "string",
+      "title": "Assessment Policy"
+    },
+    "materials": {
+      "type": "string",
+      "title": "Required Materials"
+    },
+    "classroom_expectations": {
+      "type": "string",
+      "title": "Classroom Expectations"
+    },
+    "contact_information": {
+      "type": "string",
+      "title": "Teacher Contact Information"
+    },
+    "owner_id": {
+      "type": "string",
+      "title": "Author ID"
+    },
+    "owner_name": {
+      "type": "string",
+      "title": "Author Name"
+    }
+  },
+  "required": [
+    "school_code",
+    "class_id",
+    "title",
+    "owner_id"
+  ]
+}

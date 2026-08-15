@@ -54,6 +54,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
         { to: "/assignment-submissions", label: "My Assignments", icon: ClipboardList },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
+        { to: "/syllabuses", label: "Syllabuses", icon: FileText },
       ],
     },
     {

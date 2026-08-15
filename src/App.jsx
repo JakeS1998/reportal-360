@@ -50,6 +50,7 @@ import TeacherAssignmentSubmissions from './pages/TeacherAssignmentSubmissions';
 import ClassCover from './pages/ClassCover';
 import LessonPlans from './pages/LessonPlans';
 import LessonPlanReviews from './pages/LessonPlanReviews';
+import Syllabuses from './pages/Syllabuses';
 import Messages from './pages/Messages';
 import ParentConversations from './pages/ParentConversations';
 import AccountSettings from './pages/AccountSettings';
@@ -138,6 +139,7 @@ const AuthenticatedApp = () => {
         <Route path="/reports" element={<ReportBuilder />} />
         <Route path="/class-cover" element={<ClassCover />} />
         <Route path="/lesson-plans" element={<LessonPlans />} />
+        <Route path="/syllabuses" element={<Syllabuses />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/parent-conversations" element={<ParentConversations />} />
         <Route path="/settings" element={<AccountSettings />} />
