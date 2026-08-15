@@ -481,7 +481,10 @@ export default function ClassManagement() {
               return (availableRooms.length ? availableRooms : [""])
                 .filter((room) => patternSlots.every((patternSlot) => {
                   const patternDay = patternSlot.day_type || patternSlot.day_of_week;
-                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot) && (isOneOffEnrichment || gradeSlotFree(cls, patternDay, patternSlot));
+                  // Enrolled students are checked individually below. A grade-wide
+                  // reservation here was preventing their other morning subjects
+                  // from using a period occupied by a different class section.
+                  return teacherWorksOn(teacher, patternDay) && teacherFree(teacher.id, patternDay, patternSlot) && roomFree(room, patternDay, patternSlot) && (classStudentsForSchedule.size > 0 || isOneOffEnrichment || gradeSlotFree(cls, patternDay, patternSlot));
                 }))
                 .map((room) => ({ teacher, room }));
             });
