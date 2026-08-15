@@ -100,24 +100,9 @@ export default function ClassManagement() {
   const isElementaryClassroom = (cls) => isElementaryGrade(cls.grade_level) && (cls.subject === "Elementary Classroom" || isElementaryClassBlock(cls));
   const workingDaysFor = (teacher) => teacher?.working_days?.length ? teacher.working_days : SCHED_DAYS;
   const teacherWorksOn = (teacher, day) => workingDaysFor(teacher).includes(day);
-  const elementaryTeacherGroups = (gradeLevel) => {
-    const available = activeTeachers.filter((teacher) => canLeadHomeroom(teacher, gradeLevel));
-    const unused = new Map(available.map((teacher) => [teacher.id, teacher]));
-    const groups = [];
-    available.filter((teacher) => SCHED_DAYS.every((day) => teacherWorksOn(teacher, day))).forEach((teacher) => {
-      groups.push([teacher]);
-      unused.delete(teacher.id);
-    });
-    for (const teacher of [...unused.values()]) {
-      if (!unused.has(teacher.id)) continue;
-      const partner = [...unused.values()].find((candidate) => candidate.id !== teacher.id && SCHED_DAYS.every((day) => teacherWorksOn(teacher, day) || teacherWorksOn(candidate, day)));
-      if (!partner) continue;
-      groups.push([teacher, partner]);
-      unused.delete(teacher.id);
-      unused.delete(partner.id);
-    }
-    return groups;
-  };
+  const elementaryTeacherGroups = (gradeLevel) => activeTeachers
+    .filter((teacher) => canLeadHomeroom(teacher, gradeLevel) && SCHED_DAYS.every((day) => teacherWorksOn(teacher, day)))
+    .map((teacher) => [teacher]);
 
   const grades = useMemo(() => [...new Set(cm.classes.map((c) => c.grade_level).filter(Boolean))].sort(), [cm.classes]);
   const subjects = useMemo(() => [...new Set(cm.classes.map((c) => c.subject).filter(Boolean))].sort(), [cm.classes]);
@@ -615,6 +600,10 @@ export default function ClassManagement() {
         const classTimetable = { ...baseTimetable, scheduling_model: "traditional", school_days: SCHED_DAYS, cycle_day_types: [] };
         const primaryAssignment = cm.teacherAssignments.find((assignment) => assignment.class_id === cls.id && assignment.role === "Primary Teacher");
         let teacher = activeTeachers.find((record) => record.id === primaryAssignment?.teacher_id);
+        if (teacher && !SCHED_DAYS.every((day) => teacherWorksOn(teacher, day))) {
+          failed.push({ name: cls.class_name, reason: "Elementary classroom teachers must be available Monday through Friday." });
+          continue;
+        }
         if (!teacher) {
           teacher = activeTeachers
             .filter((record) => canLeadHomeroom(record, cls.grade_level))
