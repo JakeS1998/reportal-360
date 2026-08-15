@@ -229,10 +229,10 @@ export default function ClassManagement() {
     try {
       const ttRes = await base44.entities.SchoolTimetable.filter({ school_code: cm.schoolCode }, undefined, 5);
       const timetable = ttRes[0];
-      // Auto Schedule is a full rebuild: stale periods are removed before placing a
-      // conflict-free timetable, so prior overlaps cannot survive a new run.
-      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode, locked: { $ne: true } });
-      const existing = await base44.entities.ClassSchedule.filter({ school_code: cm.schoolCode, locked: true }, undefined, 500);
+      // Auto Schedule is a full rebuild. Retaining locked periods from a prior
+      // run left obsolete slots in place and caused both gaps and collisions.
+      await base44.entities.ClassSchedule.deleteMany({ school_code: cm.schoolCode });
+      const existing = [];
 
       // Each model generates the same schedule-slot structure. Periods are only
       // one way of creating slots; flexible models provide their own day/times.
@@ -420,11 +420,12 @@ export default function ClassManagement() {
         const isHomeroom = (cls.subject || "").toLowerCase() === "homeroom";
         const weeklySessions = Math.max(1, parseInt(cls.sessions_per_week, 10) || 1);
         const schoolDays = getSchoolDays(classTimetable);
-        const dailyPattern = classTimetable?.scheduling_model === "traditional" && weeklySessions >= schoolDays.length;
-        const dailyPatternCount = dailyPattern ? Math.floor(weeklySessions / schoolDays.length) : 0;
+        const isTraditionalSchedule = classTimetable?.scheduling_model === "traditional";
         const flexibleTarget = flexibleSessionTargets[`${cls.grade_level}|${(cls.subject || "").trim().toLowerCase()}`];
-        const target = classTimetable?.scheduling_model === "traditional"
-          ? (dailyPatternCount + (weeklySessions % schoolDays.length))
+        // Each traditional placement is a consistent same-time pattern: 5 sessions
+        // become one daily pattern, 9 becomes one 5-day and one 4-day pattern.
+        const target = isTraditionalSchedule
+          ? Math.ceil(weeklySessions / schoolDays.length)
           : Math.max(1, Math.min(modelSlots.length, flexibleTarget || weeklySessions));
         // Homeroom classes are scheduled into the fixed homeroom time block from
         // the school timetable (not the teaching slots, which exclude homeroom).
@@ -465,14 +466,15 @@ export default function ClassManagement() {
           for (const slot of classSlots) {
             const day = slot.day_type || slot.day_of_week;
             if (isHomeroom && usedDays.has(day)) continue;
-            const requiresDailyPattern = dailyPattern && i < dailyPatternCount;
-            // A daily core subject is placed as one linked set of matching periods.
-            // Remaining lower-frequency sessions use individual open periods.
-            const patternSlots = requiresDailyPattern
-              ? schoolDays.map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean)
-              : [slot];
-            if (requiresDailyPattern && (day !== schoolDays[0] || patternSlots.length !== schoolDays.length)) continue;
-            if (!requiresDailyPattern && !isHomeroom && usedDays.has(day) && usedDays.size < slotDays.length) continue;
+            const sessionsInPattern = isTraditionalSchedule ? Math.min(schoolDays.length, weeklySessions - i * schoolDays.length) : 1;
+            const dayIndex = schoolDays.indexOf(day);
+            // Try a consecutive run of days so every occurrence of this subject
+            // keeps the exact same time (for example Mon–Wed at Period 6).
+            const patternDays = isTraditionalSchedule
+              ? schoolDays.slice(dayIndex, dayIndex + sessionsInPattern)
+              : [day];
+            const patternSlots = patternDays.map((patternDay) => classSlots.find((candidate) => candidate.day_of_week === patternDay && candidate.start === slot.start && candidate.end === slot.end)).filter(Boolean);
+            if (isTraditionalSchedule && (dayIndex < 0 || patternSlots.length !== sessionsInPattern)) continue;
             const availablePairs = qualifiedTeachers.flatMap((teacher) => {
               const availableRooms = roomsForTeacher(teacher);
               return (availableRooms.length ? availableRooms : [""])
