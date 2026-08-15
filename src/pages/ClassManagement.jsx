@@ -415,7 +415,13 @@ export default function ClassManagement() {
       setAutoProgress({ current: 0, total: queue.length, label: queue.length ? queue[0].class_name : "" });
       for (let qi = 0; qi < queue.length; qi++) {
         const cls = queue[qi];
-        const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        const baseTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        const isElementarySpecialist = isElementaryGrade(cls.grade_level) && ["physical education", "music"].includes((cls.subject || "").trim().toLowerCase());
+        // Elementary specialists always use the same weekly school-day pattern,
+        // regardless of the scheduling model selected for older grades.
+        const classTimetable = isElementarySpecialist
+          ? { ...baseTimetable, scheduling_model: "traditional", school_days: SCHED_DAYS, cycle_day_types: [] }
+          : baseTimetable;
         const modelSlots = buildScheduleSlots(classTimetable);
         setAutoProgress({ current: qi + 1, total: queue.length, label: cls.class_name });
         // In a traditional timetable, only subjects taught every school day keep a
@@ -601,10 +607,18 @@ export default function ClassManagement() {
         });
       };
       for (const cls of elementaryBlocks) {
-        const classTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        const baseTimetable = ttRes.find((row) => row.scope === "grade" && row.grade_level === cls.grade_level) || timetable;
+        // Classroom teachers follow a stable Monday–Friday schedule in every model.
+        const classTimetable = { ...baseTimetable, scheduling_model: "traditional", school_days: SCHED_DAYS, cycle_day_types: [] };
         const primaryAssignment = cm.teacherAssignments.find((assignment) => assignment.class_id === cls.id && assignment.role === "Primary Teacher");
-        const teacher = activeTeachers.find((record) => record.id === primaryAssignment?.teacher_id);
-        if (!teacher) { failed.push({ name: cls.class_name, reason: "No primary classroom teacher assigned." }); continue; }
+        let teacher = activeTeachers.find((record) => record.id === primaryAssignment?.teacher_id);
+        if (!teacher) {
+          teacher = activeTeachers
+            .filter((record) => canLeadHomeroom(record, cls.grade_level))
+            .sort((a, b) => countFree(b.id) - countFree(a.id))[0];
+          if (!teacher) { failed.push({ name: cls.class_name, reason: "No classroom teacher is available for this grade." }); continue; }
+          await base44.entities.TeacherClass.create({ teacher_id: teacher.id, teacher_name: teacher.full_name || "", class_id: cls.id, role: "Primary Teacher", school_code: cm.schoolCode });
+        }
         const homeroomBlock = classTimetable?.school_start && classTimetable?.homeroom_end
           ? [{ start: toMin(classTimetable.school_start), end: toMin(classTimetable.homeroom_end), label: "Classroom", day_type: "", day_of_week: "" }]
           : [];
@@ -617,7 +631,7 @@ export default function ClassManagement() {
           if (elementarySpecialistOccupied(cls.id, day, slot)) continue;
           const createdSchedule = {
             class_id: cls.id, class_name: cls.class_name, school_code: cm.schoolCode, academic_year_id: cls.academic_year_id || "",
-            schedule_type: classTimetable?.scheduling_model || "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
+            schedule_type: "traditional", day_type: slot.day_type || "", period_label: slot.label || "",
             teacher_id: teacher.id, teacher_name: teacher.full_name || "", room: teacher.room || "",
             day_of_week: slot.day_of_week, start_time: mmToHHMM(slot.start), end_time: mmToHHMM(slot.end),
             recurrence_type: classTimetable?.scheduling_model === "rotating_block" ? "cycle" : recurrence, recurrence_weeks: recurrence === "biweekly" ? 2 : 1, start_date: new Date().toISOString().slice(0, 10), locked: false,
