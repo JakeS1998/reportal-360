@@ -2,6 +2,7 @@ import React from "react";
 import { useSchool } from "@/lib/SchoolContext";
 import FadeIn from "@/components/FadeIn";
 import SchoolUserManager from "@/components/SchoolUserManager";
+import AccountDeletionRequests from "@/components/AccountDeletionRequests";
 
 export default function StaffManagement() {
   const { user, systemSchools, school } = useSchool();
@@ -61,6 +62,7 @@ export default function StaffManagement() {
                 : null
           }
         />
+        {isManager && <AccountDeletionRequests callerCreds={callerCreds} />}
       </FadeIn>
     </div>
   );

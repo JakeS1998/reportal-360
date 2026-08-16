@@ -1,0 +1,55 @@
+{
+  "name": "AccountDeletionRequest",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "title": "Staff ID"
+    },
+    "staff_name": {
+      "type": "string",
+      "title": "Staff Name"
+    },
+    "username": {
+      "type": "string",
+      "title": "Username"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "status": {
+      "type": "string",
+      "title": "Request Status",
+      "enum": [
+        "pending",
+        "approved"
+      ],
+      "default": "pending"
+    },
+    "approved_by_id": {
+      "type": "string",
+      "title": "Approved By ID"
+    },
+    "approved_by_name": {
+      "type": "string",
+      "title": "Approved By"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Approved At"
+    }
+  },
+  "required": [
+    "staff_id",
+    "staff_name",
+    "school_code",
+    "system_code",
+    "status"
+  ]
+}
