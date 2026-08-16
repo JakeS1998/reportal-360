@@ -61,6 +61,7 @@ import SeatingPlan from './pages/SeatingPlan';
 import AssessmentWeights from './pages/AssessmentWeights';
 import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
 import AttendanceReview from './pages/AttendanceReview';
+import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -158,6 +159,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
+          <AppbuildPushRouter />
           <AuthenticatedApp />
         </Router>
         <Toaster />

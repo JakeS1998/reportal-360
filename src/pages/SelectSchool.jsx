@@ -11,6 +11,7 @@ import { completeLogin, setTempSession } from "@/lib/authFlow";
 import Logo from "@/components/Logo";
 import GoogleIcon from "@/components/GoogleIcon";
 import LoginVisualPanel from "@/components/login/LoginVisualPanel";
+import { registerAppbuildPush } from "@/hooks/useAppbuildWrapper";
 import { Image } from "@/components/ui/image";
 
 const SCENES = [
@@ -126,6 +127,7 @@ export default function SelectSchool() {
 
       // Normal login — fetch school data and enter dashboard
       await completeLogin(user);
+      await registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to log in");
@@ -154,6 +156,7 @@ export default function SelectSchool() {
         return;
       }
       await completeLogin(user);
+      await registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to verify");
@@ -200,6 +203,7 @@ export default function SelectSchool() {
       }
       const user = res.data.user;
       await completeLogin(user);
+      await registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to reactivate");

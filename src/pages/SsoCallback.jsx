@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { completeLogin } from "@/lib/authFlow";
+import { registerAppbuildPush } from "@/hooks/useAppbuildWrapper";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 export default function SsoCallback() {
@@ -51,7 +52,8 @@ export default function SsoCallback() {
           return;
         }
 
-        completeLogin(user).then(() => {
+        completeLogin(user).then(async () => {
+          await registerAppbuildPush();
           window.location.assign(user.role === "student" ? "/my-student" : "/overview");
         });
       })
