@@ -115,7 +115,7 @@ export default async function(req) {
       if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const directory = (await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key: params.school_key }, undefined, 1))[0];
       if (!directory) return Response.json({ success: false, error: "School not found" }, { status: 404 });
-      const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: directory.school_code }, "full_name", 500);
+      const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: directory.school_code }, "full_name", 5000);
       return Response.json({ success: true, staff: staff.filter((member) => member.system_code === directory.system_code && member.active !== false && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email || "")).map((member) => ({ id: member.id, full_name: member.full_name, email: member.email })) });
     }
 
