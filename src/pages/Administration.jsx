@@ -11,6 +11,7 @@ import {
 import SchoolUserManager from "@/components/SchoolUserManager";
 import PlatformAdminManager from "@/components/PlatformAdminManager";
 import SchoolAccessManager from "@/components/SchoolAccessManager";
+import NewSchoolDialog from "@/components/NewSchoolDialog";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -157,6 +158,7 @@ export default function Administration() {
               <Button onClick={() => runDiscovery("refresh", "manual")} disabled={running} variant="outline">
                 <RefreshCw className="w-4 h-4 mr-1" /> Refresh Master List
               </Button>
+              <NewSchoolDialog callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} onCreated={loadStats} />
               <Button onClick={() => exportData("csv")} variant="outline" disabled={running}>
                 <FileSpreadsheet className="w-4 h-4 mr-1" /> Export CSV
               </Button>

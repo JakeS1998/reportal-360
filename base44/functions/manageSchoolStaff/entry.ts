@@ -71,6 +71,21 @@ export default async function(req) {
       callerSchoolCode = caller.school_code;
     }
 
+    if (action === "create_school_directory") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const school_name = String(params.school_name || "").trim();
+      const system_code = String(params.system_code || "").trim();
+      const school_code = String(params.school_code || "").trim();
+      if (!school_name || !system_code || !school_code) return Response.json({ success: false, error: "School name, system code, and school code are required" }, { status: 400 });
+      const school_key = `${system_code}-${school_code}`;
+      const existing = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key }, undefined, 1);
+      if (existing.length) return Response.json({ success: false, error: "A school with this system and school code already exists" }, { status: 409 });
+      const now = new Date().toISOString();
+      await base44.asServiceRole.entities.SchoolDirectory.create({ school_key, system_code, school_code, school_name, active: true, status: "new", date_discovered: now, last_verified: now, last_updated: now });
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Created school directory entry ${school_name} (${school_key})`, school_code);
+      return Response.json({ success: true, school_key });
+    }
+
     // --- ADMIN SCHOOL ACCESS ---
     if (action === "list_school_access_options") {
       if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
