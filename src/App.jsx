@@ -62,6 +62,7 @@ import AssessmentWeights from './pages/AssessmentWeights';
 import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
 import AttendanceReview from './pages/AttendanceReview';
 import SchoolBranding from './pages/SchoolBranding';
+import DataAudit from './pages/DataAudit';
 import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
       <Route path="/admin" element={<Administration />} />
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route path="/admin/security" element={<SecurityDashboard />} />
+      <Route path="/admin/data-audit" element={<DataAudit />} />
       <Route path="/sso-callback" element={<SsoCallback />} />
       <Route element={<StudentPortalLayout />}>
         <Route path="/my-student" element={<StudentDashboard />} />

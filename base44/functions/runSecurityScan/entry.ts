@@ -34,6 +34,7 @@ export default async function(req) {
     }
 
     const teachers = await base44.asServiceRole.entities.Teacher.filter({}, "-created_date", 500);
+    const students = await base44.asServiceRole.entities.Student.filter({}, "-created_date", 500);
     const now = Date.now();
     const dormantCutoff = new Date(now - DORMANT_MS).toISOString();
     const findings = [];
@@ -114,6 +115,28 @@ export default async function(req) {
       accounts: inactive.map((t) => t.username),
     });
 
+    const missingEmergencyContacts = students.filter((student) => !student.emergency_contacts?.length);
+    findings.push({
+      id: "missing_emergency_contacts",
+      title: "Student records missing emergency contacts",
+      severity: missingEmergencyContacts.length > 0 ? "medium" : "pass",
+      status: missingEmergencyContacts.length > 0 ? "fail" : "pass",
+      count: missingEmergencyContacts.length,
+      description: missingEmergencyContacts.length > 0 ? `${missingEmergencyContacts.length} student record(s) do not have an emergency contact.` : "All student records include an emergency contact.",
+      recommendation: missingEmergencyContacts.length > 0 ? "Review the affected records and add an emergency contact where appropriate." : null,
+    });
+
+    const incompleteSupportPlans = students.filter((student) => (student.iep_on_file && !student.iep_details && !student.support_plans?.length) || (student.section_504_plan && !student.section_504_details && !student.section_504_document_url && !student.support_plans?.length));
+    findings.push({
+      id: "incomplete_support_plan_records",
+      title: "Support-plan indicators missing supporting information",
+      severity: incompleteSupportPlans.length > 0 ? "medium" : "pass",
+      status: incompleteSupportPlans.length > 0 ? "fail" : "pass",
+      count: incompleteSupportPlans.length,
+      description: incompleteSupportPlans.length > 0 ? `${incompleteSupportPlans.length} student record(s) indicate an IEP or 504 plan without supporting details or a plan document.` : "Support-plan indicators have supporting information.",
+      recommendation: incompleteSupportPlans.length > 0 ? "Confirm that plan information is recorded according to district policy." : null,
+    });
+
     // Control-verified pass findings (configuration checks)
     findings.push({
       id: "session_expiry",
@@ -148,7 +171,7 @@ export default async function(req) {
       "admin_action",
       callerName,
       "admin",
-      `Ran automated security scan — ${summary.failed} finding(s)`,
+      `Ran automated security and data audit — ${summary.failed} finding(s)`,
       undefined,
       { action_type: "security_scan" }
     );
