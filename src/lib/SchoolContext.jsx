@@ -114,6 +114,15 @@ export function SchoolProvider({ children }) {
   }, [user]);
 
   const switchSchool = () => {
+    if (user?.administrator_access) {
+      const adminSession = localStorage.getItem("adminAccessReturnSession");
+      if (adminSession) {
+        localStorage.setItem("userSession", adminSession);
+        localStorage.removeItem("adminAccessReturnSession");
+        navigate("/admin");
+        return;
+      }
+    }
     localStorage.removeItem("userSession");
     navigate("/login");
   };
