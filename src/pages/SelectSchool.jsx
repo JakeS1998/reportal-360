@@ -44,6 +44,11 @@ const SCENES = [
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/5a89930bf_generated_image.png", title: "USS Alabama", location: "Mobile, Alabama", fact: "The USS Alabama is a World War II battleship preserved at Battleship Memorial Park on Mobile Bay." },
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/d3fc6f772_generated_image.png", title: "Vulcan Park", location: "Birmingham, Alabama", fact: "Vulcan, the world's largest cast-iron statue, overlooks Birmingham from Red Mountain." },
   { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/b2007d41b_generated_image.png", title: "DeSoto Falls", location: "Fort Payne, Alabama", fact: "DeSoto Falls cascades over 100 feet into a dramatic Little River Canyon gorge near Fort Payne." },
+  { time: "morning", url: "https://images.unsplash.com/photo-1675737220508-6ddad0f837fd?auto=format&fit=crop&w=1920&q=80", title: "Auburn University", location: "Auburn, Alabama", fact: "Founded in 1856, Auburn University is one of Alabama's largest public universities." },
+  { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/79e0d87a1_generated_image.png", title: "University of Alabama", location: "Tuscaloosa, Alabama", fact: "The University of Alabama was founded in 1831 and is Alabama's oldest public university." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/22b5f45c2_generated_image.png", title: "UAB", location: "Birmingham, Alabama", fact: "UAB brings education, research, and health care together in the heart of Birmingham." },
+  { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/a93da0fec_generated_image.png", title: "UAH", location: "Huntsville, Alabama", fact: "UAH is a leading research university in Alabama's Rocket City." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/90bf764f3_generated_image.png", title: "Jacksonville State University", location: "Jacksonville, Alabama", fact: "Jacksonville State University has served northeast Alabama students since 1883." },
 ];
 
 function timeOfDay(h) {
