@@ -49,8 +49,8 @@ export default async function(req) {
       return Response.json({ success: true, staff: staff.map((person) => ({ id: person.id, full_name: person.full_name, role: person.role })) });
     }
     if (action === 'support_thread') {
-      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ school_code: schoolCode, sender_id: caller.id, type: 'alert' }, 'created_date', 200);
-      return Response.json({ success: true, messages: messages.filter((message) => message.thread_id?.startsWith('support:')) });
+      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ school_code: schoolCode }, 'created_date', 500);
+      return Response.json({ success: true, messages: messages.filter((message) => message.thread_id?.startsWith('support:') && (message.sender_id === caller.id || message.recipient_id === caller.id)) });
     }
     if (action === 'support_request') {
       if (!params.content?.trim()) return Response.json({ success: false, error: 'Describe the issue before sending your request' }, { status: 400 });
@@ -67,6 +67,43 @@ export default async function(req) {
       const messages = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, '-created_date', 5000);
       const requests = messages.filter((message) => message.thread_id?.startsWith('support:'));
       return Response.json({ success: true, requests });
+    }
+    if (action === 'support_request_detail') {
+      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
+      const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
+      if (!request || !request.thread_id?.startsWith('support:')) return Response.json({ success: false, error: 'Support request unavailable' }, { status: 404 });
+      const teacher = await base44.asServiceRole.entities.Teacher.get(request.sender_id);
+      if (!teacher) return Response.json({ success: false, error: 'Teacher unavailable' }, { status: 404 });
+      const schedule = await base44.asServiceRole.entities.ClassSchedule.filter({ school_code: request.school_code }, 'day_of_week', 5000);
+      const teacherKeys = [teacher.id, teacher.teacher_id].filter(Boolean);
+      return Response.json({ success: true, request, teacher: { id: teacher.id, full_name: teacher.full_name, email: teacher.email, school_code: teacher.school_code }, schedule: schedule.filter((slot) => teacherKeys.includes(slot.teacher_id)) });
+    }
+    if (action === 'support_reply') {
+      if (caller.role !== 'admin' || !params.content?.trim()) return Response.json({ success: false, error: 'Administrator access and a reply are required' }, { status: 400 });
+      const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
+      if (!request || !request.thread_id?.startsWith('support:')) return Response.json({ success: false, error: 'Support request unavailable' }, { status: 404 });
+      const message = await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: request.sender_name || 'Teacher', type: 'message', content: params.content.trim() });
+      return Response.json({ success: true, message });
+    }
+    if (action === 'teams_connection') {
+      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
+      await base44.asServiceRole.connectors.getCurrentAppUserConnection('6a83125885eb83c292ff707f');
+      return Response.json({ success: true });
+    }
+    if (action === 'create_support_meeting') {
+      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
+      const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
+      const startDateTime = new Date(params.start_at);
+      const endDateTime = new Date(params.end_at);
+      if (!request || !request.thread_id?.startsWith('support:') || Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime()) || endDateTime <= startDateTime) return Response.json({ success: false, error: 'Choose a valid support request and meeting time' }, { status: 400 });
+      const teacher = await base44.asServiceRole.entities.Teacher.get(request.sender_id);
+      if (!teacher?.email) return Response.json({ success: false, error: 'The teacher needs a school email address before a meeting can be created' }, { status: 400 });
+      const { accessToken } = await base44.asServiceRole.connectors.getCurrentAppUserConnection('6a83125885eb83c292ff707f');
+      const response = await fetch('https://graph.microsoft.com/v1.0/me/onlineMeetings', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ subject: `ReportAL 360 support: ${teacher.full_name}`, startDateTime: startDateTime.toISOString(), endDateTime: endDateTime.toISOString(), participants: { attendees: [{ upn: teacher.email, role: 'attendee' }] } }) });
+      const meeting = await response.json();
+      if (!response.ok) return Response.json({ success: false, error: meeting.error?.message || 'Microsoft Teams could not create the meeting' }, { status: 502 });
+      await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: teacher.full_name || 'Teacher', type: 'message', content: `A Microsoft Teams support call has been arranged for ${startDateTime.toLocaleString()}. Join here: ${meeting.joinWebUrl}` });
+      return Response.json({ success: true, meeting_url: meeting.joinWebUrl });
     }
     if (action === 'send') {
       const recipient = await base44.asServiceRole.entities.Teacher.get(params.recipient_id);
