@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function AthleteMonitoringTable({ rows }) {
-  if (!rows.length) return <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">No athletes have been assigned to teams yet.</p>;
+export default function AthleteMonitoringTable({ rows, isFiltered }) {
+  if (!rows.length) return <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">{isFiltered ? "No athletes match these filters." : "No athletes have been assigned to teams yet."}</p>;
   return <div className="overflow-hidden rounded-xl border border-slate-200"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-3">Athlete</th><th className="p-3">Team</th><th className="p-3">Academic average</th><th className="p-3">Attendance</th><th className="p-3">Eligibility check</th></tr></thead><tbody>{rows.map((row) => <tr key={`${row.student.id}-${row.team.id}`} className="border-t border-slate-100"><td className="p-3 font-medium text-slate-800">{row.student.student_name}<span className="block text-xs font-normal text-slate-500">{row.student.grade_level || "Grade not recorded"}</span></td><td className="p-3 text-slate-600">{row.team.name}</td><td className="p-3 text-slate-600">{row.average === null ? "No grades" : `${row.average}%`}</td><td className="p-3 text-slate-600">{row.attendance === null ? "No records" : `${row.attendance}%`}</td><td className="p-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${row.onTrack ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{row.onTrack ? "On track" : "Review needed"}</span></td></tr>)}</tbody></table></div>;
 }
