@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { logAudit, validatePasswordComplexity, getAdminCredentials, extractRequestInfo } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
+import { buildEmailHtml } from '../../shared/alabamaScenes.ts';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
 const authorizationWords = ["amber", "apple", "beacon", "birch", "bridge", "candle", "cedar", "cloud", "coral", "copper", "dawn", "ember", "fern", "garden", "harbor", "indigo", "juniper", "meadow", "maple", "moss", "north", "orchard", "paper", "pebble", "pine", "river", "robin", "sable", "silver", "sunrise", "thistle", "velvet", "willow"];
@@ -130,7 +131,7 @@ export default async function(req) {
       const challenge_id = crypto.randomUUID();
       const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
       await base44.asServiceRole.entities.SchoolAccessAuthorization.create({ challenge_id, requester_username: caller_username || caller?.username || "", school_code: school.school_code, system_code: school.system_code, school_name: school.school_name, reason: reason.trim(), authorizer_id: authorizer.id, authorizer_name: authorizer.full_name, authorizer_email: authorizer.email, otp_hash: await hashAuthorizationCode(authorizationCode), expires_at, status: "pending" });
-      const emailResponse = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>", to: authorizer.email, subject: "School access authorization request", html: `<p>An administrator has requested access to <strong>${school.school_name}</strong>.</p><p>Share this authorization code with them only if you approve the request:</p><p style="font-size:20px;font-weight:700;letter-spacing:1px">${authorizationCode}</p><p>Reason: ${reason.trim()}</p><p>This code expires in 10 minutes.</p>` }) });
+      const emailResponse = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>", to: authorizer.email, subject: "Your ReportAL 360 School Access Authorization Code", html: buildEmailHtml({ heading: "School Access Authorization", message: `An administrator has requested access to ${school.school_name}. Share this authorization code only if you approve the request.\n\nAccess reason: ${reason.trim()}`, code: authorizationCode, footerNote: "This authorization code expires in 10 minutes. Do not share it unless you approve this school access request." }) }) });
       if (!emailResponse.ok) return Response.json({ success: false, error: "Unable to email the authorization code" }, { status: 500 });
       return Response.json({ success: true, challenge_id });
     }
