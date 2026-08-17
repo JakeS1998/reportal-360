@@ -58,19 +58,53 @@ export default async function(req) {
       const tickets = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, 'created_date', 5000);
       const workload = administrators.reduce((counts, person) => ({ ...counts, [person.id]: tickets.filter((ticket) => ticket.thread_id?.startsWith('support:') && ticket.assigned_admin_id === person.id && !['resolved', 'closed'].includes(ticket.ticket_status)).length }), {});
       const assignee = administrators.length ? [...administrators].sort((a, b) => (workload[a.id] || 0) - (workload[b.id] || 0) || a.full_name.localeCompare(b.full_name))[0] : { id: 'admin', full_name: 'Administrator' };
-      const client = caller.system_code ? (await base44.asServiceRole.entities.Client.filter({ system_code: caller.system_code }, 'created_date', 1))[0] : null;
+      const school = (await base44.asServiceRole.entities.School.filter({ school_code: schoolCode }, 'created_date', 1))[0];
+      const systemCode = caller.system_code || school?.system_code || '';
+      const client = systemCode ? (await base44.asServiceRole.entities.Client.filter({ system_code: systemCode }, 'created_date', 1))[0] : null;
       const slaHours = client?.support_sla_hours || 24;
       const supportThreadId = `support:${caller.id}:${Date.now()}`;
       const currentPath = typeof params.current_path === 'string' ? params.current_path.slice(0, 500) : '';
-      const ticket = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: new Date().toISOString(), ticket_status: 'new', sla_due_at: new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(), type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath });
+      const ticket = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, system_code: systemCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: new Date().toISOString(), ticket_status: 'new', sla_due_at: new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(), type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath });
       return Response.json({ success: true, ticket });
     }
     if (action === 'support_inbox') {
       if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
       const messages = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, 'created_date', 5000);
-      const requests = messages.filter((message) => message.thread_id?.startsWith('support:'));
-      const administrators = (await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000)).filter((person) => person.role === 'admin').map((person) => ({ id: person.id, full_name: person.full_name, expertise: [person.department, person.subject, ...(person.subjects || [])].filter(Boolean).join(', ') || 'General support', workload: requests.filter((ticket) => ticket.assigned_admin_id === person.id && !['resolved', 'closed'].includes(ticket.ticket_status)).length }));
-      return Response.json({ success: true, requests, administrators });
+      const staff = await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000);
+      const schools = await base44.asServiceRole.entities.School.filter({}, 'created_date', 5000);
+      const clients = await base44.asServiceRole.entities.Client.filter({}, 'created_date', 5000);
+      const uniqueThreads = new Set();
+      const requests = messages.filter((message) => {
+        if (!message.thread_id?.startsWith('support:') || uniqueThreads.has(message.thread_id)) return false;
+        uniqueThreads.add(message.thread_id);
+        return true;
+      });
+      const administrators = staff.filter((person) => person.role === 'admin');
+      const workload = administrators.reduce((counts, person) => ({ ...counts, [person.id]: requests.filter((ticket) => ticket.assigned_admin_id === person.id && !['resolved', 'closed'].includes(ticket.ticket_status)).length }), {});
+      const updates = [];
+      const tickets = requests.map((ticket) => {
+        const sender = staff.find((person) => person.id === ticket.sender_id);
+        const school = schools.find((item) => item.school_code === ticket.school_code);
+        const systemCode = ticket.system_code || sender?.system_code || school?.system_code || '';
+        const client = clients.find((item) => item.system_code === systemCode);
+        const changes = { system_code: systemCode, ticket_status: ticket.ticket_status === 'open' || !ticket.ticket_status ? 'new' : ticket.ticket_status };
+        if (!ticket.assigned_admin_id && administrators.length) {
+          const assignee = [...administrators].sort((a, b) => (workload[a.id] || 0) - (workload[b.id] || 0) || a.full_name.localeCompare(b.full_name))[0];
+          changes.recipient_id = assignee.id;
+          changes.recipient_name = assignee.full_name || 'Administrator';
+          changes.assigned_admin_id = assignee.id;
+          changes.assigned_admin_name = assignee.full_name || 'Administrator';
+          changes.assigned_at = new Date().toISOString();
+          workload[assignee.id] = (workload[assignee.id] || 0) + 1;
+        }
+        if (!ticket.sla_due_at) changes.sla_due_at = new Date(new Date(ticket.created_date).getTime() + (client?.support_sla_hours || 24) * 60 * 60 * 1000).toISOString();
+        const changed = Object.keys(changes).some((key) => changes[key] !== ticket[key]);
+        if (changed) updates.push({ id: ticket.id, ...changes });
+        return { ...ticket, ...changes };
+      });
+      if (updates.length) await base44.asServiceRole.entities.StaffMessage.bulkUpdate(updates);
+      const administratorList = administrators.map((person) => ({ id: person.id, full_name: person.full_name, expertise: [person.department, person.subject, ...(person.subjects || [])].filter(Boolean).join(', ') || 'General support', workload: workload[person.id] || 0 }));
+      return Response.json({ success: true, requests: tickets, administrators: administratorList });
     }
     if (action === 'reassign_support_request') {
       if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });

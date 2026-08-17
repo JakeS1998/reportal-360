@@ -6,6 +6,10 @@
       "type": "string",
       "title": "School Code"
     },
+    "system_code": {
+      "type": "string",
+      "title": "School System Code"
+    },
     "thread_id": {
       "type": "string",
       "title": "Conversation Thread ID"
