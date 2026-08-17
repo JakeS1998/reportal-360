@@ -3,6 +3,17 @@ import { logAudit, validatePasswordComplexity, getAdminCredentials, extractReque
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
+const authorizationWords = ["amber", "apple", "beacon", "birch", "bridge", "candle", "cedar", "cloud", "coral", "copper", "dawn", "ember", "fern", "garden", "harbor", "indigo", "juniper", "meadow", "maple", "moss", "north", "orchard", "paper", "pebble", "pine", "river", "robin", "sable", "silver", "sunrise", "thistle", "velvet", "willow"];
+
+function generateAuthorizationCode() {
+  return Array.from({ length: 3 }, () => authorizationWords[Math.floor(Math.random() * authorizationWords.length)]).join(" ");
+}
+
+async function hashAuthorizationCode(code: string) {
+  const bytes = new TextEncoder().encode(code.trim().toLowerCase().replace(/\s+/g, " "));
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function generateRandomPassword(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
@@ -100,17 +111,43 @@ export default async function(req) {
       return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_key: school.school_key, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
     }
 
-    if (action === "access_school") {
+    if (action === "list_school_access_authorizers") {
       if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
-      const { school_key, reason } = params;
-      if (!school_key || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000) return Response.json({ success: false, error: "Provide an access reason between 10 and 1,000 characters" }, { status: 400 });
-      const directories = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key }, undefined, 1);
-      const school = directories[0];
-      if (!school || school.active === false || school.status === "closed") return Response.json({ success: false, error: "That school is not available for access" }, { status: 404 });
-      const { ip, userAgent } = extractRequestInfo(req);
-      await base44.asServiceRole.entities.AuditLog.create({ event_type: "admin_action", action_type: "admin_school_access", username: caller_username || caller?.username || "", user_role: "admin", school_code: school.school_code, system_code: school.system_code, ip_address: ip, user_agent: userAgent, success: true, details: `Administrator accessed ${school.school_name} as manager. Reason: ${reason.trim()}` });
-      return Response.json({ success: true, school: { school_code: school.school_code, system_code: school.system_code, school_name: school.school_name } });
+      const directory = (await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key: params.school_key }, undefined, 1))[0];
+      if (!directory) return Response.json({ success: false, error: "School not found" }, { status: 404 });
+      const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: directory.school_code }, "full_name", 500);
+      return Response.json({ success: true, staff: staff.filter((member) => member.system_code === directory.system_code && member.active !== false && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email || "")).map((member) => ({ id: member.id, full_name: member.full_name, email: member.email })) });
     }
+
+    if (action === "request_school_access_authorization") {
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const { school_key, reason, authorizer_id } = params;
+      if (!school_key || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000 || !authorizer_id) return Response.json({ success: false, error: "Select a staff member and provide an access reason between 10 and 1,000 characters" }, { status: 400 });
+      const school = (await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key }, undefined, 1))[0];
+      const authorizer = await base44.asServiceRole.entities.Teacher.get(authorizer_id);
+      if (!school || school.active === false || school.status === "closed" || !authorizer || authorizer.school_code !== school.school_code || authorizer.active === false || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authorizer.email || "")) return Response.json({ success: false, error: "Choose an active staff member with a valid school email address" }, { status: 400 });
+      const authorizationCode = generateAuthorizationCode();
+      const challenge_id = crypto.randomUUID();
+      const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      await base44.asServiceRole.entities.SchoolAccessAuthorization.create({ challenge_id, requester_username: caller_username || caller?.username || "", school_code: school.school_code, system_code: school.system_code, school_name: school.school_name, reason: reason.trim(), authorizer_id: authorizer.id, authorizer_name: authorizer.full_name, authorizer_email: authorizer.email, otp_hash: await hashAuthorizationCode(authorizationCode), expires_at, status: "pending" });
+      const emailResponse = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>", to: authorizer.email, subject: "School access authorization request", html: `<p>An administrator has requested access to <strong>${school.school_name}</strong>.</p><p>Share this authorization code with them only if you approve the request:</p><p style="font-size:20px;font-weight:700;letter-spacing:1px">${authorizationCode}</p><p>Reason: ${reason.trim()}</p><p>This code expires in 10 minutes.</p>` }) });
+      if (!emailResponse.ok) return Response.json({ success: false, error: "Unable to email the authorization code" }, { status: 500 });
+      return Response.json({ success: true, challenge_id });
+    }
+
+    if (action === "verify_school_access_authorization") {
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const authorization = (await base44.asServiceRole.entities.SchoolAccessAuthorization.filter({ challenge_id: params.challenge_id }, undefined, 1))[0];
+      if (!authorization || authorization.requester_username !== (caller_username || caller?.username || "") || authorization.status !== "pending") return Response.json({ success: false, error: "Authorization request is not available" }, { status: 400 });
+      if (new Date(authorization.expires_at).getTime() < Date.now()) { await base44.asServiceRole.entities.SchoolAccessAuthorization.update(authorization.id, { status: "expired" }); return Response.json({ success: false, error: "This authorization code has expired" }, { status: 400 }); }
+      if (await hashAuthorizationCode(String(params.authorization_code || "")) !== authorization.otp_hash) return Response.json({ success: false, error: "The authorization code does not match" }, { status: 400 });
+      await base44.asServiceRole.entities.SchoolAccessAuthorization.update(authorization.id, { status: "approved", verified_at: new Date().toISOString() });
+      const { ip, userAgent } = extractRequestInfo(req);
+      await base44.asServiceRole.entities.AuditLog.create({ event_type: "admin_action", action_type: "admin_school_access", username: caller_username || caller?.username || "", user_role: "admin", school_code: authorization.school_code, system_code: authorization.system_code, ip_address: ip, user_agent: userAgent, success: true, authorized_by_id: authorization.authorizer_id, authorized_by_name: authorization.authorizer_name, details: `Administrator accessed ${authorization.school_name} as manager. Authorized by ${authorization.authorizer_name}. Reason: ${authorization.reason}` });
+      return Response.json({ success: true, school: { school_code: authorization.school_code, system_code: authorization.system_code, school_name: authorization.school_name } });
+    }
+
+    if (action === "access_school") return Response.json({ success: false, error: "School staff authorization is required before access" }, { status: 400 });
 
     if (action === "update_platform_admin") {
       if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("admin_management"))) return Response.json({ success: false, error: "Administrator management permission required" }, { status: 403 });

@@ -73,6 +73,14 @@
       "type": "string",
       "title": "Report Name"
     },
+    "authorized_by_id": {
+      "type": "string",
+      "title": "Authorized By Staff ID"
+    },
+    "authorized_by_name": {
+      "type": "string",
+      "title": "Authorized By Staff Member"
+    },
     "details": {
       "type": "string",
       "title": "Details"

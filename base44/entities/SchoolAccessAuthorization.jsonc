@@ -1,0 +1,80 @@
+{
+  "name": "SchoolAccessAuthorization",
+  "type": "object",
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "title": "Authorization Challenge ID"
+    },
+    "requester_username": {
+      "type": "string",
+      "title": "Requesting Administrator"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "school_name": {
+      "type": "string",
+      "title": "School Name"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Access Reason"
+    },
+    "authorizer_id": {
+      "type": "string",
+      "title": "Authorizing Staff ID"
+    },
+    "authorizer_name": {
+      "type": "string",
+      "title": "Authorizing Staff Name"
+    },
+    "authorizer_email": {
+      "type": "string",
+      "format": "email",
+      "title": "Authorizing Staff Email"
+    },
+    "otp_hash": {
+      "type": "string",
+      "title": "Authorization Code Hash"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "expired"
+      ],
+      "default": "pending",
+      "title": "Status"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Verified At"
+    }
+  },
+  "required": [
+    "challenge_id",
+    "requester_username",
+    "school_code",
+    "system_code",
+    "reason",
+    "authorizer_id",
+    "authorizer_name",
+    "authorizer_email",
+    "otp_hash",
+    "expires_at",
+    "status"
+  ]
+}
