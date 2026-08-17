@@ -97,13 +97,22 @@
 }
 
 .login-background-motion {
-  display: block;
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden;
 }
 
 .login-background-motion img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover;
+  max-width: none !important;
+  object-fit: cover !important;
   animation: login-background-motion 24s ease-in-out infinite alternate;
   transform-origin: center;
   will-change: transform;
