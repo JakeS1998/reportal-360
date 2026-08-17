@@ -139,32 +139,21 @@ export default async function(req) {
       const message = await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: request.sender_name || 'Teacher', type: 'message', content: params.content.trim() });
       return Response.json({ success: true, message });
     }
-    if (action === 'outlook_connection') {
-      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
-      await base44.asServiceRole.connectors.getCurrentAppUserConnection('6a8315682b9286e588aab2e1');
-      return Response.json({ success: true });
-    }
-    if (action === 'create_support_meeting') {
+    if (action === 'add_support_call') {
       if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
       const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
-      const startDateTime = new Date(params.start_at);
-      const endDateTime = new Date(params.end_at);
-      if (!request || !request.thread_id?.startsWith('support:') || Number.isNaN(startDateTime.getTime()) || Number.isNaN(endDateTime.getTime()) || endDateTime <= startDateTime) return Response.json({ success: false, error: 'Choose a valid support request and meeting time' }, { status: 400 });
+      const startAt = typeof params.start_at === 'string' ? params.start_at : '';
+      const meetingUrl = typeof params.meeting_url === 'string' ? params.meeting_url.trim() : '';
+      if (!request?.thread_id?.startsWith('support:') || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startAt) || !/^https?:\/\//.test(meetingUrl)) return Response.json({ success: false, error: 'Choose a valid time and paste a valid Teams link' }, { status: 400 });
       const teacher = await base44.asServiceRole.entities.Teacher.get(request.sender_id);
-      if (!teacher?.email) return Response.json({ success: false, error: 'The teacher needs a school email address before a meeting can be created' }, { status: 400 });
-      const { accessToken } = await base44.asServiceRole.connectors.getCurrentAppUserConnection('6a8315682b9286e588aab2e1');
-      const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
-      const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName', { headers });
-      const profile = profileResponse.ok ? await profileResponse.json() : {};
-      const graphDate = (value) => value.toISOString().replace(/\.\d{3}Z$/, '');
-      const eventResponse = await fetch('https://graph.microsoft.com/v1.0/me/events', { method: 'POST', headers, body: JSON.stringify({ subject: `ReportAL 360 support: ${teacher.full_name}`, body: { contentType: 'HTML', content: `<p>Support session for ${teacher.full_name}.</p>` }, start: { dateTime: graphDate(startDateTime), timeZone: 'UTC' }, end: { dateTime: graphDate(endDateTime), timeZone: 'UTC' }, attendees: [{ emailAddress: { address: teacher.email, name: teacher.full_name }, type: 'required' }], isOnlineMeeting: true, onlineMeetingProvider: 'teamsForBusiness', transactionId: `support-${request.id}-${startDateTime.getTime()}` }) });
-      const event = await eventResponse.json();
-      if (!eventResponse.ok) return Response.json({ success: false, error: event.error?.message || 'Outlook could not create the calendar appointment' }, { status: 502 });
-      const meetingUrl = event.onlineMeeting?.joinUrl || event.webLink || '';
-      const dayOfWeek = startDateTime.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
-      await base44.asServiceRole.entities.ClassSchedule.create({ class_id: `support-${request.id}-${startDateTime.getTime()}`, class_name: 'ReportAL 360 Support Call', school_code: request.school_code, day_of_week: dayOfWeek, start_time: startDateTime.toISOString().slice(11, 16), end_time: endDateTime.toISOString().slice(11, 16), teacher_id: teacher.id, teacher_name: teacher.full_name || 'Teacher', recurrence_type: 'none', recurrence_weeks: 1, start_date: startDateTime.toISOString().slice(0, 10), locked: true });
-      if (profile.mail || profile.userPrincipalName) await fetch('https://graph.microsoft.com/v1.0/me/sendMail', { method: 'POST', headers, body: JSON.stringify({ message: { subject: `ReportAL 360 support appointment: ${teacher.full_name}`, body: { contentType: 'HTML', content: `<p>Your support appointment is booked for ${startDateTime.toLocaleString()}.</p><p><a href="${meetingUrl}">Open the calendar appointment</a></p>` }, toRecipients: [{ emailAddress: { address: profile.mail || profile.userPrincipalName } }] }, saveToSentItems: true }) });
-      await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: teacher.full_name || 'Teacher', type: 'message', content: `A support appointment has been added to your schedule for ${startDateTime.toLocaleString()}. Outlook has emailed you the invitation.${meetingUrl ? ` Join here: ${meetingUrl}` : ''}` });
+      if (!teacher) return Response.json({ success: false, error: 'Teacher unavailable' }, { status: 404 });
+      const [date, startTime] = startAt.split('T');
+      const startMinutes = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3, 5));
+      const endMinutes = startMinutes + 30;
+      const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+      const dayOfWeek = new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+      await base44.asServiceRole.entities.ClassSchedule.create({ class_id: `support-${request.id}-${Date.now()}`, class_name: 'ReportAL 360 Support Call', school_code: request.school_code, day_of_week: dayOfWeek, start_time: startTime, end_time: endTime, teacher_id: teacher.id, teacher_name: teacher.full_name || 'Teacher', meeting_url: meetingUrl, recurrence_type: 'none', recurrence_weeks: 1, start_date: date, locked: true });
+      await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: teacher.full_name || 'Teacher', type: 'message', content: `A Teams support call has been added to your schedule for ${date} at ${startTime}. Join here: ${meetingUrl}` });
       return Response.json({ success: true, meeting_url: meetingUrl });
     }
     if (action === 'send') {

@@ -59,6 +59,11 @@
       "type": "string",
       "title": "End Time"
     },
+    "meeting_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "Meeting Link"
+    },
     "recurrence_type": {
       "type": "string",
       "title": "Recurrence",
