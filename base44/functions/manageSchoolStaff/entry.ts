@@ -74,7 +74,7 @@ export default async function(req) {
     // --- ADMIN SCHOOL ACCESS ---
     if (action === "list_school_access_options") {
       if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
-      const schools = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 500);
+      const schools = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 5000);
       return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_key: school.school_key, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
     }
 
