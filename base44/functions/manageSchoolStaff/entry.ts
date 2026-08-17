@@ -75,14 +75,14 @@ export default async function(req) {
     if (action === "list_school_access_options") {
       if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const schools = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 500);
-      return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
+      return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_key: school.school_key, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
     }
 
     if (action === "access_school") {
       if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
-      const { school_code, reason } = params;
-      if (!school_code || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000) return Response.json({ success: false, error: "Provide an access reason between 10 and 1,000 characters" }, { status: 400 });
-      const directories = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_code }, undefined, 1);
+      const { school_key, reason } = params;
+      if (!school_key || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000) return Response.json({ success: false, error: "Provide an access reason between 10 and 1,000 characters" }, { status: 400 });
+      const directories = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key }, undefined, 1);
       const school = directories[0];
       if (!school || school.active === false || school.status === "closed") return Response.json({ success: false, error: "That school is not available for access" }, { status: 404 });
       const { ip, userAgent } = extractRequestInfo(req);
