@@ -76,7 +76,6 @@ export default function SelectSchool() {
   const [emailHint, setEmailHint] = useState("");
   const [emailFailed, setEmailFailed] = useState(false);
   const navigate = useNavigate();
-  const [scene, setScene] = useState(() => pickScene());
   const { greeting, greetingSub, periodLabel } = getGreeting();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
