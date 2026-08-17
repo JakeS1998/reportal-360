@@ -129,7 +129,7 @@ export default function DashboardNav({ collapsed, canManageStaff, isManager, men
 
   if (collapsed) {
     return (
-      <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
+      <nav className="dashboard-nav-scrollbar flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
         {navGroups.flatMap((group, gi) => [
           ...groupItems(group).map((n) => (
             <NavLink
@@ -160,7 +160,7 @@ export default function DashboardNav({ collapsed, canManageStaff, isManager, men
   }
 
   return (
-    <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
+    <nav className="dashboard-nav-scrollbar flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
       <div>
         <button
           onClick={() => toggleGroup("My ReportAL")}
