@@ -6,6 +6,10 @@
       "type": "string",
       "title": "School Code"
     },
+    "thread_id": {
+      "type": "string",
+      "title": "Conversation Thread ID"
+    },
     "sender_id": {
       "type": "string",
       "title": "Sender ID"

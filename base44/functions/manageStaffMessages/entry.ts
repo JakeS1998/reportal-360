@@ -19,6 +19,31 @@ export default async function(req) {
       const messages = await base44.asServiceRole.entities.StaffMessage.filter({ recipient_id: caller.id, school_code: schoolCode }, '-created_date', 200);
       return Response.json({ success: true, messages });
     }
+    if (action === 'threads') {
+      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ school_code: schoolCode, type: 'message' }, '-created_date', 500);
+      const relevant = messages.filter((message) => message.sender_id === caller.id || message.recipient_id === caller.id);
+      const seenPeople = new Set();
+      const threads = relevant.filter((message) => {
+        const personId = message.sender_id === caller.id ? message.recipient_id : message.sender_id;
+        if (seenPeople.has(personId)) return false;
+        seenPeople.add(personId);
+        return true;
+      }).map((message) => {
+        const personId = message.sender_id === caller.id ? message.recipient_id : message.sender_id;
+        const personName = message.sender_id === caller.id ? message.recipient_name : message.sender_name;
+        return { person_id: personId, person_name: personName, content: message.content, unread: relevant.filter((item) => item.sender_id === personId && item.recipient_id === caller.id && !item.read_at).length, created_date: message.created_date };
+      });
+      return Response.json({ success: true, threads });
+    }
+    if (action === 'thread') {
+      const recipient = await base44.asServiceRole.entities.Teacher.get(params.recipient_id);
+      if (!recipient || recipient.school_code !== schoolCode) return Response.json({ success: false, error: 'Conversation unavailable' }, { status: 404 });
+      const allMessages = await base44.asServiceRole.entities.StaffMessage.filter({ school_code: schoolCode, type: 'message' }, 'created_date', 500);
+      const messages = allMessages.filter((message) => (message.sender_id === caller.id && message.recipient_id === recipient.id) || (message.sender_id === recipient.id && message.recipient_id === caller.id));
+      const unread = messages.filter((message) => message.sender_id === recipient.id && message.recipient_id === caller.id && !message.read_at).map((message) => ({ id: message.id, read_at: new Date().toISOString() }));
+      if (unread.length) await base44.asServiceRole.entities.StaffMessage.bulkUpdate(unread);
+      return Response.json({ success: true, messages });
+    }
     if (action === 'staff') {
       const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: schoolCode, active: { $ne: false } }, 'full_name', 500);
       return Response.json({ success: true, staff: staff.map((person) => ({ id: person.id, full_name: person.full_name, role: person.role })) });
@@ -26,7 +51,8 @@ export default async function(req) {
     if (action === 'send') {
       const recipient = await base44.asServiceRole.entities.Teacher.get(params.recipient_id);
       if (!recipient || recipient.school_code !== schoolCode || !params.content?.trim()) return Response.json({ success: false, error: 'Choose a recipient and enter a message' }, { status: 400 });
-      const message = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, sender_id: credentials.id, sender_name: credentials.name, recipient_id: recipient.id, recipient_name: recipient.full_name || '', type: 'message', content: params.content.trim() });
+      const threadId = [credentials.id, recipient.id].sort().join(':');
+      const message = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, thread_id: threadId, sender_id: credentials.id, sender_name: credentials.name, recipient_id: recipient.id, recipient_name: recipient.full_name || '', type: 'message', content: params.content.trim() });
       return Response.json({ success: true, message });
     }
     if (action === 'alert') {
