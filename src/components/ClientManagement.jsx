@@ -1,0 +1,16 @@
+import React, { useEffect, useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import SectionCard from "@/components/SectionCard";
+import ClientForm from "@/components/ClientForm";
+import { BriefcaseBusiness, Plus, Pencil, Trash2 } from "lucide-react";
+
+export default function ClientManagement({ callerCreds }) {
+  const [clients, setClients] = useState([]), [editing, setEditing] = useState(null), [creating, setCreating] = useState(false), [loading, setLoading] = useState(true);
+  const loadClients = async () => { setLoading(true); const response = await base44.functions.invoke("manageSchoolStaff", { action: "list_clients", ...callerCreds }); setClients(response.data?.clients || []); setLoading(false); };
+  useEffect(() => { loadClients(); }, []);
+  const closeForm = () => { setEditing(null); setCreating(false); };
+  const remove = async (client) => { if (!window.confirm(`Remove ${client.system_name} as a client?`)) return; await base44.functions.invoke("manageSchoolStaff", { action: "delete_client", client_id: client.id, ...callerCreds }); loadClients(); };
+  const renewalLabel = (date) => date ? new Date(`${date}T00:00:00`).toLocaleDateString() : "No renewal date";
+  return <SectionCard title="Client Management" subtitle="Commercial terms, authorized contacts, renewal dates, and contracts" icon={BriefcaseBusiness} action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="mr-1 h-3.5 w-3.5" />Add client</Button>}>{(creating || editing) && <div className="mb-5"><ClientForm client={editing} callerCreds={callerCreds} onSaved={() => { closeForm(); loadClients(); }} onCancel={closeForm} /></div>}<div className="space-y-3">{loading ? <p className="text-sm text-slate-400">Loading clients…</p> : clients.length ? clients.map((client) => <div key={client.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-200 p-4"><div><div className="flex items-center gap-2"><p className="font-semibold text-slate-900">{client.system_name}</p><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold capitalize text-slate-600">{client.status}</span></div><p className="mt-1 text-xs text-slate-500">{client.system_code} · £{Number(client.annual_cost || 0).toLocaleString()} / {client.billing_frequency} · SLA {client.support_sla_hours || "—"}h</p><p className="mt-1 text-xs text-slate-500">Renewal: {renewalLabel(client.renewal_date)} · {client.authorized_contacts?.length || 0} authorised contacts · {client.contracts?.length || 0} contracts</p></div><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setEditing(client)}><Pencil className="h-3.5 w-3.5" /></Button><Button size="sm" variant="outline" onClick={() => remove(client)}><Trash2 className="h-3.5 w-3.5 text-rose-700" /></Button></div></div>) : <p className="text-sm text-slate-400">No school systems are set up as clients yet.</p>}</div></SectionCard>;
+}

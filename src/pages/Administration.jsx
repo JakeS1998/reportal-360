@@ -14,6 +14,7 @@ import SchoolAccessManager from "@/components/SchoolAccessManager";
 import NewSchoolDialog from "@/components/NewSchoolDialog";
 import SchoolAccessAuditDialog from "@/components/SchoolAccessAuditDialog";
 import SupportInbox from "@/components/SupportInbox";
+import ClientManagement from "@/components/ClientManagement";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -154,6 +155,10 @@ export default function Administration() {
 
         <FadeIn delay={80}>
           <SupportInbox callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
+        </FadeIn>
+
+        <FadeIn delay={85}>
+          <ClientManagement callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
         </FadeIn>
 
         <FadeIn delay={90}>

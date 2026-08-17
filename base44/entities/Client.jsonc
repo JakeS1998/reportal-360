@@ -1,0 +1,133 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "system_name": {
+      "type": "string",
+      "title": "School System Name"
+    },
+    "system_code": {
+      "type": "string",
+      "title": "System Code"
+    },
+    "status": {
+      "type": "string",
+      "title": "Client Status",
+      "enum": [
+        "prospect",
+        "active",
+        "at_risk",
+        "inactive"
+      ],
+      "default": "active"
+    },
+    "annual_cost": {
+      "type": "number",
+      "title": "Annual Contract Value"
+    },
+    "billing_frequency": {
+      "type": "string",
+      "title": "Billing Frequency",
+      "enum": [
+        "monthly",
+        "quarterly",
+        "annual"
+      ],
+      "default": "annual"
+    },
+    "support_sla_hours": {
+      "type": "number",
+      "title": "Support Response SLA (Hours)"
+    },
+    "renewal_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Renewal Date"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Account Notes"
+    },
+    "authorized_contacts": {
+      "type": "array",
+      "title": "Authorized Contacts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ]
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "title": "Contracts",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "title",
+          "file_url",
+          "file_name"
+        ]
+      }
+    }
+  },
+  "required": [
+    "system_name",
+    "system_code",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

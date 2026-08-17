@@ -195,6 +195,43 @@ export default async function(req) {
       return Response.json({ success: true, admin: { id: admin.id, full_name: admin.full_name, username: admin.username } });
     }
 
+    // --- CLIENT MANAGEMENT ---
+    if (action === "list_clients") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const clients = await base44.asServiceRole.entities.Client.list("system_name", 500);
+      return Response.json({ success: true, clients });
+    }
+
+    if (action === "save_client") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const { client_id, system_name, system_code, status, annual_cost, billing_frequency, support_sla_hours, renewal_date, notes, authorized_contacts, contracts } = params;
+      if (!String(system_name || "").trim() || !String(system_code || "").trim()) return Response.json({ success: false, error: "System name and system code are required" }, { status: 400 });
+      if (!['prospect', 'active', 'at_risk', 'inactive'].includes(status || 'active')) return Response.json({ success: false, error: "Choose a valid client status" }, { status: 400 });
+      const contacts = Array.isArray(authorized_contacts) ? authorized_contacts.filter((contact) => contact?.name?.trim() && contact?.email?.trim()).map((contact) => ({ name: contact.name.trim(), email: contact.email.trim(), role: String(contact.role || '').trim(), phone: String(contact.phone || '').trim() })) : [];
+      const clientData = { system_name: system_name.trim(), system_code: system_code.trim(), status, annual_cost: Number(annual_cost || 0), billing_frequency: billing_frequency || 'annual', support_sla_hours: Number(support_sla_hours || 0), renewal_date: renewal_date || null, notes: String(notes || '').trim(), authorized_contacts: contacts, contracts: Array.isArray(contracts) ? contracts : [] };
+      if (client_id) {
+        const existing = await base44.asServiceRole.entities.Client.get(client_id);
+        if (!existing) return Response.json({ success: false, error: "Client record not found" }, { status: 404 });
+        await base44.asServiceRole.entities.Client.update(client_id, clientData);
+        await logAudit(base44, "admin_action", caller_username || "", callerRole, `Updated client ${clientData.system_name}`, undefined);
+        return Response.json({ success: true });
+      }
+      const duplicate = await base44.asServiceRole.entities.Client.filter({ system_code: clientData.system_code }, undefined, 1);
+      if (duplicate.length) return Response.json({ success: false, error: "A client with this system code already exists" }, { status: 409 });
+      await base44.asServiceRole.entities.Client.create(clientData);
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Created client ${clientData.system_name}`, undefined);
+      return Response.json({ success: true });
+    }
+
+    if (action === "delete_client") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const client = await base44.asServiceRole.entities.Client.get(params.client_id);
+      if (!client) return Response.json({ success: false, error: "Client record not found" }, { status: 404 });
+      await base44.asServiceRole.entities.Client.delete(client.id);
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Deleted client ${client.system_name}`, undefined);
+      return Response.json({ success: true });
+    }
+
     // --- SELF SERVICE SETTINGS ---
     if (action === "update_self_settings") {
       if (!caller) return Response.json({ success: false, error: "Staff access required" }, { status: 403 });
