@@ -65,6 +65,11 @@ import DataAudit from './pages/DataAudit';
 import StudentSummary from './pages/StudentSummary';
 import Athletics from './pages/Athletics';
 import AthleteMonitoring from './pages/AthleteMonitoring';
+import AdminLayout from '@/components/AdminLayout';
+import AdminSupport from './pages/AdminSupport';
+import AdminClients from './pages/AdminClients';
+import AdminAccess from './pages/AdminAccess';
+import AdminUsers from './pages/AdminUsers';
 import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
@@ -101,7 +106,14 @@ const AuthenticatedApp = () => {
       <Route path="/security" element={<SecurityPrivacy />} />
       <Route path="/login" element={<SelectSchool />} />
       <Route path="/reset-password" element={<ForceResetPassword />} />
-      <Route path="/admin" element={<Administration />} />
+      <Route element={<AdminLayout />}>
+        <Route path="/admin" element={<Administration />} />
+        <Route path="/admin/support" element={<AdminSupport />} />
+        <Route path="/admin/clients" element={<AdminClients />} />
+        <Route path="/admin/access" element={<AdminAccess />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/discovery" element={<Administration />} />
+      </Route>
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route path="/admin/security" element={<SecurityDashboard />} />
       <Route path="/admin/data-audit" element={<DataAudit />} />

@@ -47,6 +47,34 @@
       "type": "string",
       "title": "Reported Screen Path"
     },
+    "assigned_admin_id": {
+      "type": "string",
+      "title": "Assigned Administrator ID"
+    },
+    "assigned_admin_name": {
+      "type": "string",
+      "title": "Assigned Administrator"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Assigned At"
+    },
+    "ticket_status": {
+      "type": "string",
+      "title": "Support Ticket Status",
+      "enum": [
+        "open",
+        "in_progress",
+        "resolved"
+      ],
+      "default": "open"
+    },
+    "sla_due_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "SLA Due At"
+    },
     "read_at": {
       "type": "string",
       "format": "date-time",

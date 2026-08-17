@@ -153,14 +153,6 @@ export default function Administration() {
           <div className="space-y-3"><SchoolAccessManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} adminUser={session.user} /><SchoolAccessAuditDialog callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} /></div>
         </FadeIn>
 
-        <FadeIn delay={80}>
-          <SupportInbox callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
-        </FadeIn>
-
-        <FadeIn delay={85}>
-          <ClientManagement callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
-        </FadeIn>
-
         <FadeIn delay={90}>
           <SectionCard title="Discovery Controls" subtitle="Retrieve and maintain the master school list" icon={Search}>
             <div className="flex flex-wrap gap-3">
@@ -251,30 +243,6 @@ export default function Administration() {
           </FadeIn>
         </div>
 
-        <FadeIn delay={240}>
-          <PlatformAdminManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
-        </FadeIn>
-
-        <FadeIn delay={260}>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Users className="w-4 h-4 text-slate-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">User Management</h3>
-                <p className="text-xs text-slate-500">Search any school and create area, system commissioner, manager, or teacher accounts</p>
-              </div>
-            </div>
-            <div className="mt-5">
-              <SchoolUserManager
-                callerCreds={{ caller_username: "BRGAdmin", caller_password: "BRGAdmin" }}
-                mode="search"
-                roles={["area", "commissioner", "manager", "teacher"]}
-              />
-            </div>
-          </div>
-        </FadeIn>
       </main>
     </div>
   );

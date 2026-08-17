@@ -54,19 +54,31 @@ export default async function(req) {
     }
     if (action === 'support_request') {
       if (!params.content?.trim()) return Response.json({ success: false, error: 'Describe the issue before sending your request' }, { status: 400 });
-      const administrators = await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000);
-      const recipients = administrators.filter((person) => person.role === 'admin');
-      const recipientsToNotify = recipients.length ? recipients : [{ id: 'admin', full_name: 'Administrator' }];
+      const administrators = (await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000)).filter((person) => person.role === 'admin');
+      const tickets = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, 'created_date', 5000);
+      const workload = administrators.reduce((counts, person) => ({ ...counts, [person.id]: tickets.filter((ticket) => ticket.thread_id?.startsWith('support:') && ticket.assigned_admin_id === person.id && ticket.ticket_status !== 'resolved').length }), {});
+      const assignee = administrators.length ? [...administrators].sort((a, b) => (workload[a.id] || 0) - (workload[b.id] || 0) || a.full_name.localeCompare(b.full_name))[0] : { id: 'admin', full_name: 'Administrator' };
+      const client = caller.system_code ? (await base44.asServiceRole.entities.Client.filter({ system_code: caller.system_code }, 'created_date', 1))[0] : null;
+      const slaHours = client?.support_sla_hours || 24;
       const supportThreadId = `support:${caller.id}:${Date.now()}`;
       const currentPath = typeof params.current_path === 'string' ? params.current_path.slice(0, 500) : '';
-      const messages = await base44.asServiceRole.entities.StaffMessage.bulkCreate(recipientsToNotify.map((person) => ({ school_code: schoolCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: person.id, recipient_name: person.full_name || 'Administrator', type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath })));
-      return Response.json({ success: true, messages });
+      const ticket = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: new Date().toISOString(), ticket_status: 'open', sla_due_at: new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(), type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath });
+      return Response.json({ success: true, ticket });
     }
     if (action === 'support_inbox') {
       if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
-      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, '-created_date', 5000);
+      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, 'created_date', 5000);
       const requests = messages.filter((message) => message.thread_id?.startsWith('support:'));
-      return Response.json({ success: true, requests });
+      const administrators = (await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000)).filter((person) => person.role === 'admin').map((person) => ({ id: person.id, full_name: person.full_name, expertise: [person.department, person.subject, ...(person.subjects || [])].filter(Boolean).join(', ') || 'General support', workload: requests.filter((ticket) => ticket.assigned_admin_id === person.id && ticket.ticket_status !== 'resolved').length }));
+      return Response.json({ success: true, requests, administrators });
+    }
+    if (action === 'reassign_support_request') {
+      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
+      const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
+      const assignee = await base44.asServiceRole.entities.Teacher.get(params.admin_id);
+      if (!request?.thread_id?.startsWith('support:') || assignee?.role !== 'admin' || assignee.active === false) return Response.json({ success: false, error: 'Choose an active administrator for this support ticket' }, { status: 400 });
+      await base44.asServiceRole.entities.StaffMessage.update(request.id, { recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: new Date().toISOString(), ticket_status: 'open' });
+      return Response.json({ success: true });
     }
     if (action === 'support_request_detail') {
       if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
