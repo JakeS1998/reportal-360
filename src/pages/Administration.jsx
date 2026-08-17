@@ -11,6 +11,7 @@ import {
 import AccessCodeManager from "@/components/AccessCodeManager";
 import SchoolUserManager from "@/components/SchoolUserManager";
 import PlatformAdminManager from "@/components/PlatformAdminManager";
+import SchoolAccessManager from "@/components/SchoolAccessManager";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -145,6 +146,10 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={60}>
+          <SchoolAccessManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} adminUser={session.user} />
+        </FadeIn>
+
+        <FadeIn delay={80}>
           <SectionCard title="Discovery Controls" subtitle="Retrieve and maintain the master school list" icon={Search}>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => runDiscovery("full", "manual")} disabled={running} className="bg-[#1D4ED8] hover:bg-[#1e40af]">

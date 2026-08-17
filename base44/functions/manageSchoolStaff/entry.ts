@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { logAudit, validatePasswordComplexity, getAdminCredentials } from '../../shared/security.ts';
+import { logAudit, validatePasswordComplexity, getAdminCredentials, extractRequestInfo } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
@@ -69,6 +69,25 @@ export default async function(req) {
       callerRole = caller.role;
       callerSystemCode = caller.system_code;
       callerSchoolCode = caller.school_code;
+    }
+
+    // --- ADMIN SCHOOL ACCESS ---
+    if (action === "list_school_access_options") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const schools = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 500);
+      return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
+    }
+
+    if (action === "access_school") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const { school_code, reason } = params;
+      if (!school_code || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000) return Response.json({ success: false, error: "Provide an access reason between 10 and 1,000 characters" }, { status: 400 });
+      const directories = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_code }, undefined, 1);
+      const school = directories[0];
+      if (!school || school.active === false || school.status === "closed") return Response.json({ success: false, error: "That school is not available for access" }, { status: 404 });
+      const { ip, userAgent } = extractRequestInfo(req);
+      await base44.asServiceRole.entities.AuditLog.create({ event_type: "admin_action", action_type: "admin_school_access", username: caller_username || caller?.username || "", user_role: "admin", school_code: school.school_code, system_code: school.system_code, ip_address: ip, user_agent: userAgent, success: true, details: `Administrator accessed ${school.school_name} as manager. Reason: ${reason.trim()}` });
+      return Response.json({ success: true, school: { school_code: school.school_code, system_code: school.system_code, school_name: school.school_name } });
     }
 
     // --- PLATFORM ADMINISTRATION ---
