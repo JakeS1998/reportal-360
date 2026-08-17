@@ -13,6 +13,7 @@ import PlatformAdminManager from "@/components/PlatformAdminManager";
 import SchoolAccessManager from "@/components/SchoolAccessManager";
 import NewSchoolDialog from "@/components/NewSchoolDialog";
 import SchoolAccessAuditDialog from "@/components/SchoolAccessAuditDialog";
+import SupportInbox from "@/components/SupportInbox";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -152,6 +153,10 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={80}>
+          <SupportInbox callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
+        </FadeIn>
+
+        <FadeIn delay={90}>
           <SectionCard title="Discovery Controls" subtitle="Retrieve and maintain the master school list" icon={Search}>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => runDiscovery("full", "manual")} disabled={running} className="bg-[#1D4ED8] hover:bg-[#1e40af]">
@@ -175,7 +180,7 @@ export default function Administration() {
         </FadeIn>
 
         {(progress.length > 0 || running) && (
-          <FadeIn delay={90}>
+          <FadeIn delay={100}>
             <SectionCard title="Progress" subtitle="Live discovery activity" icon={Activity}>
               <div className="bg-slate-900 rounded-xl p-4 font-mono text-xs text-slate-300 max-h-72 overflow-auto">
                 {progress.map((l, i) => (

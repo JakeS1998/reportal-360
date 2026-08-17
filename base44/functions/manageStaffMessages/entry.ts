@@ -48,6 +48,26 @@ export default async function(req) {
       const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: schoolCode, active: { $ne: false } }, 'full_name', 500);
       return Response.json({ success: true, staff: staff.map((person) => ({ id: person.id, full_name: person.full_name, role: person.role })) });
     }
+    if (action === 'support_thread') {
+      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ school_code: schoolCode, sender_id: caller.id, type: 'alert' }, 'created_date', 200);
+      return Response.json({ success: true, messages: messages.filter((message) => message.thread_id?.startsWith('support:')) });
+    }
+    if (action === 'support_request') {
+      if (!params.content?.trim()) return Response.json({ success: false, error: 'Describe the issue before sending your request' }, { status: 400 });
+      const administrators = await base44.asServiceRole.entities.Teacher.filter({ active: { $ne: false } }, 'full_name', 5000);
+      const recipients = administrators.filter((person) => person.role === 'admin');
+      const recipientsToNotify = recipients.length ? recipients : [{ id: 'admin', full_name: 'Administrator' }];
+      const supportThreadId = `support:${caller.id}:${Date.now()}`;
+      const currentPath = typeof params.current_path === 'string' ? params.current_path.slice(0, 500) : '';
+      const messages = await base44.asServiceRole.entities.StaffMessage.bulkCreate(recipientsToNotify.map((person) => ({ school_code: schoolCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: person.id, recipient_name: person.full_name || 'Administrator', type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath })));
+      return Response.json({ success: true, messages });
+    }
+    if (action === 'support_inbox') {
+      if (caller.role !== 'admin') return Response.json({ success: false, error: 'Administrator access required' }, { status: 403 });
+      const messages = await base44.asServiceRole.entities.StaffMessage.filter({ type: 'alert' }, '-created_date', 5000);
+      const requests = messages.filter((message) => message.thread_id?.startsWith('support:'));
+      return Response.json({ success: true, requests });
+    }
     if (action === 'send') {
       const recipient = await base44.asServiceRole.entities.Teacher.get(params.recipient_id);
       if (!recipient || recipient.school_code !== schoolCode || !params.content?.trim()) return Response.json({ success: false, error: 'Choose a recipient and enter a message' }, { status: 400 });

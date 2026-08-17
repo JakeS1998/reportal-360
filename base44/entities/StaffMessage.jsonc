@@ -43,6 +43,10 @@
       "type": "string",
       "title": "Message"
     },
+    "current_path": {
+      "type": "string",
+      "title": "Reported Screen Path"
+    },
     "read_at": {
       "type": "string",
       "format": "date-time",
