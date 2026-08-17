@@ -48,7 +48,7 @@ const SCENES = [
   { time: "morning", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/79e0d87a1_generated_image.png", title: "University of Alabama", location: "Tuscaloosa, Alabama", fact: "The University of Alabama was founded in 1831 and is Alabama's oldest public university." },
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/b37d25fa0_image.png", title: "UAB", location: "Birmingham, Alabama", fact: "UAB brings education, research, and health care together in the heart of Birmingham." },
   { time: "afternoon", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/ea16271d5_image.png", title: "UAH", location: "Huntsville, Alabama", fact: "UAH is a leading research university in Alabama's Rocket City." },
-  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/90bf764f3_generated_image.png", title: "Jacksonville State University", location: "Jacksonville, Alabama", fact: "Jacksonville State University has served northeast Alabama students since 1883." },
+  { time: "evening", url: "https://media.base44.com/images/public/6a71ff59da728c2aa6a0d50b/adb852887_image.png", title: "Jacksonville State University", location: "Jacksonville, Alabama", fact: "Jacksonville State University has served northeast Alabama students since 1883." },
 ];
 
 function timeOfDay(h) {
