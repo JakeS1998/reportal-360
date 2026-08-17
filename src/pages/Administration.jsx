@@ -131,7 +131,7 @@ export default function Administration() {
           {canAudit ? <Button variant="outline" onClick={() => navigate("/admin/data-audit")}>Data Audit</Button> : null}
           <Button variant="outline" onClick={() => navigate("/admin/ferpa")}>FERPA Compliance</Button>
           <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
-          <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>
+          <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/login"); }}>
             <LogOut className="w-4 h-4 mr-1" /> Sign Out
           </Button>
         </div>
