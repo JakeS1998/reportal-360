@@ -13,6 +13,7 @@ import StudentProfileEditDialog from "@/components/student/StudentProfileEditDia
 import StudentContactDialog from "@/components/student/StudentContactDialog";
 import StudentSupportMarkers from "@/components/student/StudentSupportMarkers";
 import StudentSupportPlans from "@/components/student/StudentSupportPlans";
+import StudentClassFocus from "@/components/student/StudentClassFocus";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip, FileText } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -58,11 +59,11 @@ export default function StudentProfile() {
           student_id: studentId,
         });
         if (!res.data?.success) { setLoading(false); return; }
-        const { student, classes, schedules = [], attendance, attainment, behaviour } = res.data;
+        const { student, classes, schedules = [], attendance, attainment, behaviour, teacher_assignments = [] } = res.data;
         const present = attendance.filter((a) => a.status === "present").length;
         const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : null;
         const avgScore = attainment.length > 0 ? Math.round(attainment.reduce((s, a) => s + (a.score / (a.max_score || 100)) * 100, 0) / attainment.length) : null;
-        setData({ student, classes, schedules, attendance, attainment, behaviour, attendanceRate, avgScore });
+        setData({ student, classes, schedules, attendance, attainment, behaviour, teacherAssignments: teacher_assignments, attendanceRate, avgScore });
       } catch (err) {
         console.error(err);
       } finally {
@@ -79,11 +80,11 @@ export default function StudentProfile() {
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
   if (!data) return <p className="text-sm text-slate-400 text-center py-16">Student not found.</p>;
 
-  const { student: s, classes, schedules = [], attendance, attainment, behaviour, attendanceRate, avgScore } = data;
+  const { student: s, classes, schedules = [], attendance, attainment, behaviour, teacherAssignments = [], attendanceRate, avgScore } = data;
 
   return (
     <div className="space-y-6">
-      <button onClick={() => navigate(location.state?.fromClassId ? `/classes/${location.state.fromClassId}` : "/students")} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
+      <button onClick={() => navigate(location.state?.from || (location.state?.fromClassId ? `/classes/${location.state.fromClassId}` : "/students"))} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
@@ -169,6 +170,8 @@ export default function StudentProfile() {
           </div>
         )}
       </SectionCard>
+
+      <StudentClassFocus classes={classes} attendance={attendance} attainment={attainment} teacherAssignments={teacherAssignments} schoolCode={s.school_code} user={user} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SectionCard title="Attendance History" icon={Calendar}>

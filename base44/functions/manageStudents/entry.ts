@@ -290,11 +290,11 @@ export default async function(req) {
         let classes = allClasses.filter((c) => studentClassIds.has(c.id));
         await logStudentAccess(base44, "view_student", { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode }, student_id, req);
         if (isHomeroomTeacher) {
-          return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, attendance, attainment, behaviour, interventions });
+          return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, teacher_assignments: tcRes.filter((item) => studentClassIds.has(item.class_id)), attendance, attainment, behaviour, interventions });
         }
         classes = classes.filter((c) => myClassIds.has(c.id));
         return Response.json({
-          success: true, student: sanitizeStudent(student), classes, classAssignments,
+          success: true, student: sanitizeStudent(student), classes, classAssignments, teacher_assignments: tcRes.filter((item) => myClassIds.has(item.class_id)),
           attendance: attendance.filter((a) => myClassIds.has(a.class_id)),
           attainment: attainment.filter((a) => myClassIds.has(a.class_id)),
           behaviour: behaviour.filter((b) => myClassIds.has(b.class_id)),
@@ -318,6 +318,7 @@ export default async function(req) {
         );
         classes = allClasses.filter((c) => classIds.includes(c.id));
       }
+      const teacherAssignments = classIds.length ? (await base44.asServiceRole.entities.TeacherClass.filter({ school_code: student.school_code }, undefined, 500)).filter((item) => classIds.includes(item.class_id)) : [];
       const schedules = (await Promise.all(
         classIds.map((classId) => base44.asServiceRole.entities.ClassSchedule.filter({ class_id: classId }, undefined, 100))
       )).flat();
@@ -326,7 +327,7 @@ export default async function(req) {
         { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode },
         student_id, req
       );
-      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, schedules, attendance, attainment, behaviour, interventions });
+      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, teacher_assignments: teacherAssignments, schedules, attendance, attainment, behaviour, interventions });
     }
 
     // --- SAVE INTERVENTION ---
