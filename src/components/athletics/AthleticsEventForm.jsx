@@ -1,0 +1,11 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export default function AthleticsEventForm({ schoolCode, teams, onCreated }) {
+  const [form, setForm] = useState({ team_id: "", title: "", opponent: "", location: "", event_date: "", start_time: "", end_time: "", out_of_class_start: "", out_of_class_end: "" });
+  const [saving, setSaving] = useState(false);
+  const submit = async (e) => { e.preventDefault(); const team = teams.find((item) => item.id === form.team_id); if (!team) return; setSaving(true); const event = await base44.entities.AthleticsEvent.create({ ...form, school_code: schoolCode, team_name: team.name, status: "scheduled" }); setForm({ team_id: "", title: "", opponent: "", location: "", event_date: "", start_time: "", end_time: "", out_of_class_start: "", out_of_class_end: "" }); setSaving(false); onCreated(event); };
+  return <form onSubmit={submit} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4"><select required value={form.team_id} onChange={(e) => setForm({ ...form, team_id: e.target.value })} className="h-9 rounded-md border border-input bg-white px-3 text-sm"><option value="">Choose team</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><Input required placeholder="Event or fixture" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /><Input placeholder="Opponent" value={form.opponent} onChange={(e) => setForm({ ...form, opponent: e.target.value })} /><Input placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /><Input required type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /><Input required type="time" aria-label="Out of class start" value={form.out_of_class_start} onChange={(e) => setForm({ ...form, out_of_class_start: e.target.value })} /><Input required type="time" aria-label="Out of class end" value={form.out_of_class_end} onChange={(e) => setForm({ ...form, out_of_class_end: e.target.value })} /><Button disabled={saving || !teams.length}>{saving ? "Scheduling..." : "Schedule event"}</Button></form>;
+}

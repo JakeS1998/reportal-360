@@ -1,0 +1,7 @@
+import React from "react";
+
+export default function AthleticsAbsenceList({ events, members }) {
+  const upcoming = events.filter((event) => event.status === "scheduled" && event.event_date >= new Date().toISOString().slice(0, 10)).sort((a, b) => `${a.event_date}${a.out_of_class_start}`.localeCompare(`${b.event_date}${b.out_of_class_start}`));
+  if (!upcoming.length) return <p className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">No upcoming out-of-class athletics events.</p>;
+  return <div className="overflow-hidden rounded-xl border border-slate-200"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-3">Date & time</th><th className="p-3">Team / event</th><th className="p-3">Students out of class</th></tr></thead><tbody>{upcoming.map((event) => <tr key={event.id} className="border-t border-slate-100 align-top"><td className="p-3 text-slate-600">{event.event_date}<br /><span className="text-xs">{event.out_of_class_start}–{event.out_of_class_end}</span></td><td className="p-3 font-medium text-slate-800">{event.team_name}<br /><span className="text-xs font-normal text-slate-500">{event.title}{event.opponent ? ` · ${event.opponent}` : ""}</span></td><td className="p-3 text-slate-600">{members.filter((member) => member.team_id === event.team_id).map((member) => member.student_name).join(", ") || "No roster assigned"}</td></tr>)}</tbody></table></div>;
+}

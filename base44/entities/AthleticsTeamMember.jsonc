@@ -1,0 +1,32 @@
+{
+  "name": "AthleticsTeamMember",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "team_id": {
+      "type": "string",
+      "title": "Team ID"
+    },
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "student_name": {
+      "type": "string",
+      "title": "Student Name"
+    },
+    "grade_level": {
+      "type": "string",
+      "title": "Grade Level"
+    }
+  },
+  "required": [
+    "school_code",
+    "team_id",
+    "student_id",
+    "student_name"
+  ]
+}

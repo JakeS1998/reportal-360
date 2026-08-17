@@ -1,0 +1,70 @@
+{
+  "name": "AthleticsEvent",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "team_id": {
+      "type": "string",
+      "title": "Team ID"
+    },
+    "team_name": {
+      "type": "string",
+      "title": "Team Name"
+    },
+    "title": {
+      "type": "string",
+      "title": "Event Title"
+    },
+    "opponent": {
+      "type": "string",
+      "title": "Opponent"
+    },
+    "location": {
+      "type": "string",
+      "title": "Location"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Event Date"
+    },
+    "start_time": {
+      "type": "string",
+      "title": "Start Time"
+    },
+    "end_time": {
+      "type": "string",
+      "title": "End Time"
+    },
+    "out_of_class_start": {
+      "type": "string",
+      "title": "Out of Class Start"
+    },
+    "out_of_class_end": {
+      "type": "string",
+      "title": "Out of Class End"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "scheduled",
+        "completed",
+        "cancelled"
+      ],
+      "default": "scheduled"
+    }
+  },
+  "required": [
+    "school_code",
+    "team_id",
+    "team_name",
+    "title",
+    "event_date",
+    "out_of_class_start",
+    "out_of_class_end"
+  ]
+}

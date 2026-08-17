@@ -1,0 +1,47 @@
+{
+  "name": "AthleticsTeam",
+  "type": "object",
+  "properties": {
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "name": {
+      "type": "string",
+      "title": "Team Name"
+    },
+    "sport": {
+      "type": "string",
+      "title": "Sport"
+    },
+    "season": {
+      "type": "string",
+      "title": "Season"
+    },
+    "level": {
+      "type": "string",
+      "title": "Level",
+      "enum": [
+        "Varsity",
+        "Junior Varsity",
+        "Middle School",
+        "Elementary",
+        "Club"
+      ]
+    },
+    "coach_id": {
+      "type": "string",
+      "title": "Coach ID"
+    },
+    "coach_name": {
+      "type": "string",
+      "title": "Coach Name"
+    }
+  },
+  "required": [
+    "school_code",
+    "name",
+    "sport",
+    "coach_name"
+  ]
+}
