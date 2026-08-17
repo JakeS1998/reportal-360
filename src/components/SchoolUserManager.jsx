@@ -60,10 +60,11 @@ export default function SchoolUserManager({
   const [teachingLevel, setTeachingLevel] = useState("elementary");
   const [workingDays, setWorkingDays] = useState(WORKING_DAYS);
   const [room, setRoom] = useState("");
+  const [coach, setCoach] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({
-    full_name: "", email: "", subject: "", subjects: [], grade_levels: [], room: "", department: "", job_title: "", role: "teacher", active: true,
+    full_name: "", email: "", subject: "", subjects: [], grade_levels: [], room: "", department: "", job_title: "", role: "teacher", coach: false, active: true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -165,6 +166,7 @@ export default function SchoolUserManager({
         teaching_levels: [teachingLevel],
         working_days: workingDays,
         room,
+        coach,
         username: username || undefined,
         password: password || undefined,
       });
@@ -180,6 +182,7 @@ export default function SchoolUserManager({
         setTeachingLevel("elementary");
         setWorkingDays(WORKING_DAYS);
         setRoom("");
+        setCoach(false);
         loadUsers();
       } else {
         setError(res.data?.error || "Failed to create user");
@@ -530,6 +533,10 @@ export default function SchoolUserManager({
                   <p className="text-xs text-slate-400 mt-1">Sets the grades this teacher is eligible to teach</p>
                 </div>
                 <div className="md:col-span-2">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={coach} onChange={(e) => setCoach(e.target.checked)} />Coach</label>
+                  <p className="mt-1 text-xs text-slate-400">Coaches can access and manage their own athletics teams.</p>
+                </div>
+                <div className="md:col-span-2">
                   <Label className="text-sm font-medium text-slate-700">Working Days</Label>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
                     {WORKING_DAYS.map((day) => <label key={day} className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={workingDays.includes(day)} onChange={(e) => setWorkingDays((days) => e.target.checked ? [...days, day] : days.filter((item) => item !== day))} />{day.slice(0, 3)}</label>)}
@@ -602,6 +609,7 @@ export default function SchoolUserManager({
                           department: u.department || "",
                           job_title: u.job_title || "",
                           role: u.role || "teacher",
+                          coach: u.coach === true,
                           active: u.active !== false,
                         });
                       }}
@@ -696,6 +704,7 @@ export default function SchoolUserManager({
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <label className="col-span-2 flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={editForm.coach} onChange={(e) => setEditForm({ ...editForm, coach: e.target.checked })} />Coach <span className="font-normal text-slate-400">— grants access to their own athletics teams</span></label>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Department</Label>
                 <Input

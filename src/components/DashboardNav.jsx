@@ -8,7 +8,7 @@ import {
 
 const CRIMSON = "#9E1B32";
 
-export default function DashboardNav({ collapsed, canManageStaff, isManager, menuTextColor = "#FFFFFF", onNavigate, userKey }) {
+export default function DashboardNav({ collapsed, canManageStaff, canAccessAthletics, isManager, menuTextColor = "#FFFFFF", onNavigate, userKey }) {
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
@@ -58,13 +58,13 @@ export default function DashboardNav({ collapsed, canManageStaff, isManager, men
         { to: "/syllabuses", label: "Syllabuses", icon: FileText },
       ],
     },
-    {
+    ...(canAccessAthletics ? [{
       heading: "Athletics",
       items: [
         { to: "/athletics", label: "Teams & Schedule", icon: Trophy },
         { to: "/athletics/monitoring", label: "Athlete Monitoring", icon: ClipboardList },
       ],
-    },
+    }] : []),
     {
       heading: "Account",
       items: [

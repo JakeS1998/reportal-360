@@ -14,7 +14,7 @@ const NAVY = "#0B1530";
 const CRIMSON = "#9E1B32";
 
 function Shell() {
-  const { school, switchSchool, user, isArea, isManager, canManageStaff } = useSchool();
+  const { school, switchSchool, user, isArea, isManager, canManageStaff, canAccessAthletics } = useSchool();
   const headerColor = school?.header_color || NAVY;
   const menuTextColor = school?.menu_text_color || "#FFFFFF";
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
@@ -48,7 +48,7 @@ function Shell() {
             {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
           </div>
         )}
-        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
+        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
 
         <div className="p-3 border-t border-white/10 space-y-1">
           <button
@@ -86,7 +86,7 @@ function Shell() {
                 {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
               </div>
             )}
-            <DashboardNav collapsed={false} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} userKey={user?.id || user?.username} />
+            <DashboardNav collapsed={false} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} userKey={user?.id || user?.username} />
             <div className="p-3 border-t border-white/10 space-y-1">
               <button
                 onClick={switchSchool}

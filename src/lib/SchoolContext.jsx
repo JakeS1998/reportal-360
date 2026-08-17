@@ -153,13 +153,15 @@ export function SchoolProvider({ children }) {
   const isManager = user?.role === "manager";
   const isTeacher = user?.role === "teacher";
   const canManageStaff = isArea || isManager || user?.role === "admin";
+  const canManageAthletics = ["area", "manager", "school_admin", "admin"].includes(user?.role);
+  const canAccessAthletics = canManageAthletics || user?.coach === true;
 
   return (
     <SchoolContext.Provider value={{
       school, activeSchool, user, loading,
       switchSchool, selectSchool,
       systemSchools, filters, setFilter,
-      isArea, isManager, isTeacher, canManageStaff, updateSchoolBranding,
+      isArea, isManager, isTeacher, canManageStaff, canAccessAthletics, canManageAthletics, updateSchoolBranding,
     }}>
       {children}
     </SchoolContext.Provider>

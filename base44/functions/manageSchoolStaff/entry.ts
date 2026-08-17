@@ -155,7 +155,7 @@ export default async function(req) {
 
     // --- CREATE ---
     if (action === "create") {
-      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, working_days, room } = params;
+      const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, working_days, room, coach } = params;
 
       if (!full_name || !role || !school_code || !system_code || !email) {
         return Response.json(
@@ -224,6 +224,7 @@ export default async function(req) {
         working_days: workingDaySelection.workingDays,
         room: room || "",
         teacher_id: username,
+        coach: Boolean(coach),
         password_reset_required: true,
       });
 
@@ -368,7 +369,7 @@ export default async function(req) {
         if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
         updates.working_days = workingDaySelection.workingDays;
       }
-      const allowedFields = ["full_name", "email", "subject", "subjects", "grade_levels", "working_days", "room", "department", "job_title", "active", "role", "mfa_enabled", "target_free_periods"];
+      const allowedFields = ["full_name", "email", "subject", "subjects", "grade_levels", "working_days", "room", "department", "job_title", "active", "role", "coach", "mfa_enabled", "target_free_periods"];
       const updateData: any = {};
       for (const field of allowedFields) {
         if (updates[field] !== undefined) updateData[field] = updates[field];

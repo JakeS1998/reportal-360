@@ -64,6 +64,11 @@
       ],
       "default": "teacher"
     },
+    "coach": {
+      "type": "boolean",
+      "title": "Coach",
+      "default": false
+    },
     "teacher_id": {
       "type": "string",
       "title": "Teacher ID"

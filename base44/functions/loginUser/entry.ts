@@ -229,6 +229,7 @@ export default async function(req) {
             system_name: user.system_name,
             email: user.email,
             teacher_id: user.teacher_id,
+            coach: user.coach === true,
             password_reset_required: false,
           },
         });
@@ -332,6 +333,7 @@ export default async function(req) {
         system_name: user.system_name,
         email: user.email,
         teacher_id: user.teacher_id,
+        coach: user.coach === true,
         password_reset_required: user.password_reset_required,
       },
     });
