@@ -8,7 +8,7 @@ import {
 
 const CRIMSON = "#9E1B32";
 
-export default function DashboardNav({ collapsed, canManageStaff, isManager, menuTextColor = "#FFFFFF", onNavigate }) {
+export default function DashboardNav({ collapsed, canManageStaff, isManager, menuTextColor = "#FFFFFF", onNavigate, userKey }) {
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
@@ -17,12 +17,13 @@ export default function DashboardNav({ collapsed, canManageStaff, isManager, men
       return null;
     }
   });
+  const quickLinksStorageKey = `my-reportal-links-${userKey || "default"}`;
   const [quickLinks, setQuickLinks] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("my-reportal-links")) || []; } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(quickLinksStorageKey) || localStorage.getItem("my-reportal-links")) || []; } catch { return []; }
   });
   const [quickLinkToAdd, setQuickLinkToAdd] = useState("");
 
-  useEffect(() => { localStorage.setItem("my-reportal-links", JSON.stringify(quickLinks)); }, [quickLinks]);
+  useEffect(() => { localStorage.setItem(quickLinksStorageKey, JSON.stringify(quickLinks)); }, [quickLinks, quickLinksStorageKey]);
 
   useEffect(() => {
     if (openGroups) localStorage.setItem("sidebar-groups", JSON.stringify(openGroups));

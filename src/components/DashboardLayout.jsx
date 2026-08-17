@@ -48,7 +48,7 @@ function Shell() {
             {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
           </div>
         )}
-        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} />
+        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
 
         <div className="p-3 border-t border-white/10 space-y-1">
           <button
@@ -86,7 +86,7 @@ function Shell() {
                 {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
               </div>
             )}
-            <DashboardNav collapsed={false} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} />
+            <DashboardNav collapsed={false} canManageStaff={canManageStaff} isManager={isManager} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} userKey={user?.id || user?.username} />
             <div className="p-3 border-t border-white/10 space-y-1">
               <button
                 onClick={switchSchool}
