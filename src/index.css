@@ -105,6 +105,14 @@
   overflow: hidden;
 }
 
+.login-background-motion > span {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .login-background-motion img {
   position: absolute !important;
   inset: 0 !important;
