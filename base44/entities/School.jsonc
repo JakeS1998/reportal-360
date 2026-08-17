@@ -76,6 +76,19 @@
     "year": {
       "type": "string",
       "title": "Report Year"
+    },
+    "logo_url": {
+      "type": "string",
+      "format": "uri",
+      "title": "School Logo URL"
+    },
+    "header_color": {
+      "type": "string",
+      "title": "Header Color"
+    },
+    "menu_text_color": {
+      "type": "string",
+      "title": "Menu Text Color"
     }
   },
   "required": [

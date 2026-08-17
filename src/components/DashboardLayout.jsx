@@ -15,6 +15,8 @@ const CRIMSON = "#9E1B32";
 
 function Shell() {
   const { school, switchSchool, user, isArea, canManageStaff } = useSchool();
+  const headerColor = school?.header_color || NAVY;
+  const menuTextColor = school?.menu_text_color || "#FFFFFF";
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const contentRef = useRef(null);
@@ -30,14 +32,14 @@ function Shell() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
       {/* Desktop sidebar */}
-      <aside className={`${collapsed ? "w-16" : "w-60"} hidden md:flex shrink-0 bg-[${NAVY}] border-r border-white/10 flex-col sticky top-0 h-screen transition-all duration-300`} style={{ backgroundColor: NAVY }}>
+      <aside className={`${collapsed ? "w-16" : "w-60"} hidden md:flex shrink-0 bg-[${NAVY}] border-r border-white/10 flex-col sticky top-0 h-screen transition-all duration-300`} style={{ backgroundColor: headerColor }}>
         <div className={`${collapsed ? "px-2 justify-center" : "px-5"} py-5 flex items-center gap-3`}>
           {collapsed ? (
             <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-white/5 ring-1 ring-white/10">
               <AlabamaOutline className="w-6 h-6" style={{ color: CRIMSON }} />
             </div>
           ) : (
-            <LogoMono className="w-full max-w-[180px] shrink-0 rounded-lg" />
+            <LogoMono src={school?.logo_url} alt={school?.school_name || "ReportAL 360"} className="w-full max-w-[180px] shrink-0 rounded-lg" />
           )}
         </div>
         {!collapsed && user && (
@@ -46,7 +48,7 @@ function Shell() {
             {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
           </div>
         )}
-        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} />
+        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} menuTextColor={menuTextColor} />
 
         <div className="p-3 border-t border-white/10 space-y-1">
           <button
@@ -71,9 +73,9 @@ function Shell() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-[60]">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 h-screen w-72 flex flex-col border-r border-white/10 shadow-2xl" style={{ backgroundColor: NAVY }}>
+          <aside className="absolute left-0 top-0 h-screen w-72 flex flex-col border-r border-white/10 shadow-2xl" style={{ backgroundColor: headerColor }}>
             <div className="px-5 py-5 flex items-center justify-between">
-              <LogoMono className="w-full max-w-[150px] shrink-0 rounded-lg" />
+              <LogoMono src={school?.logo_url} alt={school?.school_name || "ReportAL 360"} className="w-full max-w-[150px] shrink-0 rounded-lg" />
               <button onClick={() => setMobileOpen(false)} className="text-white/60 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
@@ -84,7 +86,7 @@ function Shell() {
                 {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
               </div>
             )}
-            <DashboardNav collapsed={false} canManageStaff={canManageStaff} onNavigate={() => setMobileOpen(false)} />
+            <DashboardNav collapsed={false} canManageStaff={canManageStaff} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} />
             <div className="p-3 border-t border-white/10 space-y-1">
               <button
                 onClick={switchSchool}
@@ -98,7 +100,7 @@ function Shell() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="px-4 md:px-8 py-4 flex items-center justify-between gap-3 sticky top-0 z-50 border-b border-white/10" style={{ backgroundColor: NAVY }}>
+        <header className="px-4 md:px-8 py-4 flex items-center justify-between gap-3 sticky top-0 z-50 border-b border-white/10" style={{ backgroundColor: headerColor }}>
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}

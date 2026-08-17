@@ -8,11 +8,11 @@ const LOGO_URL =
  * Monochrome ReportAL 360 logotype designed for dark backgrounds.
  * Use on navy/dark surfaces (e.g. the dashboard sidebar/header).
  */
-export default function LogoMono({ className }) {
+export default function LogoMono({ className, src, alt = "ReportAL 360" }) {
   return (
     <Image
-      src={LOGO_URL}
-      alt="ReportAL 360"
+      src={src || LOGO_URL}
+      alt={alt}
       fittingType="fit"
       originWidth={1024}
       originHeight={368}

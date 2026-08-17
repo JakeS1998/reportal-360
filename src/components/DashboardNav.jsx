@@ -8,7 +8,7 @@ import {
 
 const CRIMSON = "#9E1B32";
 
-export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) {
+export default function DashboardNav({ collapsed, canManageStaff, menuTextColor = "#FFFFFF", onNavigate }) {
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
@@ -128,7 +128,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
 
   if (collapsed) {
     return (
-      <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
+      <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
         {navGroups.flatMap((group, gi) => [
           ...groupItems(group).map((n) => (
             <NavLink
@@ -138,7 +138,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
               onClick={handleNavigate}
               className={({ isActive }) =>
                 `relative flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                  isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-[color:var(--menu-text-color)] opacity-65 hover:bg-white/10 hover:text-white"
                 }`
               }
             >
@@ -159,11 +159,11 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
   }
 
   return (
-    <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto">
+    <nav className="flex-1 px-3 space-y-1 mt-2 overflow-y-auto" style={{ "--menu-text-color": menuTextColor }}>
       <div>
         <button
           onClick={() => toggleGroup("My ReportAL")}
-          className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/45 hover:text-white/70 transition-colors"
+          className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--menu-text-color)] opacity-45 hover:text-white/70 transition-colors"
         >
           <span className="inline-block w-3 h-px" style={{ backgroundColor: CRIMSON }} />
           <span className="flex-1 text-left">My ReportAL</span>
@@ -176,7 +176,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
                 <NavLink
                   to={page.to}
                   onClick={handleNavigate}
-                  className={({ isActive }) => `flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 pl-6 text-sm font-medium transition-colors ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"}`}
+                  className={({ isActive }) => `flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 pl-6 text-sm font-medium transition-colors ${isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-[color:var(--menu-text-color)] opacity-65 hover:bg-white/10 hover:text-white"}`}
                 >
                   <page.icon className="h-4 w-4 shrink-0" /> <span className="truncate">{page.label}</span>
                 </NavLink>
@@ -201,7 +201,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
                 </button>
               </div>
             )}
-            {quickLinkPages.length === 0 && <p className="px-6 py-1 text-xs text-white/35">Add up to five pages for quick access.</p>}
+            {quickLinkPages.length === 0 && <p className="px-6 py-1 text-xs text-[color:var(--menu-text-color)] opacity-35">Add up to five pages for quick access.</p>}
           </div>
         )}
       </div>
@@ -211,7 +211,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
           <div key={group.heading}>
             <button
               onClick={() => toggleGroup(group.heading)}
-              className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/45 hover:text-white/70 transition-colors"
+              className="w-full flex items-center gap-2 px-3 mt-3 mb-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--menu-text-color)] opacity-45 hover:text-white/70 transition-colors"
             >
               <span className="inline-block w-3 h-px" style={{ backgroundColor: CRIMSON }} />
               <span className="flex-1 text-left">{group.heading}</span>
@@ -226,7 +226,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
                       {section.label && (
                         <button
                           onClick={() => toggleSection(group.heading, section.label)}
-                          className="flex w-full items-center gap-2 px-6 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35 hover:text-white/65"
+                          className="flex w-full items-center gap-2 px-6 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--menu-text-color)] opacity-35 hover:text-[color:var(--menu-text-color)] opacity-65"
                         >
                           <span className="flex-1 text-left">{section.label}</span>
                           <ChevronDown className={`h-3 w-3 transition-transform ${sectionOpen ? "" : "-rotate-90"}`} />
@@ -239,7 +239,7 @@ export default function DashboardNav({ collapsed, canManageStaff, onNavigate }) 
                           onClick={handleNavigate}
                           className={({ isActive }) =>
                             `relative flex items-center gap-3 pl-6 pr-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-white/65 hover:bg-white/10 hover:text-white"
+                              isActive ? "bg-[#1D4ED8] text-white shadow-sm" : "text-[color:var(--menu-text-color)] opacity-65 hover:bg-white/10 hover:text-white"
                             }`
                           }
                         >

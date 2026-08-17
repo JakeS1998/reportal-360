@@ -73,6 +73,14 @@ export function SchoolProvider({ children }) {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    if (!user?.school_code) return;
+    const credentials = { caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "", caller_email: user.email || "", caller_sso: Boolean(user.sso || user.email) };
+    base44.functions.invoke("manageSchoolBranding", { action: "get", school_code: user.school_code, ...credentials }).then((res) => {
+      if (res.data?.success && Object.keys(res.data.branding || {}).length) updateSchoolBranding(res.data.branding);
+    }).catch(() => {});
+  }, [user?.school_code]);
+
   // Enforce session expiry + idle timeout while the dashboard is open
   useEffect(() => {
     if (!user) return;
@@ -131,6 +139,15 @@ export function SchoolProvider({ children }) {
     }
   };
 
+  const updateSchoolBranding = (branding) => {
+    setSchool((current) => {
+      const updated = { ...current, ...branding };
+      const stored = JSON.parse(localStorage.getItem("userSession") || "{}");
+      localStorage.setItem("userSession", JSON.stringify({ ...stored, school: { ...stored.school, ...branding } }));
+      return updated;
+    });
+  };
+
   const isArea = user?.role === "area" || user?.role === "commissioner";
   const isManager = user?.role === "manager";
   const isTeacher = user?.role === "teacher";
@@ -141,7 +158,7 @@ export function SchoolProvider({ children }) {
       school, activeSchool, user, loading,
       switchSchool, selectSchool,
       systemSchools, filters, setFilter,
-      isArea, isManager, isTeacher, canManageStaff,
+      isArea, isManager, isTeacher, canManageStaff, updateSchoolBranding,
     }}>
       {children}
     </SchoolContext.Provider>
