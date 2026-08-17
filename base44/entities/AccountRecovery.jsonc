@@ -1,0 +1,38 @@
+{
+  "name": "AccountRecovery",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "title": "Account ID"
+    },
+    "account_type": {
+      "type": "string",
+      "title": "Account Type",
+      "enum": [
+        "student",
+        "teacher"
+      ]
+    },
+    "username": {
+      "type": "string",
+      "title": "Username"
+    },
+    "code": {
+      "type": "string",
+      "title": "Recovery Code"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+    }
+  },
+  "required": [
+    "account_id",
+    "account_type",
+    "username",
+    "code",
+    "expires_at"
+  ]
+}
