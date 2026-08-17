@@ -7,7 +7,30 @@ import AthleteMonitoringFilters from "@/components/athletics/AthleteMonitoringFi
 
 export default function AthleteMonitoring() {
   const { school, user } = useSchool(); const schoolCode = school?.school_code || user?.school_code; const [rows, setRows] = useState(null); const [search, setSearch] = useState(""); const [team, setTeam] = useState(""); const [status, setStatus] = useState("");
-  useEffect(() => { if (!schoolCode) return; Promise.all([base44.entities.AthleticsTeam.filter({ school_code: schoolCode }), base44.entities.AthleticsTeamMember.filter({ school_code: schoolCode }), base44.entities.Student.filter({ school_code: schoolCode }), base44.entities.AttendanceRecord.list(), base44.entities.AttainmentRecord.list()]).then(([teams, members, students, attendance, attainment]) => { const schoolStudentIds = new Set(students.map((student) => student.id)); const rows = members.map((member) => { const student = students.find((item) => item.id === member.student_id); const team = teams.find((item) => item.id === member.team_id); if (!student || !team) return null; const studentAttendance = attendance.filter((item) => item.student_id === student.id); const studentGrades = attainment.filter((item) => item.student_id === student.id); const attendanceRate = studentAttendance.length ? Math.round(studentAttendance.filter((item) => item.status === "present" || item.status === "late").length / studentAttendance.length * 100) : null; const average = studentGrades.length ? Math.round(studentGrades.reduce((sum, item) => sum + item.score / (item.max_score || 100) * 100, 0) / studentGrades.length) : null; return { student, team, attendance: attendanceRate, average, onTrack: (attendanceRate === null || attendanceRate >= 90) && (average === null || average >= 70) }; }).filter(Boolean); setRows(rows); }); }, [schoolCode]);
+  useEffect(() => {
+    if (!schoolCode) return;
+    const loadMonitoring = async () => {
+      const [teams, members, students] = await Promise.all([
+        base44.entities.AthleticsTeam.filter({ school_code: schoolCode }),
+        base44.entities.AthleticsTeamMember.filter({ school_code: schoolCode }),
+        base44.entities.Student.filter({ school_code: schoolCode }),
+      ]);
+      const attendance = await base44.entities.AttendanceRecord.list();
+      const attainment = await base44.entities.AttainmentRecord.list();
+      const nextRows = members.map((member) => {
+        const student = students.find((item) => item.id === member.student_id);
+        const team = teams.find((item) => item.id === member.team_id);
+        if (!student || !team) return null;
+        const studentAttendance = attendance.filter((item) => item.student_id === student.id);
+        const studentGrades = attainment.filter((item) => item.student_id === student.id);
+        const attendanceRate = studentAttendance.length ? Math.round(studentAttendance.filter((item) => item.status === "present" || item.status === "late").length / studentAttendance.length * 100) : null;
+        const average = studentGrades.length ? Math.round(studentGrades.reduce((sum, item) => sum + item.score / (item.max_score || 100) * 100, 0) / studentGrades.length) : null;
+        return { student, team, attendance: attendanceRate, average, onTrack: (attendanceRate === null || attendanceRate >= 90) && (average === null || average >= 70) };
+      }).filter(Boolean);
+      setRows(nextRows);
+    };
+    loadMonitoring();
+  }, [schoolCode]);
   if (!rows) return <div className="h-64 animate-pulse rounded-xl bg-slate-100" />;
   const reviewCount = rows.filter((row) => !row.onTrack).length;
   const teams = [...new Set(rows.map((row) => row.team.name))].sort();
