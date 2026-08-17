@@ -432,13 +432,14 @@ export default async function(req) {
           return Response.json({ success: false, error: "Not authorized for target school" }, { status: 403 });
         }
       }
-      const newStudentNumber = data.student_number || existing.student_number;
-      const username = studentUsername(newStudentNumber);
-      if (!username) return Response.json({ success: false, error: "student_number is required" }, { status: 400 });
-      if (!(await usernameIsAvailable(base44, username, student_id))) {
-        return Response.json({ success: false, error: "This student number is already in use" }, { status: 409 });
+      if (data.student_number !== undefined && data.student_number !== existing.student_number) {
+        return Response.json({ success: false, error: "Student number cannot be changed" }, { status: 400 });
       }
-      const updated = await base44.asServiceRole.entities.Student.update(student_id, { ...data, username });
+      if (data.support_plans !== undefined && JSON.stringify(data.support_plans || []) !== JSON.stringify(existing.support_plans || []) && callerRole !== "manager") {
+        return Response.json({ success: false, error: "Only school managers can manage support plans" }, { status: 403 });
+      }
+      const { student_number, username, password, ...updates } = data;
+      const updated = await base44.asServiceRole.entities.Student.update(student_id, updates);
       return Response.json({ success: true, student: sanitizeStudent(updated) });
     }
 

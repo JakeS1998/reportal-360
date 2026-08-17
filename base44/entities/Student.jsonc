@@ -166,6 +166,30 @@
       "type": "string",
       "title": "IEP Details"
     },
+    "support_plans": {
+      "type": "array",
+      "title": "Support Plans",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "file_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "file_url",
+          "file_name"
+        ]
+      }
+    },
     "emergency_contacts": {
       "type": "array",
       "title": "Emergency Contacts",

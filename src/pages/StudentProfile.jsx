@@ -12,6 +12,7 @@ import ParentEmailDialog from "@/components/student/ParentEmailDialog";
 import StudentProfileEditDialog from "@/components/student/StudentProfileEditDialog";
 import StudentContactDialog from "@/components/student/StudentContactDialog";
 import StudentSupportMarkers from "@/components/student/StudentSupportMarkers";
+import StudentSupportPlans from "@/components/student/StudentSupportPlans";
 import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
@@ -152,6 +153,7 @@ export default function StudentProfile() {
       </SectionCard>
 
       <StudentSensitiveProfile student={s} />
+      <StudentSupportPlans plans={s.support_plans} />
 
       <SectionCard title="Class Memberships" icon={BookOpen}>
         {classes.length === 0 ? (
