@@ -64,11 +64,14 @@
       "type": "string",
       "title": "Support Ticket Status",
       "enum": [
-        "open",
-        "in_progress",
-        "resolved"
+        "new",
+        "awaiting_response",
+        "awaiting_customer",
+        "dormant",
+        "resolved",
+        "closed"
       ],
-      "default": "open"
+      "default": "new"
     },
     "sla_due_at": {
       "type": "string",
