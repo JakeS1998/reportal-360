@@ -25,9 +25,11 @@ function Shell() {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
   }, [collapsed]);
 
-  const roleBadge = user?.role
-    ? { area: "Area Access", manager: "Manager", teacher: "Teacher", commissioner: "Area Access", admin: "Admin" }[user.role]
-    : "";
+  const roleBadge = user?.administrator_access
+    ? "Administrator · School Access"
+    : user?.role
+      ? { area: "Area Access", manager: "Manager", teacher: "Teacher", commissioner: "Area Access", admin: "Admin" }[user.role]
+      : "";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex">
@@ -45,7 +47,7 @@ function Shell() {
         {!collapsed && user && (
           <div className="px-5 pb-2">
             <p className="text-xs font-medium text-white/85 truncate">{user.full_name || user.username}</p>
-            {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
+            {roleBadge && <span className={`text-[10px] font-semibold uppercase tracking-wide ${user?.administrator_access ? "text-amber-300" : "text-white/40"}`}>{roleBadge}</span>}
           </div>
         )}
         <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
@@ -83,7 +85,7 @@ function Shell() {
             {user && (
               <div className="px-5 pb-2">
                 <p className="text-xs font-medium text-white/85 truncate">{user.full_name || user.username}</p>
-                {roleBadge && <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">{roleBadge}</span>}
+                {roleBadge && <span className={`text-[10px] font-semibold uppercase tracking-wide ${user?.administrator_access ? "text-amber-300" : "text-white/40"}`}>{roleBadge}</span>}
               </div>
             )}
             <DashboardNav collapsed={false} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} menuTextColor={menuTextColor} onNavigate={() => setMobileOpen(false)} userKey={user?.id || user?.username} />
