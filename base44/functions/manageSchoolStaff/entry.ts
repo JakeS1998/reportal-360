@@ -101,7 +101,7 @@ export default async function(req) {
     if (action === "list_school_access_audit" || action === "list_admin_activity") {
       if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("audit_access"))) return Response.json({ success: false, error: "Audit permission required" }, { status: 403 });
       const filter = action === "list_school_access_audit" ? { action_type: "admin_school_access" } : { username: params.username };
-      const activity = await base44.asServiceRole.entities.AuditLog.filter(filter, "-created_date", 100);
+      const activity = await base44.asServiceRole.entities.AuditLog.filter(filter, "-created_date", 5000);
       return Response.json({ success: true, activity });
     }
 
