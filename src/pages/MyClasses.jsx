@@ -6,6 +6,7 @@ import { BookOpen, MapPin, AlertCircle, ChevronLeft, ChevronRight, CalendarDays,
 import ArrangeCoverDialog from "@/components/class/ArrangeCoverDialog";
 import CalendarEventDialog from "@/components/calendar/CalendarEventDialog";
 import CalendarEventBlock from "@/components/calendar/CalendarEventBlock";
+import AthleticsScheduleBlock from "@/components/athletics/AthleticsScheduleBlock";
 import QuickActionsDialog from "@/components/class/QuickActionsDialog";
 import { getWeekStart, addWeeks, isScheduleActiveInWeek, formatWeekRange, weeksBetween, gradeColor } from "@/lib/scheduleWeeks";
 import { buildTeachingSlots, mmToHHMM } from "@/lib/teachingSlots";
@@ -75,6 +76,7 @@ export default function MyClasses() {
   const [coverTarget, setCoverTarget] = useState(null);
   const [quickAction, setQuickAction] = useState(null); // { mode, classId, className, dayLabel, dateStr }
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [athleticsBlocks, setAthleticsBlocks] = useState([]);
   const [calendarTarget, setCalendarTarget] = useState(null);
   const [dragStart, setDragStart] = useState(null);
 
@@ -134,6 +136,7 @@ export default function MyClasses() {
   }, [user?.id, user?.school_code, weekStart]);
 
   useEffect(() => { loadCalendarEvents(); }, [loadCalendarEvents]);
+  useEffect(() => { if (!user?.school_code || !schedules.length) return; Promise.all([base44.entities.AthleticsEvent.filter({ school_code: user.school_code }), base44.entities.AthleticsTeamMember.filter({ school_code: user.school_code }), base44.entities.StudentClass.filter({ school_code: user.school_code })]).then(([events, members, assignments]) => { const end = new Date(weekStart); end.setDate(end.getDate() + 4); const inWeek = events.filter((event) => event.status === "scheduled" && event.event_date >= toISODate(weekStart) && event.event_date <= toISODate(end)); const blocks = inWeek.flatMap((event) => { const athletes = new Set(members.filter((member) => member.team_id === event.team_id).map((member) => member.student_id)); const impactedClasses = new Map(); assignments.filter((assignment) => athletes.has(assignment.student_id) && assignment.status === "active").forEach((assignment) => impactedClasses.set(assignment.class_id, (impactedClasses.get(assignment.class_id) || 0) + 1)); const day = new Date(`${event.event_date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long" }); return schedules.filter((schedule) => schedule.day_of_week === day && impactedClasses.has(schedule.class_id) && toMin(schedule.start_time) < toMin(event.out_of_class_end) && toMin(schedule.end_time) > toMin(event.out_of_class_start) && isScheduleActiveInWeek(schedule, weekStart)).map((schedule) => ({ ...event, id: `athletics-${event.id}-${schedule.id}`, date: event.event_date, start_time: event.out_of_class_start, end_time: event.out_of_class_end, athleteCount: impactedClasses.get(schedule.class_id), _athletics: true })); }); setAthleticsBlocks(blocks); }); }, [user?.school_code, schedules, weekStart]);
   const isCurrentWeek = useMemo(() => weeksBetween(weekStart, getWeekStart(new Date())) === 0, [weekStart]);
 
   useEffect(() => {
@@ -189,7 +192,7 @@ export default function MyClasses() {
   const byDay = (day) => {
     const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day)); const dateStr = toISODate(date);
     const events = calendarEvents.filter((event) => event.date === dateStr || (event.recurrence === "weekly" && event.date <= dateStr && new Date(`${event.date}T00:00:00`).getDay() === date.getDay()) || (event.recurrence === "monthly" && event.date <= dateStr && event.date.slice(-2) === dateStr.slice(-2))).map((event) => ({ ...event, id: `event-${event.id}`, _calendar: true }));
-    return [...weekSchedules.filter((s) => s.day_of_week === day), ...weekCovers.filter((c) => c.day_of_week === day).map((c) => ({ id: `cover-${c.id}`, class_id: c.class_id, class_name: c.class_name, start_time: c.start_time, end_time: c.end_time, room: c.room, _isCover: true, _coverTeacher: c.original_teacher_name })), ...events].map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) })).filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+    return [...weekSchedules.filter((s) => s.day_of_week === day), ...weekCovers.filter((c) => c.day_of_week === day).map((c) => ({ id: `cover-${c.id}`, class_id: c.class_id, class_name: c.class_name, start_time: c.start_time, end_time: c.end_time, room: c.room, _isCover: true, _coverTeacher: c.original_teacher_name })), ...events, ...athleticsBlocks.filter((block) => block.date === dateStr)].map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) })).filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
   };
 
   if (loading) return <div className="animate-pulse rounded-xl bg-slate-100 h-64" />;
@@ -223,7 +226,7 @@ export default function MyClasses() {
         </div>
       )}
 
-      {weekSchedules.length === 0 && calendarEvents.length === 0 ? (
+      {weekSchedules.length === 0 && calendarEvents.length === 0 && athleticsBlocks.length === 0 ? (
         <div className="text-center py-16">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <p className="text-sm text-slate-400">No classes or calendar items scheduled for you this week.</p>
@@ -287,6 +290,7 @@ export default function MyClasses() {
                       const lay = layout[s.id] || { col: 0, count: 1 };
                       const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
                       if (s._calendar) return <CalendarEventBlock key={s.id} event={s} style={{ top, height: Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2), left: `calc(${lay.col * (100 / lay.count)}% + 2px)`, width: `calc(${100 / lay.count}% - 4px)` }} onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setCalendarTarget({ ...s, id: s.id.replace("event-", "") }); }} />;
+                      if (s._athletics) return <AthleticsScheduleBlock key={s.id} event={s} detail={`${s.athleteCount} athlete${s.athleteCount === 1 ? "" : "s"} out`} style={{ top, height: Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2), left: `calc(${lay.col * (100 / lay.count)}% + 2px)`, width: `calc(${100 / lay.count}% - 4px)` }} />;
                       const height = Math.max(20, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                       const widthPct = 100 / lay.count;
                       const cls = classes[s.class_id];

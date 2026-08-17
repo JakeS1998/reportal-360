@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { isScheduleActiveInWeek } from "@/lib/scheduleWeeks";
 import { useSubjectColors } from "@/lib/useSubjectColors";
+import AthleticsScheduleBlock from "@/components/athletics/AthleticsScheduleBlock";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_START_MIN = 7 * 60;
@@ -46,13 +47,12 @@ function layoutBlocks(blocks) {
   return layout;
 }
 
-export default function StudentScheduleGrid({ schedules, classes, weekStart, onPrev, onNext, onToday }) {
+export default function StudentScheduleGrid({ schedules, classes, athleticsEvents = [], weekStart, onPrev, onNext, onToday }) {
   const { resolveSubjectColor } = useSubjectColors();
-  const byDay = (day) =>
-    schedules
-      .filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart))
-      .map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) }))
-      .filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+  const byDay = (day) => {
+    const date = new Date(weekStart); date.setDate(date.getDate() + DAYS.indexOf(day)); const dateStr = date.toISOString().slice(0, 10);
+    return [...schedules.filter((s) => s.day_of_week === day && isScheduleActiveInWeek(s, weekStart)), ...athleticsEvents.filter((event) => event.event_date === dateStr).map((event) => ({ ...event, id: `athletics-${event.id}`, start_time: event.out_of_class_start, end_time: event.out_of_class_end, _athletics: true }))].map((s) => ({ ...s, _startMin: toMin(s.start_time), _endMin: toMin(s.end_time) })).filter((s) => s._startMin >= DAY_START_MIN && s._endMin <= DAY_END_MIN);
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -96,6 +96,7 @@ export default function StudentScheduleGrid({ schedules, classes, weekStart, onP
                     const top = (s._startMin - DAY_START_MIN) * PX_PER_MIN;
                     const height = Math.max(24, (s._endMin - s._startMin) * PX_PER_MIN - 2);
                     const widthPct = 100 / lay.count;
+                    if (s._athletics) return <AthleticsScheduleBlock key={s.id} event={s} style={{ top, height, left: `calc(${lay.col * widthPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }} />;
                     const cls = classes.find((c) => c.id === s.class_id);
                     const bg = resolveSubjectColor(cls?.subject);
                     return (
