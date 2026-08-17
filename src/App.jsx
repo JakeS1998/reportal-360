@@ -61,6 +61,7 @@ import SeatingPlan from './pages/SeatingPlan';
 import AssessmentWeights from './pages/AssessmentWeights';
 import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
 import AttendanceReview from './pages/AttendanceReview';
+import SchoolBranding from './pages/SchoolBranding';
 import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
@@ -144,6 +145,7 @@ const AuthenticatedApp = () => {
         <Route path="/messages" element={<Messages />} />
         <Route path="/parent-conversations" element={<ParentConversations />} />
         <Route path="/settings" element={<AccountSettings />} />
+        <Route path="/school-branding" element={<SchoolBranding />} />
         <Route path="/lesson-plan-reviews" element={<LessonPlanReviews />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

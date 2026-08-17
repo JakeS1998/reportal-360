@@ -65,8 +65,9 @@ export function SchoolProvider({ children }) {
         .invoke("fetchSchoolData", { system_code: initial.system_code, school_code: initial.school_code })
         .then((res) => {
           if (res.data && !res.data.error) {
-            setSchool(res.data);
-            localStorage.setItem("userSession", JSON.stringify({ ...session, school: res.data }));
+            const refreshedSchool = { ...res.data, logo_url: initial.logo_url, header_color: initial.header_color, menu_text_color: initial.menu_text_color };
+            setSchool(refreshedSchool);
+            localStorage.setItem("userSession", JSON.stringify({ ...session, school: refreshedSchool }));
           }
         })
         .catch(() => {});

@@ -8,7 +8,7 @@ import {
 
 const CRIMSON = "#9E1B32";
 
-export default function DashboardNav({ collapsed, canManageStaff, menuTextColor = "#FFFFFF", onNavigate }) {
+export default function DashboardNav({ collapsed, canManageStaff, isManager, menuTextColor = "#FFFFFF", onNavigate }) {
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
@@ -93,6 +93,7 @@ export default function DashboardNav({ collapsed, canManageStaff, menuTextColor 
           { to: "/lesson-plan-reviews", label: "Lesson Plan Reviews", icon: ClipboardList },
           { to: "/training-dashboard", label: "Training Dashboard", icon: BarChart3 },
         ] },
+        ...(isManager ? [{ label: "School Setup", items: [{ to: "/school-branding", label: "School Branding", icon: Settings }] }] : []),
       ],
     });
   }
