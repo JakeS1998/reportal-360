@@ -90,6 +90,17 @@ export default async function(req) {
       return Response.json({ success: true, school: { school_code: school.school_code, system_code: school.system_code, school_name: school.school_name } });
     }
 
+    if (action === "update_platform_admin") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const { user_id, email } = params;
+      if (!user_id || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "")) return Response.json({ success: false, error: "Provide a valid SSO email address" }, { status: 400 });
+      const admin = await base44.asServiceRole.entities.Teacher.get(user_id);
+      if (!admin || admin.role !== "admin") return Response.json({ success: false, error: "Platform administrator not found" }, { status: 404 });
+      await base44.asServiceRole.entities.Teacher.update(user_id, { email });
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Updated SSO email for platform administrator ${admin.username}`, "0000");
+      return Response.json({ success: true });
+    }
+
     // --- PLATFORM ADMINISTRATION ---
     if (action === "list_platform_admins") {
       if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
@@ -125,9 +136,9 @@ export default async function(req) {
       const { records, school_code, system_code, school_name, system_name } = params;
       if (!Array.isArray(records) || records.length === 0 || records.length > 100) return Response.json({ success: false, error: "Upload between 1 and 100 staff records" }, { status: 400 });
       if (!school_code || !system_code) return Response.json({ success: false, error: "School details are required" }, { status: 400 });
-      if (callerRole === "area" && system_code !== callerSystemCode) return Response.json({ success: false, error: "You can only create users in your system" }, { status: 403 });
+      if (["area", "commissioner"].includes(callerRole) && system_code !== callerSystemCode) return Response.json({ success: false, error: "You can only create users in your system" }, { status: 403 });
       if (callerRole === "manager" && (system_code !== callerSystemCode || school_code !== callerSchoolCode)) return Response.json({ success: false, error: "You can only create users in your school" }, { status: 403 });
-      if (!["admin", "area", "manager"].includes(callerRole)) return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
+      if (!["admin", "area", "commissioner", "manager"].includes(callerRole)) return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
       const credentials = [];
       const errors = [];
       const subjectRecords = await base44.asServiceRole.entities.Subject.list("name", 500);
@@ -140,7 +151,7 @@ export default async function(req) {
         const email = item.email?.trim();
         const role = (item.role || "teacher").trim().toLowerCase();
         if (!full_name || !email || !["area", "manager", "teacher"].includes(role)) { errors.push(`Row ${index + 2}: full_name, email, and a valid role are required`); continue; }
-        if (callerRole === "area" && role === "area") { errors.push(`Row ${index + 2}: only admins can create area users`); continue; }
+        if (["area", "commissioner"].includes(callerRole) && role === "area") { errors.push(`Row ${index + 2}: only admins can create area users`); continue; }
         if (callerRole === "manager" && !["manager", "teacher"].includes(role)) { errors.push(`Row ${index + 2}: managers can only create school managers or teachers`); continue; }
         const username = item.username?.trim() || makeUsername(school_code, full_name);
         const existing = await base44.asServiceRole.entities.Teacher.filter({ username }, undefined, 1);
@@ -206,11 +217,11 @@ export default async function(req) {
       // Permission checks
       if (callerRole === "admin") {
         // admin can create any role anywhere
-      } else if (callerRole === "area") {
+      } else if (["area", "commissioner"].includes(callerRole)) {
         if (system_code !== callerSystemCode) {
           return Response.json({ success: false, error: "You can only create users in your system" }, { status: 403 });
         }
-        if (role === "area") {
+        if (["area", "commissioner"].includes(role)) {
           return Response.json({ success: false, error: "Only admins can create area users" }, { status: 403 });
         }
       } else if (callerRole === "manager") {
@@ -291,7 +302,7 @@ export default async function(req) {
       if (callerRole === "admin") {
         if (system_code) filter.system_code = system_code;
         if (school_code) filter.school_code = school_code;
-      } else if (callerRole === "area") {
+      } else if (["area", "commissioner"].includes(callerRole)) {
         filter.system_code = callerSystemCode;
         if (school_code) filter.school_code = school_code;
       } else if (callerRole === "manager") {

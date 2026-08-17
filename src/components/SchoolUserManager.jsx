@@ -13,7 +13,7 @@ import {
   School as SchoolIcon, X,
 } from "lucide-react";
 
-const ROLE_LABELS = { area: "Area", manager: "Manager", teacher: "Teacher", school_admin: "School Admin" };
+const ROLE_LABELS = { area: "Area", commissioner: "System Commissioner", manager: "Manager", teacher: "Teacher", school_admin: "School Admin" };
 const GRADE_OPTIONS = ["Pre-K", "K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const GRADES_BY_TEACHING_LEVEL = {
   elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
@@ -23,6 +23,7 @@ const GRADES_BY_TEACHING_LEVEL = {
 const WORKING_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const ROLE_BADGE = {
   area: "bg-indigo-50 text-indigo-600",
+  commissioner: "bg-violet-50 text-violet-600",
   manager: "bg-blue-50 text-blue-600",
   teacher: "bg-slate-100 text-slate-600",
   school_admin: "bg-violet-50 text-violet-600",

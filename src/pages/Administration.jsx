@@ -8,7 +8,6 @@ import {
   Building2, School, RefreshCw, Search, Download, AlertTriangle,
   CheckCircle2, Clock, Activity, FileJson, FileSpreadsheet, Calendar, LogOut, Users,
 } from "lucide-react";
-import AccessCodeManager from "@/components/AccessCodeManager";
 import SchoolUserManager from "@/components/SchoolUserManager";
 import PlatformAdminManager from "@/components/PlatformAdminManager";
 import SchoolAccessManager from "@/components/SchoolAccessManager";
@@ -238,10 +237,6 @@ export default function Administration() {
           </FadeIn>
         </div>
 
-        <FadeIn delay={210}>
-          <AccessCodeManager />
-        </FadeIn>
-
         <FadeIn delay={240}>
           <PlatformAdminManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
         </FadeIn>
@@ -254,14 +249,14 @@ export default function Administration() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">User Management</h3>
-                <p className="text-xs text-slate-500">Search any school and create area, manager, or teacher accounts</p>
+                <p className="text-xs text-slate-500">Search any school and create area, system commissioner, manager, or teacher accounts</p>
               </div>
             </div>
             <div className="mt-5">
               <SchoolUserManager
                 callerCreds={{ caller_username: "BRGAdmin", caller_password: "BRGAdmin" }}
                 mode="search"
-                roles={["area", "manager", "teacher"]}
+                roles={["area", "commissioner", "manager", "teacher"]}
               />
             </div>
           </div>
