@@ -65,6 +65,7 @@ import SchoolBranding from './pages/SchoolBranding';
 import DataAudit from './pages/DataAudit';
 import StudentSummary from './pages/StudentSummary';
 import Athletics from './pages/Athletics';
+import AthleteMonitoring from './pages/AthleteMonitoring';
 import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
@@ -152,6 +153,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<AccountSettings />} />
         <Route path="/school-branding" element={<SchoolBranding />} />
         <Route path="/athletics" element={<Athletics />} />
+        <Route path="/athletics/monitoring" element={<AthleteMonitoring />} />
         <Route path="/lesson-plan-reviews" element={<LessonPlanReviews />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

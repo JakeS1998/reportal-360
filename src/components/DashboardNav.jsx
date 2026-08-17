@@ -53,9 +53,15 @@ export default function DashboardNav({ collapsed, canManageStaff, isManager, men
         { to: "/my-classes", label: "My Classes", icon: BookOpen },
         { to: "/assignment-submissions", label: "My Assignments", icon: ClipboardList },
         { to: "/class-cover", label: "Class Cover", icon: Repeat },
-        { to: "/athletics", label: "Athletics", icon: Trophy },
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
         { to: "/syllabuses", label: "Syllabuses", icon: FileText },
+      ],
+    },
+    {
+      heading: "Athletics",
+      items: [
+        { to: "/athletics", label: "Teams & Schedule", icon: Trophy },
+        { to: "/athletics/monitoring", label: "Athlete Monitoring", icon: ClipboardList },
       ],
     },
     {
