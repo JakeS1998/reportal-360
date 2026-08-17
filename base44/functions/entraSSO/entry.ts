@@ -85,15 +85,18 @@ export default async function(req) {
 
     const email = payload.email || payload.preferred_username || payload.upn || "";
     const fullName = payload.name || payload.given_name || "";
+    const normalizeEmail = (value) => String(value || "").trim().toLowerCase().replace(/\s+/g, ".");
+    const normalizedEmail = normalizeEmail(email);
 
-    if (!email) {
+    if (!normalizedEmail) {
       return Response.json({ success: false, error: "No email address found in your Microsoft account" }, { status: 400 });
     }
 
     const base44 = createClientFromRequest(req);
 
-    // Look up existing teacher by email
-    const teachers = await base44.asServiceRole.entities.Teacher.filter({ email });
+    // Microsoft may return a differently cased address, while staff records can include legacy spaces.
+    const staffRecords = await base44.asServiceRole.entities.Teacher.filter({}, 'created_date', 5000);
+    const teachers = staffRecords.filter((teacher) => normalizeEmail(teacher.email) === normalizedEmail);
 
     let user;
     if (teachers.length > 0) {
