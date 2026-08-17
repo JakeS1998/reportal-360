@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import AccessCodeManager from "@/components/AccessCodeManager";
 import SchoolUserManager from "@/components/SchoolUserManager";
+import PlatformAdminManager from "@/components/PlatformAdminManager";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Administration() {
   useEffect(() => {
     const s = JSON.parse(localStorage.getItem("userSession") || "null");
     if (!s || s.user?.role !== "admin") {
-      navigate("/admin-login");
+      navigate("/login");
       return;
     }
     setSession(s);
@@ -237,6 +238,10 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={240}>
+          <PlatformAdminManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} />
+        </FadeIn>
+
+        <FadeIn delay={260}>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">

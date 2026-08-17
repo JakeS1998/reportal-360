@@ -91,7 +91,7 @@ export default function ForceResetPassword() {
         systemSchools: [],
       };
       localStorage.setItem("userSession", JSON.stringify(minimalSession));
-      navigate(loginRes.data.user.role === "student" ? "/my-student" : "/overview", { replace: true });
+      navigate(loginRes.data.user.role === "admin" ? "/admin" : loginRes.data.user.role === "student" ? "/my-student" : "/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to reset password");
     } finally {
@@ -126,7 +126,7 @@ export default function ForceResetPassword() {
         systemSchools: [],
       };
       localStorage.setItem("userSession", JSON.stringify(minimalSession));
-      navigate("/overview", { replace: true });
+      navigate(res.data.user.role === "admin" ? "/admin" : "/overview", { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to verify");
     } finally {

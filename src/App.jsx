@@ -30,7 +30,6 @@ import PolicyManagement from './pages/PolicyManagement';
 import Subjects from './pages/Subjects';
 import TrainingPortal from './pages/TrainingPortal';
 import TrainingDashboard from './pages/TrainingDashboard';
-import AdminLogin from './pages/AdminLogin';
 import DashboardLayout from '@/components/DashboardLayout';
 import ExecutiveOverview from './pages/ExecutiveOverview';
 import AcademicPerformance from './pages/AcademicPerformance';
@@ -102,7 +101,6 @@ const AuthenticatedApp = () => {
       <Route path="/security" element={<SecurityPrivacy />} />
       <Route path="/login" element={<SelectSchool />} />
       <Route path="/reset-password" element={<ForceResetPassword />} />
-      <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<Administration />} />
       <Route path="/admin/ferpa" element={<FerpaCompliance />} />
       <Route path="/admin/security" element={<SecurityDashboard />} />

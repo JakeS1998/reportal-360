@@ -71,6 +71,26 @@ export default async function(req) {
       callerSchoolCode = caller.school_code;
     }
 
+    // --- PLATFORM ADMINISTRATION ---
+    if (action === "list_platform_admins") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const admins = await base44.asServiceRole.entities.Teacher.filter({ role: "admin" }, "full_name", 100);
+      return Response.json({ success: true, admins: admins.map(({ password, mfa_code, mfa_code_expires_at, failed_login_attempts, locked_until, ...admin }) => admin) });
+    }
+
+    if (action === "create_platform_admin") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const { full_name, username, password } = params;
+      if (!full_name || !/^adm\.[a-z]+$/.test(username || "") || !password) return Response.json({ success: false, error: "Provide a name, an adm.name username, and a temporary password" }, { status: 400 });
+      const passwordError = validatePasswordComplexity(password);
+      if (passwordError) return Response.json({ success: false, error: passwordError }, { status: 400 });
+      const matches = await base44.asServiceRole.entities.Teacher.filter({ username }, undefined, 1);
+      if (matches.length) return Response.json({ success: false, error: "That administrator username is already in use" }, { status: 409 });
+      const admin = await base44.asServiceRole.entities.Teacher.create({ username, password, full_name, role: "admin", school_code: "0000", system_code: "000", school_name: "ReportAL 360", system_name: "ReportAL 360", email: `${username}@local.reportal360`, teacher_id: username, active: true, mfa_enabled: false, password_reset_required: true });
+      await logAudit(base44, "platform_admin_created", caller_username || "", callerRole, `Created platform administrator ${username}`, "0000");
+      return Response.json({ success: true, admin: { id: admin.id, full_name: admin.full_name, username: admin.username } });
+    }
+
     // --- SELF SERVICE SETTINGS ---
     if (action === "update_self_settings") {
       if (!caller) return Response.json({ success: false, error: "Staff access required" }, { status: 403 });

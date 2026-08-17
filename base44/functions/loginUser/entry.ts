@@ -117,7 +117,8 @@ export default async function(req) {
 
     // Parse the 4-digit school code from the username (format: schoolcode.name)
     const dotIndex = username.indexOf(".");
-    const parsedSchoolCode = dotIndex > 0 ? username.slice(0, dotIndex) : null;
+    const usernamePrefix = dotIndex > 0 ? username.slice(0, dotIndex) : null;
+    const parsedSchoolCode = usernamePrefix && /^\d{4}$/.test(usernamePrefix) ? usernamePrefix : null;
 
     // Look up by username; if a school code was parsed, also match on school_code
     const query: any = { username };
