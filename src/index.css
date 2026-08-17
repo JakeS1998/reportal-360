@@ -92,8 +92,14 @@
 }
 
 @keyframes login-background-motion {
-  from { transform: scale(1.02) translate3d(0, 0, 0); }
-  to { transform: scale(1.08) translate3d(-1%, -0.75%, 0); }
+  from { transform: scale(1.02) translate3d(-0.5%, -0.35%, 0); }
+  to { transform: scale(1.06) translate3d(0.75%, 0.5%, 0); }
+}
+
+.login-background-motion img {
+  animation: login-background-motion 24s ease-in-out infinite alternate;
+  transform-origin: center;
+  will-change: transform;
 }
 
 
