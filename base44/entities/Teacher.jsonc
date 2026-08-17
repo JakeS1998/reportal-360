@@ -71,6 +71,19 @@
       "title": "Coach",
       "default": false
     },
+    "admin_permissions": {
+      "type": "array",
+      "title": "Administrator Permissions",
+      "items": {
+        "type": "string",
+        "enum": [
+          "school_access",
+          "audit_access",
+          "school_discovery",
+          "admin_management"
+        ]
+      }
+    },
     "teacher_id": {
       "type": "string",
       "title": "Teacher ID"

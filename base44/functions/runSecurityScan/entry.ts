@@ -13,6 +13,7 @@ export default async function(req) {
     const admin = getAdminCredentials();
     let callerRole = null;
     let callerName = "";
+    let callerPermissions = null;
     if (caller_username === admin.username && caller_password === admin.password) {
       callerRole = "admin";
       callerName = "admin";
@@ -26,11 +27,15 @@ export default async function(req) {
       }
       callerRole = callers[0].role;
       callerName = callers[0].username;
+      callerPermissions = callers[0].admin_permissions;
     } else {
       return Response.json({ success: false, error: "Caller credentials required" }, { status: 403 });
     }
     if (callerRole !== "admin") {
       return Response.json({ success: false, error: "Admin access required" }, { status: 403 });
+    }
+    if (Array.isArray(callerPermissions) && !callerPermissions.includes("audit_access")) {
+      return Response.json({ success: false, error: "Audit permission required" }, { status: 403 });
     }
 
     const teachers = await base44.asServiceRole.entities.Teacher.filter({}, "-created_date", 500);

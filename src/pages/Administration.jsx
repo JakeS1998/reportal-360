@@ -12,6 +12,7 @@ import SchoolUserManager from "@/components/SchoolUserManager";
 import PlatformAdminManager from "@/components/PlatformAdminManager";
 import SchoolAccessManager from "@/components/SchoolAccessManager";
 import NewSchoolDialog from "@/components/NewSchoolDialog";
+import SchoolAccessAuditDialog from "@/components/SchoolAccessAuditDialog";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -116,6 +117,7 @@ export default function Administration() {
 
   if (!session) return null;
   const lastRun = stats?.lastRun;
+  const canAudit = !Array.isArray(session.user.admin_permissions) || session.user.admin_permissions.includes("audit_access");
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -125,8 +127,8 @@ export default function Administration() {
           <p className="text-xs text-slate-500 mt-0.5">Automated master list from ALSDE Report Card</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => navigate("/admin/security")}>Security Dashboard</Button>
-          <Button variant="outline" onClick={() => navigate("/admin/data-audit")}>Data Audit</Button>
+          {canAudit ? <Button variant="outline" onClick={() => navigate("/admin/security")}>Security Dashboard</Button> : null}
+          {canAudit ? <Button variant="outline" onClick={() => navigate("/admin/data-audit")}>Data Audit</Button> : null}
           <Button variant="outline" onClick={() => navigate("/admin/ferpa")}>FERPA Compliance</Button>
           <Button variant="outline" onClick={() => navigate("/overview")}>Back to Dashboard</Button>
           <Button variant="ghost" onClick={() => { localStorage.removeItem("userSession"); navigate("/admin-login"); }}>
@@ -146,7 +148,7 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={60}>
-          <SchoolAccessManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} adminUser={session.user} />
+          <div className="space-y-3"><SchoolAccessManager callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} adminUser={session.user} /><SchoolAccessAuditDialog callerCreds={{ caller_username: session.user.username, caller_password: session.user.password }} /></div>
         </FadeIn>
 
         <FadeIn delay={80}>

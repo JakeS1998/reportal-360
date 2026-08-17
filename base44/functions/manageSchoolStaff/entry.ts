@@ -72,7 +72,7 @@ export default async function(req) {
     }
 
     if (action === "create_school_directory") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_discovery"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const school_name = String(params.school_name || "").trim();
       const system_code = String(params.system_code || "").trim();
       const school_code = String(params.school_code || "").trim();
@@ -86,15 +86,22 @@ export default async function(req) {
       return Response.json({ success: true, school_key });
     }
 
+    if (action === "list_school_access_audit" || action === "list_admin_activity") {
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("audit_access"))) return Response.json({ success: false, error: "Audit permission required" }, { status: 403 });
+      const filter = action === "list_school_access_audit" ? { action_type: "admin_school_access" } : { username: params.username };
+      const activity = await base44.asServiceRole.entities.AuditLog.filter(filter, "-created_date", 100);
+      return Response.json({ success: true, activity });
+    }
+
     // --- ADMIN SCHOOL ACCESS ---
     if (action === "list_school_access_options") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const schools = await base44.asServiceRole.entities.SchoolDirectory.list("school_name", 5000);
       return Response.json({ success: true, schools: schools.filter((school) => school.active !== false && school.status !== "closed").map((school) => ({ id: school.id, school_key: school.school_key, school_code: school.school_code, system_code: school.system_code, school_name: school.school_name })) });
     }
 
     if (action === "access_school") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("school_access"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const { school_key, reason } = params;
       if (!school_key || typeof reason !== "string" || reason.trim().length < 10 || reason.trim().length > 1000) return Response.json({ success: false, error: "Provide an access reason between 10 and 1,000 characters" }, { status: 400 });
       const directories = await base44.asServiceRole.entities.SchoolDirectory.filter({ school_key }, undefined, 1);
@@ -106,32 +113,46 @@ export default async function(req) {
     }
 
     if (action === "update_platform_admin") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
-      const { user_id, email } = params;
-      if (!user_id || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "")) return Response.json({ success: false, error: "Provide a valid SSO email address" }, { status: 400 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("admin_management"))) return Response.json({ success: false, error: "Administrator management permission required" }, { status: 403 });
+      const { user_id, email, full_name, admin_permissions } = params;
+      if (!user_id || !full_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || "") || !Array.isArray(admin_permissions)) return Response.json({ success: false, error: "Provide a name, valid SSO email address, and permissions" }, { status: 400 });
       const admin = await base44.asServiceRole.entities.Teacher.get(user_id);
       if (!admin || admin.role !== "admin") return Response.json({ success: false, error: "Platform administrator not found" }, { status: 404 });
-      await base44.asServiceRole.entities.Teacher.update(user_id, { email });
-      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Updated SSO email for platform administrator ${admin.username}`, "0000");
+      const allowedPermissions = ["school_access", "audit_access", "school_discovery", "admin_management"];
+      if (admin_permissions.some((permission) => !allowedPermissions.includes(permission))) return Response.json({ success: false, error: "Invalid administrator permission" }, { status: 400 });
+      await base44.asServiceRole.entities.Teacher.update(user_id, { full_name: full_name.trim(), email, admin_permissions });
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Updated administrator ${admin.username}`, "0000");
+      return Response.json({ success: true });
+    }
+
+    if (action === "reset_platform_admin_password") {
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("admin_management"))) return Response.json({ success: false, error: "Administrator management permission required" }, { status: 403 });
+      const { user_id, password } = params;
+      const passwordError = validatePasswordComplexity(password);
+      if (!user_id || passwordError) return Response.json({ success: false, error: passwordError || "Administrator is required" }, { status: 400 });
+      const admin = await base44.asServiceRole.entities.Teacher.get(user_id);
+      if (!admin || admin.role !== "admin") return Response.json({ success: false, error: "Platform administrator not found" }, { status: 404 });
+      await base44.asServiceRole.entities.Teacher.update(user_id, { password, password_reset_required: true, failed_login_attempts: 0, locked_until: null });
+      await logAudit(base44, "password_reset_admin", caller_username || "", callerRole, `Reset password for platform administrator ${admin.username}`, "0000");
       return Response.json({ success: true });
     }
 
     // --- PLATFORM ADMINISTRATION ---
     if (action === "list_platform_admins") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("admin_management"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const admins = await base44.asServiceRole.entities.Teacher.filter({ role: "admin" }, "full_name", 100);
       return Response.json({ success: true, admins: admins.map(({ password, mfa_code, mfa_code_expires_at, failed_login_attempts, locked_until, ...admin }) => admin) });
     }
 
     if (action === "create_platform_admin") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (callerRole !== "admin" || (caller && Array.isArray(caller.admin_permissions) && !caller.admin_permissions.includes("admin_management"))) return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const { full_name, username, password } = params;
       if (!full_name || !/^adm\.[a-z]+$/.test(username || "") || !password) return Response.json({ success: false, error: "Provide a name, an adm.name username, and a temporary password" }, { status: 400 });
       const passwordError = validatePasswordComplexity(password);
       if (passwordError) return Response.json({ success: false, error: passwordError }, { status: 400 });
       const matches = await base44.asServiceRole.entities.Teacher.filter({ username }, undefined, 1);
       if (matches.length) return Response.json({ success: false, error: "That administrator username is already in use" }, { status: 409 });
-      const admin = await base44.asServiceRole.entities.Teacher.create({ username, password, full_name, role: "admin", school_code: "0000", system_code: "000", school_name: "ReportAL 360", system_name: "ReportAL 360", email: `${username}@local.reportal360`, teacher_id: username, active: true, mfa_enabled: false, password_reset_required: true });
+      const admin = await base44.asServiceRole.entities.Teacher.create({ username, password, full_name, role: "admin", school_code: "0000", system_code: "000", school_name: "ReportAL 360", system_name: "ReportAL 360", email: `${username}@local.reportal360`, admin_permissions: ["school_access", "audit_access", "school_discovery", "admin_management"], teacher_id: username, active: true, mfa_enabled: false, password_reset_required: true });
       await logAudit(base44, "platform_admin_created", caller_username || "", callerRole, `Created platform administrator ${username}`, "0000");
       return Response.json({ success: true, admin: { id: admin.id, full_name: admin.full_name, username: admin.username } });
     }
