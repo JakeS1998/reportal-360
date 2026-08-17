@@ -1,0 +1,73 @@
+{
+  "name": "StudentIntervention",
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "type": "string",
+      "title": "Student ID"
+    },
+    "school_code": {
+      "type": "string",
+      "title": "School Code"
+    },
+    "title": {
+      "type": "string",
+      "title": "Intervention Title"
+    },
+    "area": {
+      "type": "string",
+      "title": "Support Area",
+      "enum": [
+        "academic",
+        "attendance",
+        "behaviour",
+        "wellbeing",
+        "other"
+      ]
+    },
+    "goal": {
+      "type": "string",
+      "title": "Goal"
+    },
+    "strategy": {
+      "type": "string",
+      "title": "Strategy or Support"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+    },
+    "review_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Review Date"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "monitoring",
+        "completed",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "progress_note": {
+      "type": "string",
+      "title": "Latest Progress Note"
+    },
+    "owner_name": {
+      "type": "string",
+      "title": "Created By"
+    }
+  },
+  "required": [
+    "student_id",
+    "school_code",
+    "title",
+    "area",
+    "status"
+  ]
+}

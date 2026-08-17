@@ -13,7 +13,7 @@ import StudentProfileEditDialog from "@/components/student/StudentProfileEditDia
 import StudentContactDialog from "@/components/student/StudentContactDialog";
 import StudentSupportMarkers from "@/components/student/StudentSupportMarkers";
 import StudentSupportPlans from "@/components/student/StudentSupportPlans";
-import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip } from "lucide-react";
+import { ArrowLeft, Users, Calendar, GraduationCap, AlertCircle, BookOpen, CalendarDays, Eye, Mail, Pencil, Contact, Paperclip, FileText } from "lucide-react";
 
 const STATUS_COLOR = { present: "text-emerald-600", absent: "text-rose-500", late: "text-amber-500", excused: "text-slate-400" };
 const INCIDENT_COLOR = { positive: "bg-emerald-50 text-emerald-600", warning: "bg-amber-50 text-amber-600", minor: "bg-orange-50 text-orange-600", major: "bg-rose-50 text-rose-600" };
@@ -100,6 +100,7 @@ export default function StudentProfile() {
         <div className="flex items-center gap-2">
           {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowContacts(true)}><Contact className="w-4 h-4 mr-1" />Contacts & Pickups</Button>}
           {canManageStaff && !studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowEdit(true)}><Pencil className="w-4 h-4 mr-1" />Edit Profile</Button>}
+          {!studentId.startsWith("sample-") && <Button variant="outline" onClick={() => navigate(`/students/${studentId}/summary`)}><FileText className="w-4 h-4 mr-1" />Progress Summary</Button>}
           {!studentId.startsWith("sample-") && <Button variant="outline" onClick={() => setShowParentEmail(true)}><Mail className="w-4 h-4 mr-1" />Email Parents</Button>}
           <Button variant="outline" onClick={() => setShowPreview(true)}>
             <Eye className="w-4 h-4 mr-1" /> View As Student

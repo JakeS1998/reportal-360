@@ -280,16 +280,17 @@ export default async function(req) {
         if (sharedClassIds.length === 0 && !isHomeroomTeacher) {
           return Response.json({ success: false, error: "Not authorized: this student is not in your classes or homeroom" }, { status: 403 });
         }
-        const [attendance, attainment, behaviour] = await Promise.all([
+        const [attendance, attainment, behaviour, interventions] = await Promise.all([
           base44.asServiceRole.entities.AttendanceRecord.filter({ student_id }, "-date", 500),
           base44.asServiceRole.entities.AttainmentRecord.filter({ student_id }, "-date", 500),
           base44.asServiceRole.entities.BehaviourRecord.filter({ student_id }, "-date", 100),
+          base44.asServiceRole.entities.StudentIntervention.filter({ student_id }, "-created_date", 100),
         ]);
         const allClasses = await base44.asServiceRole.entities.Class.filter({ school_code: student.school_code }, "-created_date", 500);
         let classes = allClasses.filter((c) => studentClassIds.has(c.id));
         await logStudentAccess(base44, "view_student", { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode }, student_id, req);
         if (isHomeroomTeacher) {
-          return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, attendance, attainment, behaviour });
+          return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, attendance, attainment, behaviour, interventions });
         }
         classes = classes.filter((c) => myClassIds.has(c.id));
         return Response.json({
@@ -297,15 +298,17 @@ export default async function(req) {
           attendance: attendance.filter((a) => myClassIds.has(a.class_id)),
           attainment: attainment.filter((a) => myClassIds.has(a.class_id)),
           behaviour: behaviour.filter((b) => myClassIds.has(b.class_id)),
+          interventions,
         });
       }
 
       // Admin / manager / student — full profile (student sees only their own, enforced above)
-      const [classAssignments, attendance, attainment, behaviour] = await Promise.all([
+      const [classAssignments, attendance, attainment, behaviour, interventions] = await Promise.all([
         base44.asServiceRole.entities.StudentClass.filter({ student_id, status: "active" }),
         base44.asServiceRole.entities.AttendanceRecord.filter({ student_id }, "-date", 500),
         base44.asServiceRole.entities.AttainmentRecord.filter({ student_id }, "-date", 500),
         base44.asServiceRole.entities.BehaviourRecord.filter({ student_id }, "-date", 100),
+        base44.asServiceRole.entities.StudentIntervention.filter({ student_id }, "-created_date", 100),
       ]);
       const classIds = classAssignments.map((ca) => ca.class_id);
       let classes = [];
@@ -323,7 +326,34 @@ export default async function(req) {
         { username: callerName, role: callerRole, school_code: student.school_code, system_code: callerSystemCode },
         student_id, req
       );
-      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, schedules, attendance, attainment, behaviour });
+      return Response.json({ success: true, student: sanitizeStudent(student), classes, classAssignments, schedules, attendance, attainment, behaviour, interventions });
+    }
+
+    // --- SAVE INTERVENTION ---
+    if (action === "save_intervention") {
+      if (!['teacher', 'manager', 'area', 'school_admin', 'admin'].includes(callerRole)) return Response.json({ success: false, error: "Staff access required" }, { status: 403 });
+      const { student_id, data } = params;
+      if (!student_id || !data?.title || !data?.area) return Response.json({ success: false, error: "Student, title, and support area are required" }, { status: 400 });
+      const student = await base44.asServiceRole.entities.Student.get(student_id);
+      if (!student || !(await authorizeSchool(student.school_code))) return Response.json({ success: false, error: "Student unavailable" }, { status: 403 });
+      if (callerRole === 'teacher') {
+        const [teacherClasses, studentClasses, homerooms] = await Promise.all([
+          base44.asServiceRole.entities.TeacherClass.filter({ teacher_id: callerId }, undefined, 500),
+          base44.asServiceRole.entities.StudentClass.filter({ student_id, status: 'active' }, undefined, 500),
+          base44.asServiceRole.entities.Homeroom.filter({ teacher_id: callerId }, undefined, 50),
+        ]);
+        const classIds = new Set(teacherClasses.map((item) => item.class_id));
+        const enrolled = studentClasses.some((item) => classIds.has(item.class_id));
+        const homeroomTeacher = homerooms.some((item) => (item.student_ids || []).includes(student_id));
+        if (!enrolled && !homeroomTeacher) return Response.json({ success: false, error: "Not authorized for this student" }, { status: 403 });
+      }
+      const existing = data.id ? await base44.asServiceRole.entities.StudentIntervention.get(data.id) : null;
+      if (existing && (existing.student_id !== student_id || existing.school_code !== student.school_code)) return Response.json({ success: false, error: "Intervention unavailable" }, { status: 403 });
+      const changes = { title: data.title.trim(), area: data.area, goal: data.goal?.trim() || '', strategy: data.strategy?.trim() || '', review_date: data.review_date || null, status: data.status || 'active' };
+      const record = existing
+        ? await base44.asServiceRole.entities.StudentIntervention.update(existing.id, changes)
+        : await base44.asServiceRole.entities.StudentIntervention.create({ ...changes, student_id, school_code: student.school_code, start_date: new Date().toISOString().slice(0, 10), owner_name: callerName });
+      return Response.json({ success: true, intervention: record });
     }
 
     // --- GET ---

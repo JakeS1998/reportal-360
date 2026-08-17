@@ -63,6 +63,7 @@ import AttendancePhotoUpload from './pages/AttendancePhotoUpload';
 import AttendanceReview from './pages/AttendanceReview';
 import SchoolBranding from './pages/SchoolBranding';
 import DataAudit from './pages/DataAudit';
+import StudentSummary from './pages/StudentSummary';
 import AppbuildPushRouter from '@/components/mobile/AppbuildPushRouter';
 
 const AuthenticatedApp = () => {
@@ -136,6 +137,7 @@ const AuthenticatedApp = () => {
         <Route path="/classes/:classId" element={<ClassDashboard />} />
         <Route path="/classes/:classId/seating-plan" element={<SeatingPlan />} />
         <Route path="/students/:studentId" element={<StudentProfile />} />
+        <Route path="/students/:studentId/summary" element={<StudentSummary />} />
         <Route path="/training" element={<TrainingPortal />} />
         <Route path="/training-dashboard" element={<TrainingDashboard />} />
         <Route path="/access-review" element={<AccessReview />} />
