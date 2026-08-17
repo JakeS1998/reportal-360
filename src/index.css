@@ -96,7 +96,14 @@
   to { transform: scale(1.06) translate3d(0.75%, 0.5%, 0); }
 }
 
+.login-background-motion {
+  display: block;
+}
+
 .login-background-motion img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
   animation: login-background-motion 24s ease-in-out infinite alternate;
   transform-origin: center;
   will-change: transform;
