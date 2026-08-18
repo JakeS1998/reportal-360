@@ -75,6 +75,18 @@ export function SchoolProvider({ children }) {
   }, [navigate]);
 
   useEffect(() => {
+    if (!user?.system_code || !["area", "commissioner"].includes(user.role) || systemSchools.length) return;
+    base44.functions.invoke("subscriberAccess", { action: "schoolsBySystem", systemCode: user.system_code })
+      .then((res) => {
+        const schools = res.data?.schools || [];
+        setSystemSchools(schools);
+        const stored = JSON.parse(localStorage.getItem("userSession") || "{}");
+        localStorage.setItem("userSession", JSON.stringify({ ...stored, systemSchools: schools }));
+      })
+      .catch(() => {});
+  }, [user?.role, user?.system_code, systemSchools.length]);
+
+  useEffect(() => {
     if (!user?.school_code) return;
     const credentials = { caller_username: user.username, caller_password: user.password || localStorage.getItem("userPassword") || "", caller_email: user.email || "", caller_sso: Boolean(user.sso || user.email) };
     base44.functions.invoke("manageSchoolBranding", { action: "get", school_code: user.school_code, ...credentials }).then((res) => {
