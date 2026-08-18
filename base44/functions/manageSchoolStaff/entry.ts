@@ -282,6 +282,8 @@ export default async function(req) {
       const footerNote = isPlatformAdmin ? "This message was sent by the ReportAL 360 administrator." : `This message was sent by ${senderName}.`;
       const html = buildEmailHtml({ heading: subject, message, footerNote });
       let sentCount = 0;
+      let failedCount = 0;
+      let deliveryError = "";
       for (const to of emails) {
         const response = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -289,13 +291,15 @@ export default async function(req) {
           body: JSON.stringify({ from, to, subject, html }),
         });
         if (!response.ok) {
-          const details = await response.text();
-          return Response.json({ success: false, error: `Email delivery failed: ${details.slice(0, 240)}` }, { status: 502 });
+          failedCount += 1;
+          deliveryError = deliveryError || (await response.text()).slice(0, 240);
+          continue;
         }
         sentCount += 1;
       }
-      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Sent mass email to ${sentCount} recipients in groups: ${groups.join(", ")}`, callerSchoolCode || undefined);
-      return Response.json({ success: true, sent_count: sentCount });
+      if (!sentCount) return Response.json({ success: false, error: `Email delivery failed: ${deliveryError || "No messages were accepted by the email provider."}` }, { status: 502 });
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Sent mass email to ${sentCount} recipients${failedCount ? `; ${failedCount} could not be delivered` : ""} in groups: ${groups.join(", ")}`, callerSchoolCode || undefined);
+      return Response.json({ success: true, sent_count: sentCount, failed_count: failedCount });
     }
 
     // --- BULK CREATE ---
