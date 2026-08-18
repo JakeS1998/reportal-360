@@ -347,8 +347,9 @@ export default async function(req) {
         return Response.json({ success: false, error: "Not authorized to create users" }, { status: 403 });
       }
 
+      const isSystemUser = ["area", "commissioner"].includes(role);
       const teachingLevel = Array.isArray(teaching_levels) ? teaching_levels[0] : "";
-      const gradeSelection = ["area", "commissioner"].includes(role)
+      const gradeSelection = isSystemUser
         ? { gradeLevels: [] }
         : resolveGradeLevels(teachingLevel, grade_levels, role);
       if (gradeSelection.error) return Response.json({ success: false, error: gradeSelection.error }, { status: 400 });
@@ -384,7 +385,7 @@ export default async function(req) {
         subject: subject || subjects?.[0] || "",
         subjects: Array.isArray(subjects) ? subjects : (subject ? [subject] : []),
         grade_levels: gradeSelection.gradeLevels,
-        teaching_levels: [teachingLevel],
+        teaching_levels: isSystemUser ? [] : [teachingLevel],
         working_days: workingDaySelection.workingDays,
         room: room || "",
         teacher_id: username,
