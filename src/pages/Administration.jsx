@@ -15,6 +15,7 @@ import NewSchoolDialog from "@/components/NewSchoolDialog";
 import SchoolAccessAuditDialog from "@/components/SchoolAccessAuditDialog";
 import SupportInbox from "@/components/SupportInbox";
 import ClientManagement from "@/components/ClientManagement";
+import SystemAreaUserAccessManager from "@/components/SystemAreaUserAccessManager";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -154,6 +155,10 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={90}>
+          <SystemAreaUserAccessManager callerCreds={creds} />
+        </FadeIn>
+
+        <FadeIn delay={110}>
           <SectionCard title="Discovery Controls" subtitle="Retrieve and maintain the master school list" icon={Search}>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => runDiscovery("full", "manual")} disabled={running} className="bg-[#1D4ED8] hover:bg-[#1e40af]">
@@ -200,7 +205,7 @@ export default function Administration() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FadeIn delay={120}>
+          <FadeIn delay={140}>
             <SectionCard title="Discovery History" subtitle="Recent runs" icon={Clock}>
               {stats?.recentRuns?.length ? (
                 <div className="space-y-2">
