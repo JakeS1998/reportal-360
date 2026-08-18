@@ -7,7 +7,7 @@ import AccountDeletionRequests from "@/components/AccountDeletionRequests";
 export default function StaffManagement() {
   const { user, systemSchools, school } = useSchool();
 
-  if (!user || !["area", "manager", "admin"].includes(user.role)) {
+  if (!user || !["area", "commissioner", "manager", "admin"].includes(user.role)) {
     return (
       <div className="flex items-center justify-center py-20 text-slate-400">
         You do not have access to this page.
@@ -23,7 +23,7 @@ export default function StaffManagement() {
   };
 
   const isManager = user.role === "manager";
-  const isArea = user.role === "area";
+  const isArea = ["area", "commissioner"].includes(user.role);
 
   return (
     <div className="space-y-6">

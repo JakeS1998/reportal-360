@@ -50,7 +50,7 @@ function Shell() {
             {roleBadge && <span className={`text-[10px] font-semibold uppercase tracking-wide ${user?.administrator_access ? "text-amber-300" : "text-white/40"}`}>{roleBadge}</span>}
           </div>
         )}
-        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
+        <DashboardNav collapsed={collapsed} canManageStaff={canManageStaff} canAccessAthletics={canAccessAthletics} isManager={isManager} isArea={isArea} menuTextColor={menuTextColor} userKey={user?.id || user?.username} />
 
         <div className="p-3 border-t border-white/10 space-y-1">
           <button

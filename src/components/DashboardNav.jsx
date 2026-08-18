@@ -8,7 +8,7 @@ import {
 
 const CRIMSON = "#9E1B32";
 
-export default function DashboardNav({ collapsed, canManageStaff, canAccessAthletics, isManager, menuTextColor = "#FFFFFF", onNavigate, userKey }) {
+export default function DashboardNav({ collapsed, canManageStaff, canAccessAthletics, isManager, isArea, menuTextColor = "#FFFFFF", onNavigate, userKey }) {
   const [openGroups, setOpenGroups] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar-groups");
@@ -48,7 +48,7 @@ export default function DashboardNav({ collapsed, canManageStaff, canAccessAthle
         { to: "/parent-conversations", label: "Parent Conversations", icon: MessageSquare },
       ],
     },
-    {
+    ...(!isArea ? [{
       heading: "Classroom",
       items: [
         { to: "/my-classes", label: "My Classes", icon: BookOpen },
@@ -57,7 +57,7 @@ export default function DashboardNav({ collapsed, canManageStaff, canAccessAthle
         { to: "/lesson-plans", label: "Lesson Plans", icon: ClipboardList },
         { to: "/syllabuses", label: "Syllabuses", icon: FileText },
       ],
-    },
+    }] : []),
     ...(canAccessAthletics ? [{
       heading: "Athletics",
       items: [
@@ -86,15 +86,15 @@ export default function DashboardNav({ collapsed, canManageStaff, canAccessAthle
           { to: "/student-logins", label: "Student Login Management", icon: KeyRound },
           { to: "/student-access-audit", label: "Student Access Audit", icon: ShieldCheck },
         ] },
-        { label: "Academic Setup", items: [
+        ...(!isArea ? [{ label: "Academic Setup", items: [
           { to: "/subjects", label: "Subjects & Rooms", icon: Library },
           { to: "/classes", label: "Classes", icon: BookOpen },
           { to: "/homerooms", label: "Homerooms", icon: Home },
           { to: "/academic-years", label: "Academic Years", icon: Calendar },
           { to: "/assessment-weights", label: "Assessment Weights", icon: GraduationCap },
-        ] },
+        ] }] : []),
         { label: "Scheduling & Attendance", items: [
-          { to: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
+          ...(!isArea ? [{ to: "/schedule", label: "Weekly Schedule", icon: CalendarDays }] : []),
           { to: "/attendance-review", label: "Attendance Review", icon: CalendarCheck },
         ] },
         { label: "Quality & Training", items: [
