@@ -348,7 +348,9 @@ export default async function(req) {
       }
 
       const teachingLevel = Array.isArray(teaching_levels) ? teaching_levels[0] : "";
-      const gradeSelection = resolveGradeLevels(teachingLevel, grade_levels, role);
+      const gradeSelection = ["area", "commissioner"].includes(role)
+        ? { gradeLevels: [] }
+        : resolveGradeLevels(teachingLevel, grade_levels, role);
       if (gradeSelection.error) return Response.json({ success: false, error: gradeSelection.error }, { status: 400 });
       const workingDaySelection = resolveWorkingDays(working_days);
       if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
