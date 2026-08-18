@@ -40,7 +40,8 @@ export default function MassEmailComposer({ callerCreds, mode = "platform" }) {
       });
       if (!response.data?.success) throw new Error(response.data?.error || "Unable to send email");
       const failedCount = response.data.failed_count || 0;
-      setStatus({ type: "success", text: `Email sent to ${response.data.sent_count} recipient${response.data.sent_count === 1 ? "" : "s"}.${failedCount ? ` ${failedCount} could not be delivered.` : ""}` });
+      const failedRecipients = response.data.failed_recipients || [];
+      setStatus({ type: "success", text: `Email sent to ${response.data.sent_count} recipient${response.data.sent_count === 1 ? "" : "s"}.${failedCount ? ` Not delivered: ${failedRecipients.join(", ")}.` : ""}` });
       setGroups([]);
       setSubject("");
       setMessage("");
