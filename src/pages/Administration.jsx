@@ -16,6 +16,7 @@ import SchoolAccessAuditDialog from "@/components/SchoolAccessAuditDialog";
 import SupportInbox from "@/components/SupportInbox";
 import ClientManagement from "@/components/ClientManagement";
 import SystemAreaUserAccessManager from "@/components/SystemAreaUserAccessManager";
+import MassEmailComposer from "@/components/MassEmailComposer";
 
 export default function Administration() {
   const navigate = useNavigate();
@@ -156,6 +157,10 @@ export default function Administration() {
 
         <FadeIn delay={90}>
           <SystemAreaUserAccessManager callerCreds={creds} />
+        </FadeIn>
+
+        <FadeIn delay={100}>
+          <MassEmailComposer callerCreds={creds} mode="platform" />
         </FadeIn>
 
         <FadeIn delay={110}>

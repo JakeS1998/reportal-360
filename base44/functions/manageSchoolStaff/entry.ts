@@ -246,22 +246,41 @@ export default async function(req) {
 
     // --- MASS EMAIL ---
     if (action === "send_mass_email") {
-      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
       const groups = Array.isArray(params.groups) ? params.groups : [];
       const subject = String(params.subject || "").trim();
       const message = String(params.message || "").trim();
-      const validGroups = ["teacher", "manager", "area"];
+      const isPlatformAdmin = callerRole === "admin";
+      const validGroups = isPlatformAdmin ? ["teacher", "manager", "area"] : ["parent", "staff", "student"];
+      if (!isPlatformAdmin && callerRole !== "manager") return Response.json({ success: false, error: "Manager access required" }, { status: 403 });
       if (!groups.length || groups.some((group) => !validGroups.includes(group))) return Response.json({ success: false, error: "Select at least one recipient group" }, { status: 400 });
       if (!subject || !message) return Response.json({ success: false, error: "Subject and message are required" }, { status: 400 });
 
-      const recipients = await base44.asServiceRole.entities.Teacher.list("email", 5000);
-      const selectedRoles = new Set(groups.flatMap((group) => group === "manager" ? ["manager", "school_admin"] : group === "area" ? ["area", "commissioner"] : ["teacher"]));
-      const emails = [...new Set(recipients.filter((recipient) => recipient.active !== false && selectedRoles.has(recipient.role) && recipient.email).map((recipient) => recipient.email.trim().toLowerCase()))];
-      if (!emails.length) return Response.json({ success: false, error: "No active users with email addresses match the selected groups" }, { status: 400 });
+      let emails = [];
+      if (isPlatformAdmin) {
+        const recipients = await base44.asServiceRole.entities.Teacher.list("email", 5000);
+        const selectedRoles = new Set(groups.flatMap((group) => group === "manager" ? ["manager", "school_admin"] : group === "area" ? ["area", "commissioner"] : ["teacher"]));
+        emails = recipients.filter((recipient) => recipient.active !== false && selectedRoles.has(recipient.role)).map((recipient) => recipient.email);
+      } else {
+        if (groups.includes("staff")) {
+          const staff = await base44.asServiceRole.entities.Teacher.filter({ school_code: callerSchoolCode }, "email", 5000);
+          emails.push(...staff.filter((recipient) => recipient.active !== false).map((recipient) => recipient.email));
+        }
+        if (groups.includes("student") || groups.includes("parent")) {
+          const students = await base44.asServiceRole.entities.Student.filter({ school_code: callerSchoolCode }, "student_name", 5000);
+          if (groups.includes("student")) emails.push(...students.map((student) => student.email));
+          if (groups.includes("parent")) emails.push(...students.flatMap((student) => (student.emergency_contacts || []).map((contact) => contact.email)));
+        }
+      }
+      emails = [...new Set(emails.filter(Boolean).map((email) => email.trim().toLowerCase()))];
+      if (!emails.length) return Response.json({ success: false, error: "No recipients with email addresses match the selected groups" }, { status: 400 });
 
       const resendApiKey = secrets.get("RESEND_API_KEY");
-      const from = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
-      const html = buildEmailHtml({ heading: subject, message, footerNote: "This message was sent by the ReportAL 360 administrator." });
+      const configuredFrom = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
+      const senderAddress = configuredFrom.match(/<([^>]+)>/)?.[1] || configuredFrom;
+      const senderName = isPlatformAdmin ? "ReportAL 360" : `${caller.full_name || caller.username} at ${caller.school_name || "your school"}`;
+      const from = `${senderName} <${senderAddress}>`;
+      const footerNote = isPlatformAdmin ? "This message was sent by the ReportAL 360 administrator." : `This message was sent by ${senderName}.`;
+      const html = buildEmailHtml({ heading: subject, message, footerNote });
       let sentCount = 0;
       for (let index = 0; index < emails.length; index += 100) {
         const batch = emails.slice(index, index + 100).map((to) => ({ from, to, subject, html }));
@@ -269,7 +288,7 @@ export default async function(req) {
         if (!response.ok) return Response.json({ success: false, error: "Email delivery failed" }, { status: 502 });
         sentCount += batch.length;
       }
-      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Sent mass email to ${sentCount} users in groups: ${groups.join(", ")}`);
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Sent mass email to ${sentCount} recipients in groups: ${groups.join(", ")}`, callerSchoolCode || undefined);
       return Response.json({ success: true, sent_count: sentCount });
     }
 

@@ -64,7 +64,7 @@ export default function StaffManagement() {
           }
         />
         {isManager && <AccountDeletionRequests callerCreds={callerCreds} />}
-        {user.role === "admin" && <MassEmailComposer callerCreds={callerCreds} />}
+        {isManager && <MassEmailComposer callerCreds={callerCreds} mode="school" />}
       </FadeIn>
     </div>
   );

@@ -1,12 +1,6 @@
 import React from "react";
 
-const groups = [
-  { value: "teacher", label: "Teachers" },
-  { value: "manager", label: "School managers" },
-  { value: "area", label: "Area managers" },
-];
-
-export default function EmailGroupSelector({ selectedGroups, onChange }) {
+export default function EmailGroupSelector({ groups, selectedGroups, onChange }) {
   const toggleGroup = (group) => {
     onChange(selectedGroups.includes(group)
       ? selectedGroups.filter((item) => item !== group)

@@ -7,12 +7,24 @@ import SectionCard from "@/components/SectionCard";
 import EmailGroupSelector from "@/components/EmailGroupSelector";
 import { Mail, Send } from "lucide-react";
 
-export default function MassEmailComposer({ callerCreds }) {
+const platformGroups = [
+  { value: "teacher", label: "Teachers" },
+  { value: "manager", label: "School managers" },
+  { value: "area", label: "Area managers" },
+];
+const schoolGroups = [
+  { value: "parent", label: "Parents" },
+  { value: "staff", label: "Staff" },
+  { value: "student", label: "Students" },
+];
+
+export default function MassEmailComposer({ callerCreds, mode = "platform" }) {
   const [groups, setGroups] = useState([]);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState(null);
+  const recipientGroups = mode === "platform" ? platformGroups : schoolGroups;
 
   const sendEmail = async (event) => {
     event.preventDefault();
@@ -39,11 +51,11 @@ export default function MassEmailComposer({ callerCreds }) {
   };
 
   return (
-    <SectionCard title="Mass Email" subtitle="Send a branded message to selected user groups" icon={Mail}>
+    <SectionCard title="Mass Email" subtitle={mode === "platform" ? "Send ReportAL 360 updates to selected user groups" : "Send a school-branded message to parents, staff, or students"} icon={Mail}>
       <form onSubmit={sendEmail} className="space-y-4">
         <div>
           <Label className="text-sm font-medium text-slate-700">Recipients</Label>
-          <div className="mt-2"><EmailGroupSelector selectedGroups={groups} onChange={setGroups} /></div>
+          <div className="mt-2"><EmailGroupSelector groups={recipientGroups} selectedGroups={groups} onChange={setGroups} /></div>
         </div>
         <div>
           <Label className="text-sm font-medium text-slate-700">Subject</Label>
