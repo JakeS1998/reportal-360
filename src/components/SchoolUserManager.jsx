@@ -427,7 +427,7 @@ export default function SchoolUserManager({
                   placeholder="e.g. Jane Savage"
                   className="mt-1"
                 />
-                <p className="text-xs text-slate-400 mt-1">Username auto-generated as schoolcode.name</p>
+                <p className="text-xs text-slate-400 mt-1">Username auto-generates from the selected school; enter a system prefix such as 022.name for district accounts.</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-slate-700">Role</Label>
@@ -440,8 +440,8 @@ export default function SchoolUserManager({
                     <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                   ))}
                 </select>
-                {role === "area" && (
-                  <p className="text-xs text-amber-600 mt-1">Area users see all schools in the system</p>
+                {["area", "commissioner"].includes(role) && (
+                  <p className="text-xs text-amber-600 mt-1">District-level users can switch between every school in the selected system.</p>
                 )}
               </div>
               <div>

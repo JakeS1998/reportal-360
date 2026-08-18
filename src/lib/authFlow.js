@@ -39,7 +39,7 @@ export async function completeLogin(user) {
   }
 
   let systemSchools = [];
-  if (user.role === "area" || user.school_code === "0000") {
+  if (["area", "commissioner"].includes(user.role) || user.school_code === "0000") {
     const schoolsRes = await base44.functions.invoke("subscriberAccess", {
       action: "schoolsBySystem",
       systemCode: user.system_code,

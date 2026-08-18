@@ -41,6 +41,7 @@ function resolveWorkingDays(workingDays = []) {
 }
 
 function resolveGradeLevels(teachingLevel, gradeLevels = [], role = "teacher") {
+  if (["area", "commissioner"].includes(role)) return { gradeLevels: [] };
   const allowedByLevel = {
     elementary: ["Pre-K", "K", "1", "2", "3", "4", "5"],
     middle: ["6", "7", "8"],
