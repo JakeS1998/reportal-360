@@ -28,7 +28,7 @@ export default function SystemUserManager({ callerCreds }) {
     setCreated(null);
     try {
       const res = await base44.functions.invoke("manageSchoolStaff", {
-        action: "create",
+        action: "create_system_user",
         ...callerCreds,
         full_name: form.fullName,
         email: form.email,

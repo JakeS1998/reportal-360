@@ -315,6 +315,43 @@ export default async function(req) {
       return Response.json({ success: true, count: credentials.length, credentials, errors, subjects_created: subjectsCreated, rooms_added: roomsAdded });
     }
 
+    // --- CREATE SYSTEM USER ---
+    if (action === "create_system_user") {
+      const { full_name, system_code, system_name, email, username: customUsername, password: customPassword } = params;
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      if (!full_name || !system_code || !email) return Response.json({ success: false, error: "full_name, email, and system_code are required" }, { status: 400 });
+
+      const username = (customUsername || "").trim() || makeUsername(system_code, full_name);
+      const existing = await base44.asServiceRole.entities.Teacher.filter({ username });
+      if (existing.length > 0) return Response.json({ success: false, error: "A user with this name already exists" }, { status: 400 });
+
+      const tempPassword = (customPassword || "").trim() || generateRandomPassword();
+      if (customPassword?.trim()) {
+        const pwError = validatePasswordComplexity(tempPassword);
+        if (pwError) return Response.json({ success: false, error: pwError }, { status: 400 });
+      }
+
+      const created = await base44.asServiceRole.entities.Teacher.create({
+        username,
+        password: tempPassword,
+        full_name,
+        role: "commissioner",
+        school_code: "0000",
+        system_code,
+        school_name: "All Schools",
+        system_name: system_name || "",
+        email,
+        grade_levels: [],
+        teaching_levels: [],
+        working_days: [],
+        subjects: [],
+        password_reset_required: true,
+        teacher_id: username,
+      });
+      await logAudit(base44, "user_created", caller_username || "", callerRole, `Created system user ${username} for ${system_code}`, "0000");
+      return Response.json({ success: true, user: { id: created.id, username: created.username, full_name: created.full_name, role: created.role }, temp_password: tempPassword });
+    }
+
     // --- CREATE ---
     if (action === "create") {
       const { full_name, role, school_code, system_code, school_name, system_name, email, username: customUsername, password: customPassword, subject, subjects, grade_levels, teaching_levels, working_days, room, coach } = params;
