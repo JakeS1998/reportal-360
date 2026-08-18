@@ -28,7 +28,7 @@ export default function SystemUserManager({ callerCreds }) {
     setCreated(null);
     try {
       const res = await base44.functions.invoke("manageSchoolStaff", {
-        action: "create_system_user",
+        action: "create",
         ...callerCreds,
         full_name: form.fullName,
         email: form.email,
@@ -39,6 +39,8 @@ export default function SystemUserManager({ callerCreds }) {
         system_code: form.systemCode,
         school_name: "All Schools",
         system_name: selectedSystem?.district_name || "",
+        teaching_levels: ["elementary"],
+        grade_levels: ["K"],
       });
       if (!res.data?.success) {
         setError(res.data?.error || "Unable to create system user");
