@@ -16,7 +16,7 @@ export default async function (req) {
     }
 
     if (resource === "schools") {
-      const schools = await db.SchoolDirectory.filter({}, "school_name", 2000);
+      const schools = await db.SchoolDirectory.filter({}, "school_name", 5000);
       return Response.json({ schools });
     }
 

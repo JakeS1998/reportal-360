@@ -64,7 +64,8 @@ export default async function(req) {
       const slaHours = client?.support_sla_hours || 24;
       const supportThreadId = `support:${caller.id}:${Date.now()}`;
       const currentPath = typeof params.current_path === 'string' ? params.current_path.slice(0, 500) : '';
-      const ticket = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, system_code: systemCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: new Date().toISOString(), ticket_status: 'new', sla_due_at: new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(), type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath });
+      const now = new Date().toISOString();
+      const ticket = await base44.asServiceRole.entities.StaffMessage.create({ school_code: schoolCode, system_code: systemCode, thread_id: supportThreadId, sender_id: caller.id, sender_name: credentials.name, recipient_id: assignee.id, recipient_name: assignee.full_name || 'Administrator', assigned_admin_id: assignee.id, assigned_admin_name: assignee.full_name || 'Administrator', assigned_at: now, ticket_status: 'new', sla_due_at: new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(), last_response_at: now, type: 'alert', title: 'Support request', content: params.content.trim(), current_path: currentPath });
       return Response.json({ success: true, ticket });
     }
     if (action === 'support_inbox') {
@@ -119,7 +120,8 @@ export default async function(req) {
       const statuses = ['new', 'awaiting_response', 'awaiting_customer', 'dormant', 'resolved', 'closed'];
       const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
       if (!request?.thread_id?.startsWith('support:') || !statuses.includes(params.ticket_status)) return Response.json({ success: false, error: 'Choose a valid support ticket status' }, { status: 400 });
-      await base44.asServiceRole.entities.StaffMessage.update(request.id, { ticket_status: params.ticket_status });
+      const updates = ['resolved', 'closed'].includes(params.ticket_status) ? { ticket_status: params.ticket_status, sla_due_at: null } : { ticket_status: params.ticket_status };
+      await base44.asServiceRole.entities.StaffMessage.update(request.id, updates);
       return Response.json({ success: true });
     }
     if (action === 'support_request_detail') {
@@ -136,7 +138,10 @@ export default async function(req) {
       if (caller.role !== 'admin' || !params.content?.trim()) return Response.json({ success: false, error: 'Administrator access and a reply are required' }, { status: 400 });
       const request = await base44.asServiceRole.entities.StaffMessage.get(params.request_id);
       if (!request || !request.thread_id?.startsWith('support:')) return Response.json({ success: false, error: 'Support request unavailable' }, { status: 404 });
+      const client = request.system_code ? (await base44.asServiceRole.entities.Client.filter({ system_code: request.system_code }, 'created_date', 1))[0] : null;
+      const now = new Date();
       const message = await base44.asServiceRole.entities.StaffMessage.create({ school_code: request.school_code, thread_id: request.thread_id, sender_id: credentials.id, sender_name: credentials.name, recipient_id: request.sender_id, recipient_name: request.sender_name || 'Teacher', type: 'message', content: params.content.trim() });
+      await base44.asServiceRole.entities.StaffMessage.update(request.id, { ticket_status: 'awaiting_customer', last_response_at: now.toISOString(), sla_due_at: new Date(now.getTime() + (client?.support_sla_hours || 24) * 60 * 60 * 1000).toISOString() });
       return Response.json({ success: true, message });
     }
     if (action === 'add_support_call') {

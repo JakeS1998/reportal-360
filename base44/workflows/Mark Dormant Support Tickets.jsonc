@@ -1,0 +1,45 @@
+{
+  "name": "Mark Dormant Support Tickets",
+  "description": "Marks support tickets dormant after 48 hours awaiting a teacher response and sends a chat follow-up.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 * * * *",
+      "one_time_date": null,
+      "timezone": "Europe/London",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "mark_dormant_support_tickets",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "check_support_tickets": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processDormantSupportTickets",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Review support tickets",
+            "description": "Mark inactive customer replies dormant"
+          }
+        }
+      }
+    ]
+  }
+}
