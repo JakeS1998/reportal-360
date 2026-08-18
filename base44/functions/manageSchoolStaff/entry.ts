@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { logAudit, validatePasswordComplexity, getAdminCredentials, extractRequestInfo } from '../../shared/security.ts';
 import { resolveStaffCaller } from '../../shared/resolveStaffCaller.ts';
 import { buildEmailHtml } from '../../shared/alabamaScenes.ts';
+import { secrets } from 'base44:runtime';
 
 const { username: ADMIN_USERNAME, password: ADMIN_PASSWORD } = getAdminCredentials();
 const authorizationWords = ["amber", "apple", "beacon", "birch", "bridge", "candle", "cedar", "cloud", "coral", "copper", "dawn", "ember", "fern", "garden", "harbor", "indigo", "juniper", "meadow", "maple", "moss", "north", "orchard", "paper", "pebble", "pine", "river", "robin", "sable", "silver", "sunrise", "thistle", "velvet", "willow"];
@@ -241,6 +242,35 @@ export default async function(req) {
       for (const field of allowed) if (params[field] !== undefined) updateData[field] = params[field];
       const updated = await base44.asServiceRole.entities.Teacher.update(caller.id, updateData);
       return Response.json({ success: true, user: updated });
+    }
+
+    // --- MASS EMAIL ---
+    if (action === "send_mass_email") {
+      if (callerRole !== "admin") return Response.json({ success: false, error: "Platform administrator access required" }, { status: 403 });
+      const groups = Array.isArray(params.groups) ? params.groups : [];
+      const subject = String(params.subject || "").trim();
+      const message = String(params.message || "").trim();
+      const validGroups = ["teacher", "manager", "area"];
+      if (!groups.length || groups.some((group) => !validGroups.includes(group))) return Response.json({ success: false, error: "Select at least one recipient group" }, { status: 400 });
+      if (!subject || !message) return Response.json({ success: false, error: "Subject and message are required" }, { status: 400 });
+
+      const recipients = await base44.asServiceRole.entities.Teacher.list("email", 5000);
+      const selectedRoles = new Set(groups.flatMap((group) => group === "manager" ? ["manager", "school_admin"] : group === "area" ? ["area", "commissioner"] : ["teacher"]));
+      const emails = [...new Set(recipients.filter((recipient) => recipient.active !== false && selectedRoles.has(recipient.role) && recipient.email).map((recipient) => recipient.email.trim().toLowerCase()))];
+      if (!emails.length) return Response.json({ success: false, error: "No active users with email addresses match the selected groups" }, { status: 400 });
+
+      const resendApiKey = secrets.get("RESEND_API_KEY");
+      const from = process.env.RESEND_FROM_EMAIL || "ReportAL 360 <onboarding@resend.dev>";
+      const html = buildEmailHtml({ heading: subject, message, footerNote: "This message was sent by the ReportAL 360 administrator." });
+      let sentCount = 0;
+      for (let index = 0; index < emails.length; index += 100) {
+        const batch = emails.slice(index, index + 100).map((to) => ({ from, to, subject, html }));
+        const response = await fetch("https://api.resend.com/emails/batch", { method: "POST", headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" }, body: JSON.stringify(batch) });
+        if (!response.ok) return Response.json({ success: false, error: "Email delivery failed" }, { status: 502 });
+        sentCount += batch.length;
+      }
+      await logAudit(base44, "admin_action", caller_username || "", callerRole, `Sent mass email to ${sentCount} users in groups: ${groups.join(", ")}`);
+      return Response.json({ success: true, sent_count: sentCount });
     }
 
     // --- BULK CREATE ---
