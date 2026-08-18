@@ -156,11 +156,11 @@ export default function Administration() {
         </FadeIn>
 
         <FadeIn delay={90}>
-          <SystemAreaUserAccessManager callerCreds={creds} />
+          <SystemAreaUserAccessManager callerCreds={{ caller_username: creds.username, caller_password: creds.password }} />
         </FadeIn>
 
         <FadeIn delay={100}>
-          <MassEmailComposer callerCreds={creds} mode="platform" />
+          <MassEmailComposer callerCreds={{ caller_username: creds.username, caller_password: creds.password }} mode="platform" />
         </FadeIn>
 
         <FadeIn delay={110}>
