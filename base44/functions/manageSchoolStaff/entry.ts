@@ -353,7 +353,7 @@ export default async function(req) {
       const workingDaySelection = resolveWorkingDays(working_days);
       if (workingDaySelection.error) return Response.json({ success: false, error: workingDaySelection.error }, { status: 400 });
 
-      const username = (customUsername || "").trim() || makeUsername(school_code, full_name);
+      const username = (customUsername || "").trim() || (school_code === "0000" ? makeUsername(system_code, full_name) : makeUsername(school_code, full_name));
 
       // Check for duplicate username
       const existing = await base44.asServiceRole.entities.Teacher.filter({ username });
