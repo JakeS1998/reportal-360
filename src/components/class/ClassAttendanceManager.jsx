@@ -68,10 +68,19 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const loadExisting = async () => {
     setLoadingExisting(true);
     try {
-      const filters = individual
-        ? { class_id: classId, schedule_id: scheduleId, date, student_id: students[0]?.student_id }
-        : { class_id: classId, schedule_id: scheduleId, date };
-      const recs = await base44.entities.AttendanceRecord.filter(filters, undefined, 500);
+      const response = await base44.functions.invoke("manageAttendanceReview", {
+        action: "class_records",
+        caller_username: user?.username,
+        caller_password: user?.password || localStorage.getItem("userPassword") || "",
+        caller_email: user?.email || "",
+        caller_sso: Boolean(user?.sso || user?.email),
+        school_code: user?.school_code,
+        class_id: classId,
+        schedule_id: scheduleId,
+        date,
+      });
+      if (!response.data?.success) throw new Error(response.data?.error || "Unable to load attendance.");
+      const recs = individual ? response.data.records.filter((record) => record.student_id === students[0]?.student_id) : response.data.records;
       if (recs.length > 0) {
         const m = {};
         recs.forEach((r) => { m[r.student_id] = r.status; });
