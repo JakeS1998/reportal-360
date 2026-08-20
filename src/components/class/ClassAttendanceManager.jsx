@@ -24,6 +24,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
   const [marks, setMarks] = useState(() => Object.fromEntries(students.map((s) => [s.student_id, "present"])));
   const [excuseDetails, setExcuseDetails] = useState({});
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [loadingExisting, setLoadingExisting] = useState(true);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [meetsToday, setMeetsToday] = useState(false);
@@ -99,6 +100,7 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
 
   const persist = async (submitted) => {
     setSaving(true);
+    setSaveError("");
     try {
       const buildRecord = async (student) => {
         const status = marks[student.student_id] || "present";
@@ -120,8 +122,20 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
         else await base44.entities.AttendanceRecord.create(record);
       } else {
         const records = await Promise.all(students.map(buildRecord));
-        await base44.entities.AttendanceRecord.deleteMany({ class_id: classId, schedule_id: scheduleId, date });
-        await base44.entities.AttendanceRecord.bulkCreate(records);
+        const response = await base44.functions.invoke("manageAttendanceReview", {
+          action: "submit_class",
+          caller_username: user?.username,
+          caller_password: user?.password || localStorage.getItem("userPassword") || "",
+          caller_email: user?.email || "",
+          caller_sso: Boolean(user?.sso || user?.email),
+          school_code: user?.school_code,
+          class_id: classId,
+          schedule_id: scheduleId,
+          date,
+          submitted,
+          records,
+        });
+        if (!response.data?.success) throw new Error(response.data?.error || "Unable to save attendance.");
       }
       if (submitted) {
         const absentStudents = students.filter((student) => marks[student.student_id] === "absent");
@@ -137,6 +151,8 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
       }
       await loadExisting();
       onSaved?.();
+    } catch (error) {
+      setSaveError(error.message || "Unable to save attendance.");
     } finally {
       setSaving(false);
     }
@@ -195,6 +211,8 @@ export default function ClassAttendanceManager({ classId, scheduleId, dateStr, s
           )}
         </div>
       </div>
+
+      {saveError && <p className="text-xs text-rose-600">{saveError}</p>}
 
       {locked ? (
         <p className="text-xs text-emerald-600 flex items-center gap-1.5">

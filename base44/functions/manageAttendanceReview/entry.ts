@@ -23,11 +23,26 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const admin = getAdminCredentials();
     const caller = caller_username === admin.username && caller_password === admin.password ? { role: 'admin' } : await resolveStaffCaller(base44, { callerUsername: caller_username, callerPassword: caller_password, callerEmail: caller_email, callerSso: caller_sso });
-    if (!caller || !['admin', 'area', 'manager', 'school_admin'].includes(caller.role)) return Response.json({ success: false, error: 'School manager access is required.' }, { status: 403 });
+    const isClassSubmission = action === 'submit_class';
+    if (!caller || (!isClassSubmission && !['admin', 'area', 'manager', 'school_admin'].includes(caller.role))) return Response.json({ success: false, error: 'School manager access is required.' }, { status: 403 });
     const targetSchool = school_code || caller.school_code;
     if (!targetSchool || (caller.role !== 'admin' && caller.role !== 'area' && caller.school_code !== targetSchool)) return Response.json({ success: false, error: 'Not authorized for this school.' }, { status: 403 });
     const classes = await base44.asServiceRole.entities.Class.filter({ school_code: targetSchool }, undefined, 500);
     const classIds = new Set(classes.map((item) => item.id));
+
+    if (isClassSubmission) {
+      const records = Array.isArray(body.records) ? body.records : [];
+      if (!class_id || !schedule_id || !date || !classIds.has(class_id) || !records.length || records.some((record) => !record.student_id || !statuses.includes(record.status))) return Response.json({ success: false, error: 'Invalid attendance submission.' }, { status: 400 });
+      if (caller.role === 'teacher') {
+        const assignment = await base44.asServiceRole.entities.TeacherClass.filter({ class_id, teacher_id: caller.id }, undefined, 1);
+        if (!assignment.length) return Response.json({ success: false, error: 'You are not assigned to this class.' }, { status: 403 });
+      } else if (!['admin', 'area', 'manager', 'school_admin'].includes(caller.role)) return Response.json({ success: false, error: 'Not authorized to submit attendance.' }, { status: 403 });
+      const submitted = body.submitted === true;
+      const normalized = records.map((record) => ({ student_id: record.student_id, class_id, schedule_id, date, status: record.status, submitted, excused_reason: record.status === 'excused' ? record.excused_reason || '' : '', attachment_file_url: record.status === 'excused' ? record.attachment_file_url || '' : '', attachment_file_name: record.status === 'excused' ? record.attachment_file_name || '' : '', locked_by_manager: Boolean(record.locked_by_manager) }));
+      await base44.asServiceRole.entities.AttendanceRecord.deleteMany({ class_id, schedule_id, date });
+      await base44.asServiceRole.entities.AttendanceRecord.bulkCreate(normalized);
+      return Response.json({ success: true, count: normalized.length });
+    }
 
     if (action === 'suggest') {
       const term = query?.trim().toLowerCase() || '';
