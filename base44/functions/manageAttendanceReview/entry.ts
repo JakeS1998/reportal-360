@@ -36,7 +36,7 @@ export default async function(req: Request): Promise<Response> {
         const assignment = await base44.asServiceRole.entities.TeacherClass.filter({ class_id, teacher_id: caller.id }, undefined, 1);
         if (!assignment.length) return Response.json({ success: false, error: 'You are not assigned to this class.' }, { status: 403 });
       } else if (!['admin', 'area', 'manager', 'school_admin'].includes(caller.role)) return Response.json({ success: false, error: 'Not authorized to view attendance.' }, { status: 403 });
-      const records = await base44.asServiceRole.entities.AttendanceRecord.filter({ class_id, schedule_id, date }, undefined, 500);
+      const records = await base44.asServiceRole.entities.AttendanceRecord.filter({ class_id, date }, undefined, 500);
       return Response.json({ success: true, records });
     }
 
@@ -49,7 +49,7 @@ export default async function(req: Request): Promise<Response> {
       } else if (!['admin', 'area', 'manager', 'school_admin'].includes(caller.role)) return Response.json({ success: false, error: 'Not authorized to submit attendance.' }, { status: 403 });
       const submitted = body.submitted === true;
       const normalized = records.map((record) => ({ student_id: record.student_id, class_id, schedule_id, date, status: record.status, submitted, excused_reason: record.status === 'excused' ? record.excused_reason || '' : '', attachment_file_url: record.status === 'excused' ? record.attachment_file_url || '' : '', attachment_file_name: record.status === 'excused' ? record.attachment_file_name || '' : '', locked_by_manager: Boolean(record.locked_by_manager) }));
-      await base44.asServiceRole.entities.AttendanceRecord.deleteMany({ class_id, schedule_id, date });
+      await base44.asServiceRole.entities.AttendanceRecord.deleteMany({ class_id, date });
       await base44.asServiceRole.entities.AttendanceRecord.bulkCreate(normalized);
       return Response.json({ success: true, count: normalized.length });
     }
