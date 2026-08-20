@@ -136,8 +136,8 @@ export default function SelectSchool() {
       }
 
       // Normal login — fetch school data and enter dashboard
-      await completeLogin(user);
-      await registerAppbuildPush();
+      completeLogin(user);
+      void registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to log in");
@@ -170,8 +170,8 @@ export default function SelectSchool() {
         navigate("/admin", { replace: true });
         return;
       }
-      await completeLogin(user);
-      await registerAppbuildPush();
+      completeLogin(user);
+      void registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to verify");
@@ -217,8 +217,8 @@ export default function SelectSchool() {
         return;
       }
       const user = res.data.user;
-      await completeLogin(user);
-      await registerAppbuildPush();
+      completeLogin(user);
+      void registerAppbuildPush();
       window.location.assign(user.role === "student" ? "/my-student" : "/overview");
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Unable to reactivate");
